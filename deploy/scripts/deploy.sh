@@ -20,9 +20,9 @@ ln -sfn "${APP_ROOT}/shared/.env" "${RELEASE_DIR}/.env"
 # 3. Install Python deps in shared venv (recreate if Python upgraded)
 "${APP_ROOT}/venv/bin/pip" install -r "${RELEASE_DIR}/requirements.txt"
 
-# 4. Build Tailwind CSS (Node available on host)
+# 4. Build Tailwind CSS (Tailwind is a devDependency — install all deps, not --omit=dev)
 cd "${RELEASE_DIR}"
-npm ci --omit=dev
+npm ci
 npm run build:css
 
 # 5. Migrate DB (safe — fail aborts before symlink flip)
