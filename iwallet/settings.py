@@ -190,13 +190,16 @@ if not DEBUG:
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
-    # Cookies
+    # Cookies — SameSite="None" required because the Telegram Mini App loads our
+    # page inside a 3rd-party iframe (web.telegram.org), so default "Lax" would
+    # block the session cookie on every subsequent request. Secure=True is
+    # mandatory for SameSite=None and we already serve HTTPS-only.
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SAMESITE = "None"
     CSRF_COOKIE_SECURE = True
     CSRF_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "None"
 
     # Misc headers
     SECURE_CONTENT_TYPE_NOSNIFF = True
