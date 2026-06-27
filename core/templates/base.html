@@ -8,11 +8,11 @@
         <meta name="theme-color" content="#FAFAF7">
         <meta name="robots" content="noindex,nofollow">
         <title>{% block title %}IWALLET{% endblock %}</title>
-        <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
-        <link rel="stylesheet" href="{% static 'css/build.css' %}">
+        <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v={% now 'U' %}">
+        <link rel="stylesheet" href="{% static 'css/build.css' %}?v={% now 'U' %}">
         <script src="https://telegram.org/js/telegram-web-app.js"></script>
-        <script defer src="{% static 'js/htmx.min.js' %}"></script>
-        <script defer src="{% static 'js/alpine.min.js' %}"></script>
+        <script defer src="{% static 'js/htmx.min.js' %}?v={% now 'U' %}"></script>
+        <script defer src="{% static 'js/alpine.min.js' %}?v={% now 'U' %}"></script>
     </head>
     <body x-data="{ toast: null }"
           @htmx:after-request.window="if ($event.detail.headers['HX-Trigger']) { const t = JSON.parse($event.detail.headers['HX-Trigger']); if (t.toast) toast = t.toast; setTimeout(() => toast = null, 3000); }">
@@ -23,37 +23,112 @@
         {% block bottom_nav %}
             {% include 'core/_nav.html' %}
         {% endblock %}
+        <button id="iw-debug-toggle"
+                type="button"
+                onclick="(function(){var p=document.getElementById('iw-debug-panel');p.style.display=p.style.display==='block'?'none':'block';})()"
+                style="position:fixed;
+                       bottom:8px;
+                       right:8px;
+                       z-index:99999;
+                       background:#dc2626;
+                       color:#fff;
+                       border:0;
+                       padding:4px 8px;
+                       border-radius:6px;
+                       font:11px ui-monospace,Menlo,Consolas,monospace;
+                       cursor:pointer;
+                       opacity:.85">🔍 log</button>
+        <div id="iw-debug-panel"
+             style="display:none;
+                    position:fixed;
+                    bottom:40px;
+                    left:8px;
+                    right:8px;
+                    max-height:55vh;
+                    overflow-y:auto;
+                    background:rgba(15,23,42,.96);
+                    color:#e2e8f0;
+                    font:11px ui-monospace,Menlo,Consolas,monospace;
+                    padding:8px;
+                    border-radius:8px;
+                    z-index:99998;
+                    white-space:pre-wrap;
+                    word-break:break-word;
+                    border:1px solid #334155">
+            <div style="opacity:.5; margin-bottom:4px">[xato bo'lsa shu yer ochiladi avtomatik]</div>
+        </div>
         <script>
-    // Telegram WebApp lifecycle bootstrap.
-    if (window.Telegram && window.Telegram.WebApp) {
-      Telegram.WebApp.ready();
-      Telegram.WebApp.expand();
-    }
-
-    // Telegram Desktop sometimes ships an empty Telegram.WebApp.initData while
-    // still placing the payload in the URL fragment (#tgWebAppData=...). Fall
-    // back to parsing the fragment so Desktop + Mobile both work. Pattern
-    // borrowed from Eric's GYMOS project where it ran in production.
-    function _getTelegramInitData() {
-      var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg && tg.initData) return tg.initData;
-      try {
-        var hash = window.location.hash || "";
-        var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
-        var params = new URLSearchParams(qs);
-        var fragmentInitData = params.get("tgWebAppData");
-        if (fragmentInitData) return decodeURIComponent(fragmentInitData);
-      } catch (e) { /* ignored */ }
-      return "";
-    }
-
-    // Inject the resolved initData on every htmx request.
-    document.addEventListener("htmx:configRequest", function (evt) {
-      var initData = _getTelegramInitData();
-      if (initData) {
-        evt.detail.headers["X-Telegram-InitData"] = initData;
-      }
-    });
+        (function () {
+            var panel = document.getElementById("iw-debug-panel");
+            var toggle = document.getElementById("iw-debug-toggle");
+            var errCount = 0;
+            function log(tag, msg) {
+                if (!panel) return;
+                var t = new Date().toISOString().slice(11, 19);
+                var line = document.createElement("div");
+                line.textContent = "[" + t + "] " + tag + " " + msg;
+                if (tag.indexOf("ERR") !== -1) {
+                    line.style.color = "#fca5a5";
+                    panel.style.display = "block";
+                    errCount += 1;
+                    toggle.textContent = "🔍 log (" + errCount + " xato)";
+                    toggle.style.background = "#ef4444";
+                }
+                panel.appendChild(line);
+                panel.scrollTop = panel.scrollHeight;
+            }
+            window._iwLog = log;
+            window.addEventListener("error", function (e) {
+                log("JS-ERR", (e.message || "?") + " @ " + (e.filename || "?") + ":" + (e.lineno || "?"));
+            });
+            window.addEventListener("unhandledrejection", function (e) {
+                log("PROMISE-ERR", String(e.reason));
+            });
+            document.addEventListener("htmx:configRequest", function (e) {
+                log("HX-REQ", (e.detail.verb || "?").toUpperCase() + " " + (e.detail.path || "?"));
+            });
+            document.addEventListener("htmx:afterRequest", function (e) {
+                var x = e.detail.xhr;
+                var redir = x.getResponseHeader && x.getResponseHeader("HX-Redirect");
+                log("HX-RES", x.status + " " + (x.responseURL || "") + (redir ? " -> " + redir : ""));
+            });
+            document.addEventListener("htmx:responseError", function (e) {
+                var x = e.detail.xhr;
+                log("HX-ERR", x.status + " :: " + (x.responseText || "").slice(0, 200));
+            });
+            document.addEventListener("htmx:sendError", function () {
+                log("HX-NET-ERR", "tarmoq xatosi");
+            });
+            log("BOOT", window.location.pathname + window.location.search);
+            log("TG-SDK", window.Telegram ? "bor" : "yo'q");
+            try {
+                var tg = window.Telegram && window.Telegram.WebApp;
+                if (tg) log("TG-INIT", "initData.len=" + (tg.initData || "").length + " platform=" + (tg.platform || "?"));
+            } catch (e) { log("TG-ERR", String(e)); }
+            log("COOKIE", document.cookie ? "bor (len=" + document.cookie.length + ")" : "yo'q");
+        })();
+        </script>
+        <script>
+        if (window.Telegram && window.Telegram.WebApp) {
+            try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
+            catch (e) { window._iwLog && window._iwLog("TG-BOOT-ERR", String(e)); }
+        }
+        function _getTelegramInitData() {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (tg && tg.initData) return tg.initData;
+            try {
+                var hash = window.location.hash || "";
+                var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
+                var fragment = new URLSearchParams(qs).get("tgWebAppData");
+                if (fragment) return decodeURIComponent(fragment);
+            } catch (e) { window._iwLog && window._iwLog("FRAG-ERR", String(e)); }
+            return "";
+        }
+        document.addEventListener("htmx:configRequest", function (evt) {
+            var initData = _getTelegramInitData();
+            window._iwLog && window._iwLog("HX-HEADER", "X-Telegram-InitData.len=" + initData.length);
+            if (initData) evt.detail.headers["X-Telegram-InitData"] = initData;
+        });
         </script>
     </body>
 </html>

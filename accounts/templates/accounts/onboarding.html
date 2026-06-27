@@ -2,76 +2,128 @@
 {% block title %}IWALLET'ga xush kelibsiz{% endblock %}
 {% block bottom_nav %}{% endblock %}
 {% block content %}
-    <section class="px-5 pt-8 pb-6 flex flex-col min-h-screen"
+    <section style="min-height: 100vh;
+                    display: flex;
+                    flex-direction: column;
+                    padding: 32px 20px 24px;
+                    box-sizing: border-box"
              x-data="{ card: 0, total: 3 }">
-        <div class="flex-1 flex flex-col justify-center items-center">
+        <div style="flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: center;
+                    align-items: center">
             <article x-show="card === 0"
-                     x-transition:enter="transition ease-out duration-250"
-                     x-transition:enter-start="opacity-0 translate-y-2"
-                     x-transition:enter-end="opacity-100 translate-y-0"
-                     class="w-full max-w-sm text-center"
-                     style="display: none">
-                <div class="text-7xl mb-8" aria-hidden="true">🎤</div>
-                <h1 class="text-3xl font-semibold text-slate-900 leading-tight mb-4">Bir og'iz — yozib qoldi</h1>
-                <p class="text-base text-slate-600 leading-relaxed">
+                     style="width: 100%;
+                            max-width: 360px;
+                            text-align: center;
+                            display: none">
+                <div style="font-size: 64px;
+                            line-height: 1;
+                            margin-bottom: 28px"
+                     aria-hidden="true">🎤</div>
+                <h1 style="font-size: 28px;
+                           font-weight: 600;
+                           color: #0f172a;
+                           line-height: 1.2;
+                           margin: 0 0 16px">Bir og'iz — yozib qoldi</h1>
+                <p style="font-size: 16px; color: #475569; line-height: 1.55; margin: 0">
                     Mikrofonni bosib gapirasiz: «Non oldim, 25 ming». Kategoriya, sana, valyuta — barchasi avtomatik tanlanadi. Sizdan faqat bir og'iz so'z.
                 </p>
             </article>
             <article x-show="card === 1"
-                     x-transition:enter="transition ease-out duration-250"
-                     x-transition:enter-start="opacity-0 translate-y-2"
-                     x-transition:enter-end="opacity-100 translate-y-0"
-                     class="w-full max-w-sm text-center"
-                     style="display: none">
-                <div class="text-7xl mb-8" aria-hidden="true">🤝</div>
-                <h1 class="text-3xl font-semibold text-slate-900 leading-tight mb-4">Qarz — esdan chiqmaydi</h1>
-                <p class="text-base text-slate-600 leading-relaxed">
+                     style="width: 100%;
+                            max-width: 360px;
+                            text-align: center;
+                            display: none">
+                <div style="font-size: 64px;
+                            line-height: 1;
+                            margin-bottom: 28px"
+                     aria-hidden="true">🤝</div>
+                <h1 style="font-size: 28px;
+                           font-weight: 600;
+                           color: #0f172a;
+                           line-height: 1.2;
+                           margin: 0 0 16px">Qarz — esdan chiqmaydi</h1>
+                <p style="font-size: 16px; color: #475569; line-height: 1.55; margin: 0">
                     «Karimga 100 ming berdim» deysiz — IWALLET qarzni eslab qoladi. Qaytarish vaqti yaqinlashganda, sizga eslatma yuboradi. Daftar tutish — endi tarixda.
                 </p>
             </article>
             <article x-show="card === 2"
-                     x-transition:enter="transition ease-out duration-250"
-                     x-transition:enter-start="opacity-0 translate-y-2"
-                     x-transition:enter-end="opacity-100 translate-y-0"
-                     class="w-full max-w-sm text-center"
-                     style="display: none">
-                <div class="text-7xl mb-8" aria-hidden="true">📊</div>
-                <h1 class="text-3xl font-semibold text-slate-900 leading-tight mb-4">Pulingiz yo'li — kaftingizda</h1>
-                <p class="text-base text-slate-600 leading-relaxed">
+                     style="width: 100%;
+                            max-width: 360px;
+                            text-align: center;
+                            display: none">
+                <div style="font-size: 64px;
+                            line-height: 1;
+                            margin-bottom: 28px"
+                     aria-hidden="true">📊</div>
+                <h1 style="font-size: 28px;
+                           font-weight: 600;
+                           color: #0f172a;
+                           line-height: 1.2;
+                           margin: 0 0 16px">Pulingiz yo'li — kaftingizda</h1>
+                <p style="font-size: 16px; color: #475569; line-height: 1.55; margin: 0">
                     Har oy oxirida: qayerga ketgan, qancha tejagan, qancha qolgan. Sodda grafik, aniq raqamlar. Pulingiz endi sizning nazoratingizda.
                 </p>
             </article>
         </div>
-        <div class="mt-auto">
-            <div class="flex justify-center gap-2 mb-6"
+        <div style="margin-top: auto;">
+            <div style="display: flex;
+                        justify-content: center;
+                        gap: 8px;
+                        margin-bottom: 24px"
                  role="tablist"
                  aria-label="Tanishtiruv qadamlari">
                 <template x-for="i in total" :key="i">
-                    <span class="h-2 rounded-full transition-all duration-200"
-                          :class="card === (i - 1) ? 'bg-emerald-600 w-8' : 'bg-slate-300 w-2'"
+                    <span :style="card === (i - 1) ? 'height:8px; width:32px; border-radius:9999px; background:#059669; transition:all .2s;' : 'height:8px; width:8px; border-radius:9999px; background:#cbd5e1; transition:all .2s;'"
                           role="tab"
                           :aria-selected="card === (i - 1)"
                           :aria-label="`Qadam ${i} / ${total}`"></span>
                 </template>
             </div>
-            <div class="flex gap-3">
+            <div style="display: flex; gap: 12px;">
                 <button x-show="card > 0"
                         @click="card = card - 1"
                         type="button"
-                        class="btn-secondary flex-1"
-                        style="display: none">Orqaga</button>
+                        style="flex:1;
+                               padding:14px 16px;
+                               font-size:16px;
+                               font-weight:600;
+                               color:#0f172a;
+                               background:#fff;
+                               border:1px solid #cbd5e1;
+                               border-radius:14px;
+                               cursor:pointer;
+                               display: none">Orqaga</button>
                 <button x-show="card < total - 1"
                         @click="card = card + 1"
                         type="button"
-                        class="btn-primary flex-1"
-                        style="display: none">Davom etish</button>
+                        style="flex:1;
+                               padding:14px 16px;
+                               font-size:16px;
+                               font-weight:600;
+                               color:#fff;
+                               background:#059669;
+                               border:0;
+                               border-radius:14px;
+                               cursor:pointer;
+                               display: none">Davom etish</button>
                 <button x-show="card === total - 1"
                         hx-post="{% url 'accounts:onboarding_complete' %}"
                         hx-swap="none"
-                        hx-on::response-error="alert('Boshlash ishlamadi (HTTP ' + event.detail.xhr.status + '). Iltimos, WebApp'ni yopib qaytadan oching.')"
+                        hx-on::after-request="if (event.detail.successful) { var redir = event.detail.xhr.getResponseHeader('HX-Redirect'); if (redir) window.location.href = redir; }"
                         type="button"
-                        class="btn-primary flex-1"
-                        style="display: none">Boshlash</button>
+                        style="flex:1;
+                               padding:14px 16px;
+                               font-size:16px;
+                               font-weight:600;
+                               color:#fff;
+                               background:#059669;
+                               border:0;
+                               border-radius:14px;
+                               cursor:pointer;
+                               display: none">Boshlash</button>
             </div>
         </div>
     </section>
