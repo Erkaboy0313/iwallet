@@ -6,11 +6,9 @@
     in his client without DevTools. Removed once auth flow is verified.
     {% endcomment %}
     <div id="tg-debug"
-         class="mx-5 mt-4 mb-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 font-mono whitespace-pre-wrap">
-        Telegram SDK yuklanmoqda…
-    </div>
+         class="mx-5 mt-4 mb-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 font-mono whitespace-pre-wrap">JS-XATO-PLACEHOLDER-ko'rinsa-script-ishlamadi</div>
     <script>
-    (function () {
+    function _tgDebugRender(label) {
         var el = document.getElementById("tg-debug");
         if (!el) return;
         try {
@@ -22,24 +20,30 @@
             try {
                 var hash = window.location.hash || "";
                 var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
-                fragmentInitData = decodeURIComponent(
-                    new URLSearchParams(qs).get("tgWebAppData") || ""
-                );
+                fragmentInitData = new URLSearchParams(qs).get("tgWebAppData") || "";
+                try { fragmentInitData = decodeURIComponent(fragmentInitData); } catch (e2) { /* keep raw */ }
             } catch (e) { /* ignore */ }
             var resolved = sdkInitData || fragmentInitData;
             var msg =
+                "[" + label + "] " + new Date().toISOString().slice(11, 19) + "\n" +
+                "window.Telegram: " + (window.Telegram ? "bor" : "yo'q") + "\n" +
+                "WebApp: " + (tg ? "bor" : "yo'q") + "\n" +
                 "platform: " + ((tg && tg.platform) || "?") + "\n" +
                 "version: " + ((tg && tg.version) || "?") + "\n" +
+                "url hash length: " + (window.location.hash || "").length + "\n" +
+                "url search length: " + (window.location.search || "").length + "\n" +
                 "SDK initData length: " + sdkInitData.length + "\n" +
-                "URL fragment initData length: " + fragmentInitData.length + "\n" +
+                "fragment initData length: " + fragmentInitData.length + "\n" +
                 "resolved length: " + resolved.length + "\n" +
-                "resolved head: " + (resolved ? resolved.slice(0, 60) + "…" : "(bo'sh)") + "\n" +
                 "user: " + (user ? (user.id + " " + (user.first_name || "")) : "(yo'q)");
             el.textContent = msg;
         } catch (e) {
-            el.textContent = "❌ JS xato: " + e.message;
+            el.textContent = "[" + label + "] JS-EXCEPTION: " + e.message;
         }
-    })();
+    }
+    _tgDebugRender("immediate");
+    document.addEventListener("DOMContentLoaded", function () { _tgDebugRender("DOMContentLoaded"); });
+    setTimeout(function () { _tgDebugRender("setTimeout-500ms"); }, 500);
     </script>
     <section class="px-5 pt-6"
              hx-get="{% url 'core:home_content' %}"
