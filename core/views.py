@@ -54,16 +54,19 @@ def home_content(request):
 def _try_authenticate(init_data: str):
     """Best-effort: returns a User on success, None when initData is missing/invalid.
 
-    Logs (without leaking the raw header) so debugging is possible from the
-    server side without breaking the user-facing flow.
+    Logs key signal (length + reason) without leaking the raw header so we can
+    diagnose from server logs without exposing user data.
     """
     if not init_data:
+        logger.info("home_content auth: init_data header empty")
         return None
+    logger.info("home_content auth: received init_data length=%d", len(init_data))
     try:
         user_dict = validate_init_data(init_data, settings.TELEGRAM_BOT_TOKEN)
     except InvalidInitDataError as e:
-        logger.info("home_content auth fallback: %s", e)
+        logger.info("home_content auth: validation failed reason=%s", e)
         return None
+    logger.info("home_content auth: ok user_id=%s", user_dict.get("id"))
     return get_or_create_user_from_init_data(user_dict)
 
 
