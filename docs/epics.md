@@ -518,6 +518,60 @@ Onboarding 3-card, mic permission deferred, loading/empty/error states, micro-an
 
 **Goal:** Foydalanuvchi 4 ta tranzaksiya turidan birini manual flow orqali yozadi, Home'da sof balansni ko'radi, History ekranida tarixini ko'radi, filterlaydi, tahrirlaydi, soft-delete'da o'chiradi va undo qiladi. Voice yo'q — kelajak epikda.
 
+> **Story 1.0 — Onboarding** (originally Story 10.1) **forward'ga ko'chirildi** (2026-06-27, Eric requested): birinchi marta kirgan foydalanuvchi haqiqiy UI'ni ishlatishidan oldin app nima qilishini bilish kerak. Story 10.1 endi shu yer'da, Epic 10'da olib tashlandi.
+
+### Story 1.0: First-Run Onboarding (3 Cards + Deferred Mic Permission)
+
+**As a** first-time user,
+**I want** a quick orientation showing what IWALLET does and how to start,
+**So that** I know what the app is for before I touch the buttons.
+
+**Acceptance Criteria:**
+
+**Given** `accounts/views.py::onboarding_view` at `/app/onboarding/`
+**When** an authenticated user lands on Home AND `user.onboarded_at` is NULL AND `user.created_at` was within last 5 minutes (or any time if Sprint 0 placeholder)
+**Then** middleware (or Home view) redirects to `/app/onboarding/`
+
+**Given** the onboarding page
+**When** rendered
+**Then** it shows a **3-card swipeable carousel** (Alpine.js x-data for tab state):
+  - **Card 1 (Salomlashish):**
+    - Heading: *"IWALLET — Telegram'da pulingni 10 soniyada yozasan"*
+    - Subtext: *"Kirim, chiqim, qarz — hammasi bir joyda. O'zbekcha gapirib yoki tezda yozib."*
+    - Visual: katta wallet emoji (💰)
+  - **Card 2 (Tranzaksiya turlari):**
+    - Heading: *"4 ta tranzaksiya turi"*
+    - 4 ta katta tugma-style grid: 💚 *Kirim* · 💸 *Chiqim* · 🤝 *Qarz oldim* · 🫴 *Qarz berdim*
+    - Har biri ostida 1 qatorli oddiy izoh (DUMB-proof): masalan *"Qarz oldim — kimdandir pul olib turdim"*
+  - **Card 3 (Voice vs Qo'lda):**
+    - Heading: *"Voice yoki qo'lda — sen tanlaysan"*
+    - Subtext: *"Mic'ga gapir — yoki tugmalardan yoz. Voice uchun ruxsat keyinroq so'raladi, hozir kerak emas."*
+    - Visual: 🎤 + ✏️ kichik icon ostida
+**And** har card pastida pagination dots (1/3, 2/3, 3/3)
+**And** oxirgi cardda `Boshlash` primary tugma full-width
+**And** har card top-right'da kichik `O'tkazib yuborish` text-link
+
+**Given** user "Boshlash" yoki "O'tkazib yuborish" bossa
+**When** ekrani bosadi
+**Then** view `accounts.services.mark_onboarded(user)` chaqiradi → `user.onboarded_at = now()` saqlaydi
+**And** redirect to `/app/home/`
+**And** keyingi kirishlarda onboarding ko'rinmaydi
+
+**Given** mic permission HECH QANDAY onboarding paytida so'ralmaydi (FR4)
+**When** user keyinroq Home'da mic tugmasini bossa
+**Then** kontekstual prompt ko'rinadi: *"Voice ishlatish uchun mic ruxsati kerak. Audio biz tomondan saqlanmaydi."* + `[Ruxsat ber]` `[Hozir kerak emas]` tugmalar
+
+**Given** integration test `accounts/tests/test_onboarding.py`
+**When** I run pytest
+**Then** test verifies: first-time user redirected to onboarding, mark_onboarded service works, returning user skips onboarding, skip button marks onboarded
+**And** coverage on `onboarding_view` and `mark_onboarded` ≥ 80%
+
+**Given** template test
+**When** rendered
+**Then** all 3 cards have correct DUMB-proof text (verbatim per AC above)
+**And** `aria-label`'lar barcha tugmalarga
+**And** mobile viewport 430px constraint hisobga olingan
+
 ### Story 1.1: Transaction Model + Manager + Migrations
 
 **As a** developer,
@@ -1624,40 +1678,9 @@ Onboarding 3-card, mic permission deferred, loading/empty/error states, micro-an
 
 **Goal:** Onboarding, all loading/empty/error states, micro-animations, accessibility audit, Settings ekran, final QA.
 
-### Story 10.1: Onboarding Flow (3 Cards + Deferred Mic Permission)
+### Story 10.1: ~~Onboarding Flow~~ — moved to **Story 1.0** (Epic 1)
 
-**As a** first-time user,
-**I want** a quick orientation,
-**So that** I know what IWALLET is and how to start.
-
-**Acceptance Criteria:**
-
-**Given** `accounts/views.py::onboarding_view` at `/app/onboarding/`
-**When** user lands and `user.created_at` was within last 5 minutes AND user has zero transactions
-**Then** middleware redirects to onboarding on Home access
-**When** user lands at onboarding
-**Then** shows 3 cards in swipeable carousel:
-  - Card 1: "IWALLET — Telegram'da pulingni 10 soniyada yozasan" + minimal illustration text
-  - Card 2: 4 transaction types visual ("Kirim · Chiqim · Qarz oldim · Qarz berdim") + emoji
-  - Card 3: "Voice yoki qo'lda — har ikkisi ham ishlaydi. Voice uchun mic ruxsati keyinroq so'raladi."
-
-**Given** "Boshlash" button on last card
-**When** tapped
-**Then** marks user as onboarded (`User.onboarded_at = now()` — add field via migration)
-**And** redirects to Home
-
-**Given** the user can skip via "O'tkazib yuborish"
-**When** tapped
-**Then** marks onboarded immediately, redirects to Home
-
-**Given** mic permission is NOT requested during onboarding
-**When** user first taps the voice button on Home post-onboarding
-**Then** small toast/banner explains "Ovoz uchun mic ruxsati kerak. Audio biz tomondan saqlanmaydi." before browser prompt
-**And** this contextual prompt verified by integration test
-
-**Given** integration tests
-**Then** cover: first-time redirect, swipe through cards, skip, mark onboarded, voice contextual permission
-**And** coverage ≥80%
+> Eric's decision (2026-06-27): onboarding kerak v0.1'dan boshlab, polish sprint'gacha kutib bo'lmaydi. Full AC spec endi Epic 1 → Story 1.0'da. Bu yer'da reference qoldirilgan.
 
 ### Story 10.2: Loading Skeletons + Optimistic UI Audit
 

@@ -476,6 +476,34 @@ Refs: PRD FR21, FR24
 
 ---
 
+## DUMB-Proof UX Rule (asosiy qoida)
+
+> Foydalanuvchi hech qanday hujjat o'qimaydi. Har help text, button label, error message — **birinchi marta ko'rgan oddiy odam** ham o'rganmasdan tushunadigan ravshanlik darajasida bo'lishi shart.
+
+**Yozish qoidalari:**
+
+- ❌ Texnik atama: *"Authentication failed"* → ✅ *"Telegram orqali qaytadan kiring"*
+- ❌ Generic: *"Submit"* / *"Confirm action"* → ✅ Kontekstga mos fe'l: *"Saqlash"* / *"Tasdiqlash"* / *"Yopish"* / *"Bekor qilish"*
+- ❌ Tushunarsiz error: *"500 Internal Server Error"* → ✅ *"Texnik nosozlik. Qaytadan urinib ko'ring."* + `[Qaytadan]` tugma
+- ❌ Dead-end empty state: *"Ma'lumot yo'q"* → ✅ *"Birinchi tranzaksiyangizni qo'shing"* + `[🎤 Voice] [✏️ Qo'lda]` tugmalar
+- ❌ Faqat voice/AI: voice xatosi → ko'r-ko'rona → ✅ Har xatoda **manual fallback ko'rinarli**
+
+**Error message strukturasi (3 qism):**
+
+1. **Nima bo'ldi** (oddiy til, texnik so'z yo'q)
+2. **Nima uchun** (ixtiyoriy — faqat user qila oladigan narsa bo'lsa)
+3. **Keyingi qadam** (aniq tugma yoki link)
+
+**Story AC qoidasi:**
+
+- Har UI text/label story Dev Notes'da to'liq sitata bilan yozish
+- Code review checklist'da: *"5 yoshli bola tushunadimi?"* test
+- Hech qachon foydalanuvchini "to'g'ri narsa qilishga" tayan — har doim noto'g'ri input handle qil va tuzatish yo'lini ber
+
+**Manba:** Eric'ning aniq talabi (2026-06-27). *"Foydalanuvchilar tom ma'noda DUMB bo'ladi, shuning uchun help text'lar o'ta tushunarli bo'lishi kerak."*
+
+---
+
 ## Quick Reference — Top 10 Rules
 
 1. **`Decimal` only for money, never `float`.**
