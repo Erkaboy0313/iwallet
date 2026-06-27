@@ -2,11 +2,11 @@
 name = "iwallet"
 version = "0.1.0"
 description = "Telegram WebApp shaxsiy moliyaviy tracker — voice-first, o'zbek tilida"
-requires-python = ">=3.13"
+requires-python = ">=3.12"
 
 [tool.ruff]
 line-length = 100
-target-version = "py313"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM", "RET", "ARG"]

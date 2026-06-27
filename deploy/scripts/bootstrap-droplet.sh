@@ -10,10 +10,10 @@ DB_PASSWORD="${IWALLET_DB_PASSWORD:?Set IWALLET_DB_PASSWORD to a strong random s
 
 echo "→ Bootstrapping IWALLET on $(hostname) for ${DOMAIN}"
 
-# 1. System packages (only install what's missing — droplet already has nginx etc.)
+# 1. System packages (Python 3.12 from Ubuntu 24.04 default repos — consistent with other projects on this droplet)
 sudo apt update
 sudo apt install -y \
-    python3.13 python3.13-venv \
+    python3 python3-venv python3-dev \
     build-essential libpq-dev \
     nodejs npm \
     postgresql-16 postgresql-contrib \
@@ -27,9 +27,9 @@ fi
 sudo mkdir -p /srv/iwallet/{releases,shared/logs}
 sudo chown -R iwallet:iwallet /srv/iwallet
 
-# 3. Persistent Python venv
+# 3. Persistent Python venv (uses system python3 = 3.12 on Ubuntu 24.04)
 if [[ ! -d /srv/iwallet/venv ]]; then
-    sudo -u iwallet python3.13 -m venv /srv/iwallet/venv
+    sudo -u iwallet python3 -m venv /srv/iwallet/venv
 fi
 
 # 4. Local Postgres DB + user

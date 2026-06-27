@@ -23,7 +23,7 @@ existing_patterns_found: 47
 
 | Layer | Texnologiya | Versiya | Eslatma |
 |---|---|---|---|
-| Runtime | Python | 3.13+ | async views uchun |
+| Runtime | Python | 3.12+ | async views uchun (Ubuntu 24.04 default) |
 | Backend framework | Django | 5.1 LTS | async ORM cheklangan — `sync_to_async` ishlatiladi voice ORM uchun |
 | ASGI server | uvicorn | latest stable | gunicorn YOQ — async views talab qiladi ASGI |
 | Database | PostgreSQL | 16+ | JSONB + Decimal |
