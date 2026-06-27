@@ -1,18 +1,24 @@
 name: Deploy
 
+# Runs ONLY after the CI workflow completes successfully on main.
+# This guarantees lint + tests passed before any code reaches production.
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
     branches: [main]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Don't deploy if CI failed — gating happens via branch protection + this job depending on CI status.
-    if: github.event.head_commit.message != 'skip-deploy'
+    # Skip if CI failed or was cancelled.
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
 
     steps:
       - uses: actions/checkout@v4
         with:
+          # Deploy the exact SHA that CI tested — not just the current branch tip.
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Set up SSH
