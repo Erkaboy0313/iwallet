@@ -48,9 +48,8 @@ SQL
 # 5. Redis enabled (uses DB 1 to coexist with any other project on DB 0)
 sudo systemctl enable --now redis-server
 
-# 6. nginx server block install + reload
+# 6. nginx server block install + reload (domain already hardcoded to ${DOMAIN} in repo)
 sudo cp deploy/nginx/iwallet.conf /etc/nginx/sites-available/iwallet
-sudo sed -i "s/iwallet\.yourdomain\.com/${DOMAIN}/g" /etc/nginx/sites-available/iwallet
 if [[ ! -L /etc/nginx/sites-enabled/iwallet ]]; then
     sudo ln -s /etc/nginx/sites-available/iwallet /etc/nginx/sites-enabled/iwallet
 fi
