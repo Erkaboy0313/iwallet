@@ -15,7 +15,7 @@
         <script defer src="{% static 'js/alpine.min.js' %}?v={% now 'U' %}"></script>
     </head>
     <body x-data="{ toast: null }"
-          @htmx:after-request.window="if ($event.detail.headers['HX-Trigger']) { const t = JSON.parse($event.detail.headers['HX-Trigger']); if (t.toast) toast = t.toast; setTimeout(() => toast = null, 3000); }">
+          @htmx:after-request.window="(function(){ var trig = $event.detail.xhr && $event.detail.xhr.getResponseHeader && $event.detail.xhr.getResponseHeader('HX-Trigger'); if (!trig) return; try { var t = JSON.parse(trig); if (t.toast) { toast = t.toast; setTimeout(function(){ toast = null; }, 3000); } } catch (e) { window._iwLog && window._iwLog('TRIG-ERR', String(e)); } })()">
         {% include 'core/_toast.html' %}
         <main id="app-main">
             {% block content %}{% endblock %}

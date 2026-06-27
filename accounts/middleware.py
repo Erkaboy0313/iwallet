@@ -35,6 +35,26 @@ PUBLIC_APP_PATHS: frozenset[str] = frozenset(
 )
 
 
+class CsrfExemptAppMiddleware:
+    """Bypass Django's CSRF token check for /app/* routes.
+
+    Every protected /app/* endpoint is already authenticated by an HMAC-signed
+    Telegram initData header (or a sticky session derived from one). An attacker
+    can't forge that without the bot token — strictly stronger than the CSRF
+    token would be — so the CSRF middleware would only add ceremony to the
+    htmx layer (no <form>, no csrfmiddlewaretoken to splice in) without
+    adding real protection. Must be installed BEFORE CsrfViewMiddleware.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.path.startswith(PROTECTED_PATH_PREFIX):
+            request._dont_enforce_csrf_checks = True
+        return self.get_response(request)
+
+
 class TelegramAuthMiddleware:
     """Attach `request.user` from validated initData (or sticky session)."""
 
