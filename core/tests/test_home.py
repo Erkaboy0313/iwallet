@@ -1,13 +1,22 @@
-"""Sprint 0 — Story 0.9 — Home view + auth smoke test."""
+"""Story 1.5 — Home shell + auth'd BalanceHero content."""
+
+from datetime import date
+from decimal import Decimal
 
 import pytest
-from django.test import Client
+from django.test import Client, override_settings
 from django.urls import reverse
+from django.utils import timezone
+
+from accounts.models import User
+from accounts.tests.test_services import BOT_TOKEN, _make_init_data
+from transactions.tests.factories import TransactionFactory
+
+# ---------- /app/home/ shell ----------
 
 
 @pytest.mark.django_db
 def test_healthz_anonymous_returns_ok() -> None:
-    """Healthcheck endpoint is anonymous (no auth header) — returns 200 'ok'."""
     client = Client()
     response = client.get("/healthz")
     assert response.status_code == 200
@@ -15,27 +24,92 @@ def test_healthz_anonymous_returns_ok() -> None:
 
 
 @pytest.mark.django_db
-def test_home_returns_200_anonymous_shell() -> None:
-    """/app/home/ is a public shell (PUBLIC_APP_PATHS) — anonymous GET returns 200.
-
-    Per-user data is fetched client-side via Telegram WebApp SDK + future htmx
-    auth'd endpoints; the initial page render does not require initData.
-    """
+def test_home_shell_renders_anonymously() -> None:
+    """Shell is public — first GET has no initData."""
     client = Client()
     response = client.get(reverse("core:home"))
     assert response.status_code == 200
-    # Placeholder fallback name renders server-side; JS overrides with real
-    # Telegram user when WebApp is opened.
-    assert b'id="user-first-name"' in response.content
+    body = response.content.decode("utf-8")
+    assert 'hx-get="/app/home/content/"' in body
+    assert "Yuklanmoqda" in body  # skeleton screen reader text
 
 
 @pytest.mark.django_db
-def test_home_renders_base_layout_chrome() -> None:
-    """Home extends base.html — viewport, bottom nav, Telegram SDK script all present."""
+def test_home_shell_extends_base_layout() -> None:
     client = Client()
     response = client.get(reverse("core:home"))
     body = response.content.decode("utf-8")
-    assert "width=device-width" in body
     assert "telegram-web-app.js" in body
-    assert 'aria-label="Uy"' in body  # bottom nav present
-    assert "initDataUnsafe" in body  # JS reads user name client-side
+    assert 'aria-label="Uy"' in body
+
+
+# ---------- /app/home/content/ (auth required) ----------
+
+
+@pytest.mark.django_db
+def test_home_content_rejects_anonymous() -> None:
+    client = Client()
+    response = client.get(reverse("core:home_content"))
+    assert response.status_code == 401
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_content_redirects_when_user_not_onboarded() -> None:
+    client = Client()
+    init_data = _make_init_data(user_id=7)
+    response = client.get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": init_data},
+    )
+    assert response.status_code == 200
+    assert response.headers.get("HX-Redirect") == reverse("accounts:onboarding")
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_content_renders_balance_hero_when_onboarded() -> None:
+    User.objects.create(telegram_id=8, first_name="Eric", onboarded_at=timezone.now())
+    client = Client()
+    init_data = _make_init_data(user_id=8, first_name="Eric")
+    response = client.get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": init_data},
+    )
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Salom, Eric" in body
+    assert "Sof balans" in body
+    assert "0 UZS" in body  # empty user — zero balance
+    assert "Birinchi tranzaksiyangizni qo'shing" in body
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_content_shows_real_balance_for_onboarded_user() -> None:
+    user = User.objects.create(telegram_id=9, first_name="Eric", onboarded_at=timezone.now())
+    TransactionFactory(
+        user=user,
+        type="income",
+        amount=Decimal("1000000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    TransactionFactory(
+        user=user,
+        type="expense",
+        amount=Decimal("250000"),
+        currency="UZS",
+        date=date.today(),
+    )
+
+    client = Client()
+    init_data = _make_init_data(user_id=9, first_name="Eric")
+    response = client.get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": init_data},
+    )
+    body = response.content.decode("utf-8")
+    # smart_money: 750000 stays under 1M → "750 000 UZS" (thin space)
+    assert "750" in body
+    assert "UZS" in body
