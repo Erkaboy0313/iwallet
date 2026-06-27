@@ -36,7 +36,6 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "django_htmx",
-    "django_extensions",
     "csp",
     # Local apps (domain-driven)
     "core",
@@ -50,6 +49,10 @@ INSTALLED_APPS = [
     "reports",
     "notifications",
 ]
+
+# Dev-only apps (django-extensions ships in requirements-dev.txt, not prod).
+if DEBUG:
+    INSTALLED_APPS.append("django_extensions")
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
