@@ -1,6 +1,38 @@
 {% extends 'base.html' %}
 {% block title %}Uy — IWALLET{% endblock %}
 {% block content %}
+    {# TEMP debug overlay so Eric can confirm what Telegram.WebApp exposes
+       in his client without DevTools. Removed once auth flow is verified. #}
+    <div id="tg-debug"
+         class="mx-5 mt-4 mb-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 font-mono whitespace-pre-wrap">
+        Telegram SDK yuklanmoqda…
+    </div>
+    <script>
+    (function () {
+        var el = document.getElementById("tg-debug");
+        if (!el) return;
+        try {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg) {
+                el.textContent = "❌ window.Telegram.WebApp YO'Q (SDK yuklanmadi)";
+                return;
+            }
+            var initData = tg.initData || "";
+            var unsafe = tg.initDataUnsafe || {};
+            var user = unsafe.user || null;
+            var msg =
+                "platform: " + (tg.platform || "?") + "\n" +
+                "version: " + (tg.version || "?") + "\n" +
+                "initData length: " + initData.length + "\n" +
+                "initData head: " + (initData ? initData.slice(0, 60) + "…" : "(bo'sh)") + "\n" +
+                "initDataUnsafe keys: " + Object.keys(unsafe).join(", ") + "\n" +
+                "user: " + (user ? (user.id + " " + (user.first_name || "")) : "(yo'q)");
+            el.textContent = msg;
+        } catch (e) {
+            el.textContent = "❌ JS xato: " + e.message;
+        }
+    })();
+    </script>
     <section class="px-5 pt-6"
              hx-get="{% url 'core:home_content' %}"
              hx-trigger="load"
