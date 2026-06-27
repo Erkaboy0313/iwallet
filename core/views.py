@@ -16,6 +16,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_GET
 
 from accounts.exceptions import InvalidInitDataError
+from accounts.middleware import SESSION_KEY
+from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
 from transactions.selectors import month_summary
 
@@ -34,9 +36,15 @@ def home_content(request):
     """Render BalanceHero if authed; otherwise an anonymous welcome fallback."""
     init_data = request.headers.get(INIT_DATA_HEADER, "")
     user = _try_authenticate(init_data)
+    if user is None:
+        cached_id = request.session.get(SESSION_KEY)
+        if cached_id is not None:
+            user = User.objects.filter(telegram_id=cached_id).first()
 
     if user is None:
         return render(request, "core/_home_anonymous.html")
+
+    request.session[SESSION_KEY] = user.telegram_id
 
     if user.onboarded_at is None:
         response = HttpResponse(status=200)

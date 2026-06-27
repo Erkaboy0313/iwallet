@@ -47,13 +47,14 @@ def test_onboarding_view_renders_anonymously() -> None:
     assert response.status_code == 200
 
     body = response.content.decode("utf-8")
-    # 3 cards present (verify by card heading text)
-    assert "10 soniyada" in body  # Card 1 heading fragment
-    assert "4 ta tranzaksiya turi" in body  # Card 2 heading
-    assert "Voice yoki qo'lda" in body  # Card 3 heading
-    # CTA + skip
+    # 3 feature cards (verify by heading)
+    assert "Gapirib yozing" in body  # Card 1: voice feature
+    assert "Qarzlarni unutmaysiz" in body  # Card 2: debt tracker
+    assert "Pulingizning yo'lini ko'rasiz" in body  # Card 3: reports
+    # Primary CTA on last card
     assert "Boshlash" in body
-    assert "O'tkazib yuborish" in body
+    # Skip button removed by design — only 3 cards, no shortcut needed
+    assert "O'tkazib yuborish" not in body
 
 
 @pytest.mark.django_db

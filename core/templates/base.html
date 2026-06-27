@@ -20,7 +20,9 @@
         <main id="app-main">
             {% block content %}{% endblock %}
         </main>
-        {% include 'core/_nav.html' %}
+        {% block bottom_nav %}
+            {% include 'core/_nav.html' %}
+        {% endblock %}
         <script>
     // Telegram WebApp lifecycle bootstrap.
     if (window.Telegram && window.Telegram.WebApp) {
