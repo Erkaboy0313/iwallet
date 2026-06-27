@@ -12,7 +12,7 @@ EnvironmentFile=/srv/iwallet/shared/.env
 # Bot service entry comes online in Epic 9. Until then this unit is disabled.
 ExecStart=/srv/iwallet/venv/bin/uvicorn notifications.bot.webhook:app \
     --host 127.0.0.1 \
-    --port 8001 \
+    --port 8011 \
     --workers 1
 Restart=on-failure
 RestartSec=5

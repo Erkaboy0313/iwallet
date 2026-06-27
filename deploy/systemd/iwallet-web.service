@@ -11,7 +11,7 @@ WorkingDirectory=/srv/iwallet/current
 EnvironmentFile=/srv/iwallet/shared/.env
 ExecStart=/srv/iwallet/venv/bin/uvicorn iwallet.asgi:application \
     --host 127.0.0.1 \
-    --port 8000 \
+    --port 8010 \
     --workers 2 \
     --proxy-headers \
     --forwarded-allow-ips 127.0.0.1

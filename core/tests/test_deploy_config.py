@@ -7,8 +7,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 def test_nginx_config_exists_and_references_ports() -> None:
     nginx = (BASE_DIR / "deploy" / "nginx" / "iwallet.conf").read_text(encoding="utf-8")
-    assert "proxy_pass http://127.0.0.1:8000" in nginx, "WebApp upstream not configured"
-    assert "proxy_pass http://127.0.0.1:8001" in nginx, "Bot upstream not configured"
+    assert "proxy_pass http://127.0.0.1:8010" in nginx, "WebApp upstream not configured"
+    assert "proxy_pass http://127.0.0.1:8011" in nginx, "Bot upstream not configured"
     assert "/healthz" in nginx
     assert "Strict-Transport-Security" in nginx
     assert "alias /srv/iwallet/current/staticfiles/" in nginx
