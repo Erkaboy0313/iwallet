@@ -1,10 +1,8 @@
 """Sprint 0 — Story 0.9 — Home view + auth smoke test."""
 
 import pytest
-from django.test import Client, override_settings
+from django.test import Client
 from django.urls import reverse
-
-from accounts.tests.test_services import BOT_TOKEN, _make_init_data
 
 
 @pytest.mark.django_db
@@ -17,38 +15,27 @@ def test_healthz_anonymous_returns_ok() -> None:
 
 
 @pytest.mark.django_db
-def test_home_returns_401_without_init_data() -> None:
-    """Unauthenticated /app/home/ → 401 via TelegramAuthMiddleware."""
+def test_home_returns_200_anonymous_shell() -> None:
+    """/app/home/ is a public shell (PUBLIC_APP_PATHS) — anonymous GET returns 200.
+
+    Per-user data is fetched client-side via Telegram WebApp SDK + future htmx
+    auth'd endpoints; the initial page render does not require initData.
+    """
     client = Client()
     response = client.get(reverse("core:home"))
-    assert response.status_code == 401
-
-
-@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
-@pytest.mark.django_db
-def test_home_returns_200_with_valid_init_data() -> None:
-    """Valid initData → Home rendered with the user's first name."""
-    client = Client()
-    init_data = _make_init_data(user_id=999, first_name="Eric", username="eric")
-    response = client.get(
-        reverse("core:home"),
-        headers={"X-Telegram-InitData": init_data},
-    )
     assert response.status_code == 200
-    assert b"Salom, Eric" in response.content
+    # Placeholder fallback name renders server-side; JS overrides with real
+    # Telegram user when WebApp is opened.
+    assert b'id="user-first-name"' in response.content
 
 
-@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
 def test_home_renders_base_layout_chrome() -> None:
     """Home extends base.html — viewport, bottom nav, Telegram SDK script all present."""
     client = Client()
-    init_data = _make_init_data(user_id=1)
-    response = client.get(
-        reverse("core:home"),
-        headers={"X-Telegram-InitData": init_data},
-    )
+    response = client.get(reverse("core:home"))
     body = response.content.decode("utf-8")
     assert "width=device-width" in body
     assert "telegram-web-app.js" in body
     assert 'aria-label="Uy"' in body  # bottom nav present
+    assert "initDataUnsafe" in body  # JS reads user name client-side

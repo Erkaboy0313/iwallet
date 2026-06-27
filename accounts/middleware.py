@@ -16,6 +16,16 @@ logger = logging.getLogger(__name__)
 INIT_DATA_HEADER = "HTTP_X_TELEGRAM_INITDATA"
 PROTECTED_PATH_PREFIX = "/app/"
 
+# Public shell paths under /app/* that browsers hit on initial page load.
+# Telegram WebApp can't attach the initData header to the first GET — the JS SDK
+# reads it from the URL fragment AFTER the page loads. These paths render shells
+# that fetch real, authenticated content via htmx with the header injected.
+PUBLIC_APP_PATHS: frozenset[str] = frozenset(
+    {
+        "/app/home/",
+    }
+)
+
 
 class TelegramAuthMiddleware:
     """Attach `request.user` from validated initData on protected routes."""
@@ -25,6 +35,9 @@ class TelegramAuthMiddleware:
 
     def __call__(self, request):
         if not request.path.startswith(PROTECTED_PATH_PREFIX):
+            return self.get_response(request)
+
+        if request.path in PUBLIC_APP_PATHS:
             return self.get_response(request)
 
         init_data = request.META.get(INIT_DATA_HEADER, "")

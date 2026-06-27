@@ -10,8 +10,13 @@ from accounts.middleware import TelegramAuthMiddleware
 from accounts.tests.test_services import BOT_TOKEN, _make_init_data
 
 
-def _request(rf, path: str = "/app/home/", init_data: str | None = None):
-    """Build a request via Django RequestFactory; optionally inject initData header."""
+def _request(rf, path: str = "/app/secret/", init_data: str | None = None):
+    """Build a request via Django RequestFactory; optionally inject initData header.
+
+    Default path is a hypothetical protected route — `/app/home/` is now in
+    PUBLIC_APP_PATHS (it's a shell render), so middleware tests use a non-public
+    path to exercise the auth branch.
+    """
     headers: dict = {}
     if init_data is not None:
         headers["HTTP_X_TELEGRAM_INITDATA"] = init_data
@@ -56,3 +61,11 @@ def test_middleware_skips_non_app_paths(rf, middleware) -> None:
     request = _request(rf, path="/admin/login/", init_data=None)
     response = middleware(request)
     assert response.status_code == 200  # passes through to get_response
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+def test_middleware_lets_public_app_paths_through_without_init_data(rf, middleware) -> None:
+    """/app/home/ is a public shell — anonymous GET must NOT be blocked."""
+    request = _request(rf, path="/app/home/", init_data=None)
+    response = middleware(request)
+    assert response.status_code == 200  # passes to get_response (no auth check)

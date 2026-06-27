@@ -2,7 +2,9 @@
 {% block title %}Uy — IWALLET{% endblock %}
 {% block content %}
     <section class="px-5 pt-6">
-        <h1 class="text-2xl font-semibold text-slate-900">Salom, {{ user.first_name }}!</h1>
+        <h1 class="text-2xl font-semibold text-slate-900">
+            Salom, <span id="user-first-name">do'st</span>!
+        </h1>
         <p class="mt-2 text-sm text-slate-500">IWALLET ish maydoni tayyor. Tranzaksiya kiritish v0.1 da paydo bo'ladi.</p>
         <div class="mt-8 card-default">
             <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
@@ -20,4 +22,18 @@
                     aria-label="Qo'lda kiritish — tez orada">✏️ Qo'lda</button>
         </div>
     </section>
+    <script>
+        // Telegram WebApp provides user info via initDataUnsafe AFTER page load.
+        // Real validated auth happens server-side on subsequent htmx requests
+        // (Story 1.5+ — `X-Telegram-InitData` header from htmx).
+        (function () {
+            try {
+                const tg = window.Telegram && window.Telegram.WebApp;
+                const u = tg && tg.initDataUnsafe && tg.initDataUnsafe.user;
+                if (u && u.first_name) {
+                    document.getElementById("user-first-name").textContent = u.first_name;
+                }
+            } catch (e) { /* leave fallback "do'st" */ }
+        })();
+    </script>
 {% endblock %}
