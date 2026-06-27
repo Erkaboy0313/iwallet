@@ -47,10 +47,10 @@ def test_onboarding_view_renders_anonymously() -> None:
     assert response.status_code == 200
 
     body = response.content.decode("utf-8")
-    # 3 feature cards (verify by heading)
-    assert "Gapirib yozing" in body  # Card 1: voice feature
-    assert "Qarzlarni unutmaysiz" in body  # Card 2: debt tracker
-    assert "Pulingizning yo'lini ko'rasiz" in body  # Card 3: reports
+    # 3 feature cards (verify by heading fragment)
+    assert "yozib qoldi" in body  # Card 1: voice feature
+    assert "esdan chiqmaydi" in body  # Card 2: debt tracker
+    assert "kaftingizda" in body  # Card 3: reports
     # Primary CTA on last card
     assert "Boshlash" in body
     # Skip button removed by design — only 3 cards, no shortcut needed
