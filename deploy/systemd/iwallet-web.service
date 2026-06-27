@@ -1,0 +1,25 @@
+[Unit]
+Description=IWALLET WebApp (uvicorn ASGI)
+After=network.target postgresql.service redis.service
+Wants=postgresql.service redis.service
+
+[Service]
+Type=simple
+User=iwallet
+Group=iwallet
+WorkingDirectory=/srv/iwallet/current
+EnvironmentFile=/srv/iwallet/shared/.env
+ExecStart=/srv/iwallet/venv/bin/uvicorn iwallet.asgi:application \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 2 \
+    --proxy-headers \
+    --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iwallet-web
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,66 @@
+{# Bottom navigation — 5 tabs, sticky with safe-area-inset-bottom. UX-DR28. #}
+<nav class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-[color:var(--color-border)] flex justify-around items-center"
+     style="padding-bottom: env(safe-area-inset-bottom)"
+     aria-label="Asosiy navigatsiya">
+    {% url 'core:home' as home_url %}
+    <a href="{{ home_url }}"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs {% if request.path == home_url %}text-emerald-600{% else %}text-slate-500{% endif %}"
+       aria-label="Uy">
+        <svg class="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3v-7h6v7h3a1 1 0 001-1V10" />
+        </svg>
+        <span>Uy</span>
+    </a>
+    <a href="#"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-500"
+       aria-label="Qo'shish">
+        <svg class="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>+</span>
+    </a>
+    <a href="#"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-500"
+       aria-label="Tarix">
+        <svg class="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span>Tarix</span>
+    </a>
+    <a href="#"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-500"
+       aria-label="Qarz">
+        <svg class="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a5 5 0 00-10 0v2M5 9h14l-1 12H6L5 9z" />
+        </svg>
+        <span>Qarz</span>
+    </a>
+    <a href="#"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-500"
+       aria-label="Hisobot">
+        <svg class="w-6 h-6"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M7 14l4-4 4 4 5-5" />
+        </svg>
+        <span>Hisobot</span>
+    </a>
+</nav>

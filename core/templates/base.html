@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport"
+              content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+        <meta name="theme-color" content="#FAFAF7">
+        <meta name="robots" content="noindex,nofollow">
+        <title>{% block title %}IWALLET{% endblock %}</title>
+        <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+        <link rel="stylesheet" href="{% static 'css/build.css' %}">
+        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <script defer src="{% static 'js/htmx.min.js' %}"></script>
+        <script defer src="{% static 'js/alpine.min.js' %}"></script>
+    </head>
+    <body x-data="{ toast: null }"
+          @htmx:after-request.window="if ($event.detail.headers['HX-Trigger']) { const t = JSON.parse($event.detail.headers['HX-Trigger']); if (t.toast) toast = t.toast; setTimeout(() => toast = null, 3000); }">
+        {% include 'core/_toast.html' %}
+        <main id="app-main">
+            {% block content %}{% endblock %}
+        </main>
+        {% include 'core/_nav.html' %}
+        <script>
+    // Telegram WebApp lifecycle bootstrap
+    if (window.Telegram && window.Telegram.WebApp) {
+      Telegram.WebApp.ready();
+      Telegram.WebApp.expand();
+    }
+        </script>
+    </body>
+</html>

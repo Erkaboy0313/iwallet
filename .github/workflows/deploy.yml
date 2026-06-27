@@ -1,0 +1,43 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Don't deploy if CI failed — gating happens via branch protection + this job depending on CI status.
+    if: github.event.head_commit.message != 'skip-deploy'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add VPS to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Rsync release to VPS
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          rsync -avz --delete \
+            --exclude '.git' --exclude '.venv' --exclude 'node_modules' \
+            --exclude 'staticfiles' --exclude '__pycache__' \
+            ./ "iwallet@${{ secrets.DEPLOY_HOST }}:/srv/iwallet/releases/${SHA}/"
+
+      - name: Run deploy script on VPS
+        run: |
+          SHA=$(git rev-parse --short HEAD)
+          ssh "iwallet@${{ secrets.DEPLOY_HOST }}" "bash /srv/iwallet/releases/${SHA}/deploy/scripts/deploy.sh ${SHA}"
+
+      - name: Smoke test
+        run: |
+          curl -fsS "https://${{ secrets.DEPLOY_DOMAIN }}/healthz" || { echo "Healthcheck failed"; exit 1; }

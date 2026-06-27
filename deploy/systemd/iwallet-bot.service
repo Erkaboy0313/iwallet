@@ -1,0 +1,24 @@
+[Unit]
+Description=IWALLET Telegram Bot service (uvicorn ASGI, port 8001)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=iwallet
+Group=iwallet
+WorkingDirectory=/srv/iwallet/current
+EnvironmentFile=/srv/iwallet/shared/.env
+# Bot service entry comes online in Epic 9. Until then this unit is disabled.
+ExecStart=/srv/iwallet/venv/bin/uvicorn notifications.bot.webhook:app \
+    --host 127.0.0.1 \
+    --port 8001 \
+    --workers 1
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iwallet-bot
+
+[Install]
+WantedBy=multi-user.target

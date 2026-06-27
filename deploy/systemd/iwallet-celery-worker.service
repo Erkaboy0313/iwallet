@@ -1,0 +1,20 @@
+[Unit]
+Description=IWALLET Celery worker
+After=network.target redis.service postgresql.service
+Wants=redis.service postgresql.service
+
+[Service]
+Type=simple
+User=iwallet
+Group=iwallet
+WorkingDirectory=/srv/iwallet/current
+EnvironmentFile=/srv/iwallet/shared/.env
+ExecStart=/srv/iwallet/venv/bin/celery -A iwallet worker --loglevel=INFO --concurrency=2
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=iwallet-celery-worker
+
+[Install]
+WantedBy=multi-user.target

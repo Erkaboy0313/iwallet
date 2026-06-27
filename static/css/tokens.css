@@ -1,0 +1,78 @@
+/* IWALLET design tokens — drives Tailwind theme (Story 0.6).
+ * Source of truth for color, spacing, typography.
+ * Eric, hech qachon hex code'larni inline yozma — bu yerga qo'sh.
+ */
+
+:root {
+  /* ===== Color ===== */
+  --color-bg: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-text: #0F172A;
+  --color-text-muted: #64748B;
+  --color-border: #E2E8F0;
+
+  --color-primary: #059669;        /* emerald-600 — brand, CTA */
+  --color-primary-hover: #047857;  /* emerald-700 */
+
+  --color-income: #10B981;         /* emerald-500 */
+  --color-expense: #0F172A;        /* slate-900 — neutral, not red */
+  --color-debt: #F59E0B;           /* amber-500 — visual flag */
+  --color-danger: #DC2626;         /* red-600 — destructive only */
+
+  --color-warning-bg: #FEF3C7;     /* amber-100 — uncertainty card */
+  --color-success-bg: #D1FAE5;     /* emerald-100 — toast success */
+  --color-error-bg:   #FEE2E2;     /* red-100 — toast error */
+
+  /* ===== Spacing (4px base) ===== */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* ===== Typography ===== */
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-numeric: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* ===== Layout ===== */
+  --container-max: 430px;
+  --radius-card: 16px;
+  --radius-pill: 9999px;
+  --tap-target-min: 44px;
+}
+
+/* ===== Base reset ===== */
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
+}
+
+/* Tabular numerals globally for amounts */
+.amount, .num {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Reduced motion respect */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,66 @@
+/* Tailwind v4 entry. Token-driven via @theme.
+ * tokens.css ham parallel loadlanadi (base.html'da) — runtime CSS vars.
+ */
+
+@import "tailwindcss";
+@source "../../core/templates";
+@source "../../accounts/templates";
+@source "../../transactions/templates";
+@source "../../categories/templates";
+@source "../../debts/templates";
+@source "../../voice/templates";
+@source "../../currencies/templates";
+@source "../../recurring/templates";
+@source "../../reports/templates";
+@source "../../notifications/templates";
+
+@theme {
+  /* Map CSS variables from tokens.css to Tailwind theme.
+   * Bu yerda hex code yo'q — yagona source: static/css/tokens.css.
+   */
+  --color-bg: var(--color-bg);
+  --color-surface: var(--color-surface);
+  --color-text: var(--color-text);
+  --color-text-muted: var(--color-text-muted);
+  --color-border: var(--color-border);
+
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-income: var(--color-income);
+  --color-expense: var(--color-expense);
+  --color-debt: var(--color-debt);
+  --color-danger: var(--color-danger);
+
+  --font-display: var(--font-display);
+  --font-numeric: var(--font-numeric);
+  --font-mono: var(--font-mono);
+
+  --container-max: var(--container-max);
+  --radius-card: var(--radius-card);
+}
+
+/* ===== Component layer ===== */
+
+@layer components {
+  .btn-primary {
+    @apply bg-emerald-600 text-white px-4 py-3 rounded-2xl font-medium
+           focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2
+           hover:bg-emerald-700 active:scale-[0.97] transition;
+  }
+  .btn-secondary {
+    @apply bg-white text-emerald-700 border border-emerald-600 px-4 py-3 rounded-2xl font-medium
+           focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2;
+  }
+  .btn-ghost {
+    @apply text-slate-700 px-4 py-3 rounded-2xl
+           focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2;
+  }
+  .btn-danger {
+    @apply bg-red-600 text-white px-4 py-3 rounded-2xl font-medium
+           focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2;
+  }
+
+  .card-default {
+    @apply bg-white rounded-2xl p-4 shadow-sm border border-slate-200;
+  }
+}

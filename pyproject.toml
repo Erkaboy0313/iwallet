@@ -1,0 +1,54 @@
+[project]
+name = "iwallet"
+version = "0.1.0"
+description = "Telegram WebApp shaxsiy moliyaviy tracker — voice-first, o'zbek tilida"
+requires-python = ">=3.13"
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM", "RET", "ARG"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "accounts",
+    "core",
+    "transactions",
+    "categories",
+    "debts",
+    "voice",
+    "currencies",
+    "recurring",
+    "reports",
+    "notifications",
+]
+combine-as-imports = true
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "iwallet.settings"
+python_files = ["test_*.py"]
+addopts = "-ra --strict-markers"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "manage.py",
+    "iwallet/asgi.py",
+    "iwallet/wsgi.py",
+    ".venv/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
