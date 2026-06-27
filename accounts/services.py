@@ -27,7 +27,7 @@ def validate_init_data(init_data: str, bot_token: str) -> dict:
     if not bot_token:
         raise InvalidInitDataError("bot_token not configured")
 
-    parsed = dict(parse_qsl(init_data, strict_parsing=True))
+    parsed = dict(parse_qsl(init_data, keep_blank_values=True))
     received_hash = parsed.pop("hash", None)
     if not received_hash:
         raise InvalidInitDataError("hash field missing")

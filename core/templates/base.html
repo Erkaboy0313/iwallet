@@ -22,18 +22,34 @@
         </main>
         {% include 'core/_nav.html' %}
         <script>
-    // Telegram WebApp lifecycle bootstrap
+    // Telegram WebApp lifecycle bootstrap.
     if (window.Telegram && window.Telegram.WebApp) {
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
     }
-    // Inject Telegram initData on every htmx request so TelegramAuthMiddleware
-    // can authenticate. Server-side endpoints inside /app/* (outside the
-    // PUBLIC_APP_PATHS allowlist) require this header.
-    document.addEventListener("htmx:configRequest", function (evt) {
+
+    // Telegram Desktop sometimes ships an empty Telegram.WebApp.initData while
+    // still placing the payload in the URL fragment (#tgWebAppData=...). Fall
+    // back to parsing the fragment so Desktop + Mobile both work. Pattern
+    // borrowed from Eric's GYMOS project where it ran in production.
+    function _getTelegramInitData() {
       var tg = window.Telegram && window.Telegram.WebApp;
-      if (tg && tg.initData) {
-        evt.detail.headers["X-Telegram-InitData"] = tg.initData;
+      if (tg && tg.initData) return tg.initData;
+      try {
+        var hash = window.location.hash || "";
+        var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
+        var params = new URLSearchParams(qs);
+        var fragmentInitData = params.get("tgWebAppData");
+        if (fragmentInitData) return decodeURIComponent(fragmentInitData);
+      } catch (e) { /* ignored */ }
+      return "";
+    }
+
+    // Inject the resolved initData on every htmx request.
+    document.addEventListener("htmx:configRequest", function (evt) {
+      var initData = _getTelegramInitData();
+      if (initData) {
+        evt.detail.headers["X-Telegram-InitData"] = initData;
       }
     });
         </script>

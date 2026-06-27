@@ -13,19 +13,25 @@
         if (!el) return;
         try {
             var tg = window.Telegram && window.Telegram.WebApp;
-            if (!tg) {
-                el.textContent = "❌ window.Telegram.WebApp YO'Q (SDK yuklanmadi)";
-                return;
-            }
-            var initData = tg.initData || "";
-            var unsafe = tg.initDataUnsafe || {};
+            var unsafe = (tg && tg.initDataUnsafe) || {};
             var user = unsafe.user || null;
+            var sdkInitData = (tg && tg.initData) || "";
+            var fragmentInitData = "";
+            try {
+                var hash = window.location.hash || "";
+                var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
+                fragmentInitData = decodeURIComponent(
+                    new URLSearchParams(qs).get("tgWebAppData") || ""
+                );
+            } catch (e) { /* ignore */ }
+            var resolved = sdkInitData || fragmentInitData;
             var msg =
-                "platform: " + (tg.platform || "?") + "\n" +
-                "version: " + (tg.version || "?") + "\n" +
-                "initData length: " + initData.length + "\n" +
-                "initData head: " + (initData ? initData.slice(0, 60) + "…" : "(bo'sh)") + "\n" +
-                "initDataUnsafe keys: " + Object.keys(unsafe).join(", ") + "\n" +
+                "platform: " + ((tg && tg.platform) || "?") + "\n" +
+                "version: " + ((tg && tg.version) || "?") + "\n" +
+                "SDK initData length: " + sdkInitData.length + "\n" +
+                "URL fragment initData length: " + fragmentInitData.length + "\n" +
+                "resolved length: " + resolved.length + "\n" +
+                "resolved head: " + (resolved ? resolved.slice(0, 60) + "…" : "(bo'sh)") + "\n" +
                 "user: " + (user ? (user.id + " " + (user.first_name || "")) : "(yo'q)");
             el.textContent = msg;
         } catch (e) {
