@@ -3,6 +3,8 @@
 Domain invariants — encoded as DB constraints + manager behavior, NOT view logic.
 """
 
+from __future__ import annotations
+
 from datetime import date as _date_type
 
 from django.db import models
@@ -23,15 +25,15 @@ class TransactionType(models.TextChoices):
 class TransactionQuerySet(models.QuerySet):
     """Composable read-side queries. Chain freely: `.for_user(u).in_period(s, e)`."""
 
-    def for_user(self, user: User) -> "TransactionQuerySet":
+    def for_user(self, user: User) -> TransactionQuerySet:
         """Owner scope + soft-deleted excluded (NFR11 row-level isolation)."""
         return self.filter(user=user, is_deleted=False)
 
-    def in_period(self, start: _date_type, end: _date_type) -> "TransactionQuerySet":
+    def in_period(self, start: _date_type, end: _date_type) -> TransactionQuerySet:
         """Inclusive date range [start, end]."""
         return self.filter(date__gte=start, date__lte=end)
 
-    def by_type(self, type_: str) -> "TransactionQuerySet":
+    def by_type(self, type_: str) -> TransactionQuerySet:
         return self.filter(type=type_)
 
 

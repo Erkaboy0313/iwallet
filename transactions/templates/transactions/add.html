@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% block title %}Yangi tranzaksiya — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-5 pb-32"
+             x-data="{ type: '{{ form.type.value|default:'expense' }}', amount: '{{ form.amount.value|default:'' }}' }">
+        <header class="flex items-center gap-3 mb-5">
+            <a href="{% url 'core:home' %}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Bekor qilish va orqaga qaytish">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Yangi tranzaksiya</h1>
+        </header>
+        <form id="add-form"
+              hx-post="{% url 'transactions:add' %}"
+              hx-target="this"
+              hx-swap="outerHTML"
+              class="space-y-5">
+            {% csrf_token %}
+            <!-- Type radio -->
+            <fieldset>
+                <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Turi</legend>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for value, label in form.type.field.choices %}
+                        <label class="cursor-pointer">
+                            <input type="radio"
+                                   name="type"
+                                   value="{{ value }}"
+                                   x-model="type"
+                                   class="sr-only peer"
+                                   {% if form.type.value == value %}checked{% endif %}>
+                            <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
+                                {{ label }}
+                            </div>
+                        </label>
+                    {% endfor %}
+                </div>
+                {% if form.type.errors %}
+                    <p class="form-error text-red-700 text-sm mt-1">{{ form.type.errors|join:" " }}</p>
+                {% endif %}
+            </fieldset>
+            <!-- Amount + Numpad-style smart input -->
+            <div>
+                <label for="id_amount"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
+                <div class="flex gap-2">
+                    <input id="id_amount"
+                           name="amount"
+                           type="text"
+                           inputmode="decimal"
+                           x-model="amount"
+                           placeholder="0"
+                           required
+                           class="amount flex-1 text-3xl font-semibold tabular-nums rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none">
+                </div>
+                <div class="flex gap-2 mt-2">
+                    <button type="button"
+                            @click="amount = (parseFloat(amount || 0) * 1000).toString()"
+                            class="flex-1 text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 hover:bg-slate-200"
+                            aria-label="Kiritilgan raqamni 1000 ga ko'paytirish">× ming</button>
+                    <button type="button"
+                            @click="amount = (parseFloat(amount || 0) * 1000000).toString()"
+                            class="flex-1 text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 hover:bg-slate-200"
+                            aria-label="Kiritilgan raqamni million ga ko'paytirish">× mln</button>
+                    <button type="button"
+                            @click="amount = ''"
+                            class="text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 px-3 hover:bg-slate-200"
+                            aria-label="Summa maydonini tozalash">⌫</button>
+                </div>
+                {% if form.amount.errors %}
+                    <p class="form-error text-red-700 text-sm mt-1">{{ form.amount.errors|join:" " }}</p>
+                {% endif %}
+            </div>
+            <!-- Currency -->
+            <div>
+                <label for="id_currency"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Valyuta</label>
+                <select id="id_currency"
+                        name="currency"
+                        class="w-full rounded-2xl border border-slate-200 px-3 py-3 bg-white">
+                    {% for value, label in form.currency.field.choices %}
+                        <option value="{{ value }}"
+                                {% if form.currency.value == value or value == 'UZS' and not form.currency.value %}selected{% endif %}>{{ label }} ({{ value }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Category (income/expense only) -->
+            <div x-show="type === 'income' || type === 'expense'" x-cloak>
+                <label for="id_category_slug"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kategoriya</label>
+                <select id="id_category_slug"
+                        name="category_slug"
+                        class="w-full rounded-2xl border border-slate-200 px-3 py-3 bg-white">
+                    <option value="">— tanlamaslik —</option>
+                    {% for cat in form.category_choices_for_type %}
+                        <option value="{{ cat.slug }}"
+                                {% if form.category_slug.value == cat.slug %}selected{% endif %}>{{ cat.emoji }} {{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <!-- Counterparty (debt only) -->
+            <div x-show="type === 'debt_lent' || type === 'debt_borrowed'" x-cloak>
+                <label for="id_counterparty"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kim bilan</label>
+                <input id="id_counterparty"
+                       name="counterparty"
+                       type="text"
+                       value="{{ form.counterparty.value|default:'' }}"
+                       placeholder="Masalan: Akram"
+                       class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+                {% if form.counterparty.errors %}
+                    <p class="form-error text-red-700 text-sm mt-1">{{ form.counterparty.errors|join:" " }}</p>
+                {% endif %}
+            </div>
+            <!-- Date -->
+            <div>
+                <label for="id_date"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Sana</label>
+                <input id="id_date"
+                       name="date"
+                       type="date"
+                       value="{{ form.date.value|date:'Y-m-d'|default:'' }}"
+                       required
+                       class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                {% if form.date.errors %}
+                    <p class="form-error text-red-700 text-sm mt-1">{{ form.date.errors|join:" " }}</p>
+                {% endif %}
+            </div>
+            <!-- Note -->
+            <div>
+                <label for="id_note"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Izoh (ixtiyoriy)</label>
+                <textarea id="id_note"
+                          name="note"
+                          rows="2"
+                          class="w-full rounded-2xl border border-slate-200 px-3 py-3">{{ form.note.value|default:'' }}</textarea>
+            </div>
+        </form>
+        <!-- Sticky bottom CTA -->
+        <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200 px-5 py-4"
+             style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 1rem)">
+            <button type="submit"
+                    form="add-form"
+                    class="btn-primary w-full"
+                    aria-label="Tranzaksiyani saqlash">Saqlash</button>
+        </div>
+    </section>
+{% endblock %}
