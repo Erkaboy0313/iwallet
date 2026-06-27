@@ -20,10 +20,9 @@ ln -sfn "${APP_ROOT}/shared/.env" "${RELEASE_DIR}/.env"
 # 3. Install Python deps in shared venv (recreate if Python upgraded)
 "${APP_ROOT}/venv/bin/pip" install -r "${RELEASE_DIR}/requirements.txt"
 
-# 4. Build Tailwind CSS (Tailwind is a devDependency — install all deps, not --omit=dev)
 cd "${RELEASE_DIR}"
-npm ci
-npm run build:css
+# Tailwind CSS is built in CI on the GitHub runner (Node 22) and shipped via rsync;
+# no Node build runs on the droplet itself. See .github/workflows/deploy.yml.
 
 # 5. Migrate DB (safe — fail aborts before symlink flip)
 "${APP_ROOT}/venv/bin/python" manage.py migrate --noinput
