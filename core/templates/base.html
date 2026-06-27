@@ -27,6 +27,15 @@
       Telegram.WebApp.ready();
       Telegram.WebApp.expand();
     }
+    // Inject Telegram initData on every htmx request so TelegramAuthMiddleware
+    // can authenticate. Server-side endpoints inside /app/* (outside the
+    // PUBLIC_APP_PATHS allowlist) require this header.
+    document.addEventListener("htmx:configRequest", function (evt) {
+      var tg = window.Telegram && window.Telegram.WebApp;
+      if (tg && tg.initData) {
+        evt.detail.headers["X-Telegram-InitData"] = tg.initData;
+      }
+    });
         </script>
     </body>
 </html>

@@ -64,6 +64,20 @@ def validate_init_data(init_data: str, bot_token: str) -> dict:
 
 
 @db_transaction.atomic
+def mark_onboarded(user: User) -> None:
+    """Stamp the user as having seen the first-run onboarding (idempotent).
+
+    Story 1.0 AC: re-calling does NOT overwrite the original timestamp.
+    """
+    if user.onboarded_at is not None:
+        return
+    from django.utils import timezone
+
+    user.onboarded_at = timezone.now()
+    user.save(update_fields=["onboarded_at"])
+
+
+@db_transaction.atomic
 def get_or_create_user_from_init_data(user_dict: dict) -> User:
     """Upsert a User from the validated Telegram user payload."""
     telegram_id = int(user_dict["id"])
