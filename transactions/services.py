@@ -36,7 +36,7 @@ def create_transaction(
     amount: Decimal,
     currency: str,
     date: _date_type,
-    category_id: int | None = None,
+    category=None,
     counterparty: str = "",
     note: str = "",
 ) -> Transaction:
@@ -48,7 +48,7 @@ def create_transaction(
         amount=amount,
         currency=currency,
         date=date,
-        category_id=category_id,
+        category=category,
         counterparty=counterparty,
         note=note,
     )

@@ -55,8 +55,13 @@ class Transaction(models.Model):
     type = models.CharField(max_length=16, choices=TransactionType.choices)
     amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="UZS")
-    # category FK arrives in Story 1.3 (Category model). Nullable until then.
-    category_id = models.BigIntegerField(null=True, blank=True)
+    category = models.ForeignKey(
+        "categories.Category",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="transactions",
+    )
     # counterparty is only meaningful for debt_lent / debt_borrowed; nullable otherwise.
     counterparty = models.CharField(max_length=64, blank=True, default="")
     date = models.DateField()

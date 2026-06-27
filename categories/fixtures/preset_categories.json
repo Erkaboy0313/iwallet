@@ -1,0 +1,17 @@
+[
+    {"model": "categories.category", "fields": {"user": null, "type": "income", "slug": "oylik", "name": "Oylik", "emoji": "💼", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "income", "slug": "biznes", "name": "Biznes", "emoji": "💼", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "income", "slug": "sovga", "name": "Sovg'a", "emoji": "🎁", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "income", "slug": "qaytgan_qarz", "name": "Qaytgan qarz", "emoji": "🔁", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "income", "slug": "boshqa", "name": "Boshqa", "emoji": "📦", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "oziq_ovqat", "name": "Oziq-ovqat", "emoji": "🛒", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "transport", "name": "Transport", "emoji": "🚗", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "taxi", "name": "Taxi", "emoji": "🚕", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "qahva_kafe", "name": "Qahva/kafe", "emoji": "☕", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "kommunal", "name": "Kommunal", "emoji": "🧾", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "kongilochar", "name": "Ko'ngilochar", "emoji": "🎮", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "kiyim", "name": "Kiyim", "emoji": "👕", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "sogliq", "name": "Sog'liq", "emoji": "💊", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "talim", "name": "Ta'lim", "emoji": "📚", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}},
+    {"model": "categories.category", "fields": {"user": null, "type": "expense", "slug": "boshqa", "name": "Boshqa", "emoji": "📦", "created_at": "2026-06-27T00:00:00Z", "updated_at": "2026-06-27T00:00:00Z"}}
+]
