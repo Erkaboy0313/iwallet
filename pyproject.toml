@@ -38,6 +38,15 @@ addopts = "-ra --strict-markers"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
+[tool.djlint]
+profile = "django"
+indent = 4
+# T002: enforces double quotes in template tags — conflicts with Django convention.
+# T003: requires named {% endblock content %} — pure style preference; small project doesn't need it.
+# H021: inline styles flagged — safe-area-inset & x-cloak fallback can't be utility classes.
+# H030/H031: meta description/keywords — irrelevant for a Telegram WebApp (we use noindex).
+ignore = "T002,T003,H021,H030,H031"
+
 [tool.coverage.run]
 source = ["."]
 omit = [

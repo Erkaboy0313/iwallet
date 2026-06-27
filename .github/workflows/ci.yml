@@ -75,8 +75,11 @@ jobs:
       - name: Ruff format check
         run: ruff format --check .
 
-      - name: djlint templates
+      - name: djlint templates (format check)
         run: djlint . --check --extension html --profile=django
+
+      - name: djlint templates (lint)
+        run: djlint . --lint --extension html --profile=django
 
       - name: Run pytest with coverage
         run: pytest --cov=. --cov-report=term-missing --cov-fail-under=70
