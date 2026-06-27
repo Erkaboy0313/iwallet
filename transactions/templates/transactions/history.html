@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% block title %}Tarix — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-6 pb-24" x-data="{ filterOpen: false }">
+        <header class="flex items-center gap-3 mb-4">
+            <a href="{% url 'core:home' %}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Uyga qaytish">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Tarix</h1>
+        </header>
+        <!-- Filter pills (htmx-driven) -->
+        <div class="flex gap-2 overflow-x-auto pb-2"
+             role="tablist"
+             aria-label="Tranzaksiya turini filtrlash">
+            {% for value, label in filter_choices %}
+                <a hx-get="?{% if value %}type={{ value }}{% endif %}"
+                   hx-target="#history-list"
+                   hx-push-url="true"
+                   href="?{% if value %}type={{ value }}{% endif %}"
+                   class="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap {% if filter_type == value or not value and not filter_type %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}"
+                   role="tab"
+                   aria-selected="{% if filter_type == value or not value and not filter_type %}true{% else %}false{% endif %}">{{ label }}</a>
+            {% endfor %}
+            {% if any_filter_active %}
+                <a hx-get="{% url 'transactions:history' %}"
+                   hx-target="#history-list"
+                   hx-push-url="true"
+                   href="{% url 'transactions:history' %}"
+                   class="px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 whitespace-nowrap">Tozalash</a>
+            {% endif %}
+        </div>
+        <!-- List partial (htmx swap target) -->
+        <div id="history-list" class="mt-4">{% include 'transactions/_history_list.html' %}</div>
+    </section>
+{% endblock %}

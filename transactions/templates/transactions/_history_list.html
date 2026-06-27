@@ -1,0 +1,73 @@
+{% load core_extras %}
+{% if page.object_list %}
+    <ul class="space-y-2">
+        {% for tx in page.object_list %}
+            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                <a href="{% url 'transactions:edit' tx.id %}"
+                   class="flex items-center justify-between gap-3"
+                   aria-label="Tranzaksiyani tahrirlash">
+                    <span class="flex items-center gap-2 min-w-0">
+                        <span aria-hidden="true" class="text-xl">
+                            {% if tx.category %}
+                                {{ tx.category.emoji }}
+                            {% else %}
+                                📌
+                            {% endif %}
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block text-sm font-medium text-slate-900 truncate">
+                                {% if tx.category %}
+                                    {{ tx.category.name }}
+                                {% else %}
+                                    {{ tx.get_type_display }}
+                                {% endif %}
+                            </span>
+                            <span class="block text-xs text-slate-500 truncate">
+                                {{ tx.date|date:"j-N" }}
+                                {% if tx.note %}· {{ tx.note|truncatechars:30 }}{% endif %}
+                            </span>
+                        </span>
+                    </span>
+                    <span class="amount text-sm font-semibold {% if tx.type == 'income' %}text-emerald-600{% elif tx.type == 'expense' %}text-slate-900{% else %}text-amber-600{% endif %}">
+                        {% if tx.type == 'income' or tx.type == 'debt_borrowed' %}
+                            +
+                        {% else %}
+                            −
+                        {% endif %}
+                        {{ tx.amount|smart_money:tx.currency }}
+                    </span>
+                </a>
+                <form hx-post="{% url 'transactions:delete' tx.id %}"
+                      hx-confirm="Bu tranzaksiyani o'chirasizmi?"
+                      class="mt-2 flex justify-end">
+                    {% csrf_token %}
+                    <button type="submit"
+                            class="text-xs text-red-600 underline-offset-4 hover:underline"
+                            aria-label="Tranzaksiyani o'chirish">O'chirish</button>
+                </form>
+            </li>
+        {% endfor %}
+    </ul>
+    {% if page.has_next %}
+        <div class="mt-4 text-center">
+            <a hx-get="?page={{ page.next_page_number }}{% if filter_type %}&type={{ filter_type }}{% endif %}"
+               hx-target="#history-list"
+               hx-swap="outerHTML"
+               class="text-sm text-emerald-600 underline-offset-4 hover:underline cursor-pointer">Yana yuklash</a>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="text-center py-12 px-4">
+        <p class="text-sm text-slate-500">
+            {% if any_filter_active %}
+                Filterga mos tranzaksiya yo'q.
+            {% else %}
+                Hozircha tranzaksiya yo'q. Birinchisini qo'shing.
+            {% endif %}
+        </p>
+        {% if not any_filter_active %}
+            <a href="{% url 'transactions:add' %}"
+               class="btn-primary inline-block mt-4">+ Yangi tranzaksiya</a>
+        {% endif %}
+    </div>
+{% endif %}

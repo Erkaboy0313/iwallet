@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db.models import Sum
+from django.db.models import QuerySet, Sum
 
 from accounts.models import User
 
@@ -81,3 +81,32 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
         top_categories=top,
         transaction_count=qs.count(),
     )
+
+
+def history_list(
+    user: User,
+    *,
+    type_: str | None = None,
+    category_slug: str | None = None,
+    currency: str | None = None,
+    start: date | None = None,
+    end: date | None = None,
+) -> QuerySet[Transaction]:
+    """Reverse-chronological history with optional filters (Story 1.6).
+
+    Includes select_related('category') so list templates avoid the N+1 trap.
+    """
+    qs = (
+        Transaction.objects.for_user(user)
+        .select_related("category")
+        .order_by("-date", "-created_at")
+    )
+    if type_:
+        qs = qs.by_type(type_)
+    if category_slug:
+        qs = qs.filter(category__slug=category_slug)
+    if currency:
+        qs = qs.filter(currency=currency)
+    if start is not None and end is not None:
+        qs = qs.in_period(start, end)
+    return qs
