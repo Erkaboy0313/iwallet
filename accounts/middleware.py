@@ -23,6 +23,7 @@ PROTECTED_PATH_PREFIX = "/app/"
 PUBLIC_APP_PATHS: frozenset[str] = frozenset(
     {
         "/app/home/",
+        "/app/home/content/",
         "/app/onboarding/",
     }
 )

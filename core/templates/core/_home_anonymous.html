@@ -1,0 +1,26 @@
+{# Fallback rendered when Telegram initData is missing or invalid.
+   Lets the user see the app shell and try opening from a different context
+   (mobile bot inline button, /start, etc.) without a hard error wall. #}
+<section class="px-5 pt-6">
+    <header class="mb-5">
+        <h1 class="text-2xl font-semibold text-slate-900">IWALLET</h1>
+        <p class="mt-1 text-sm text-slate-500">Shaxsiy moliya tracker'i</p>
+    </header>
+    <div class="card-default">
+        <p class="text-sm text-slate-700 leading-relaxed">
+            WebApp ochildi, lekin Telegram sizning identifikatoringizni uzatmadi.
+            Bu odatda Telegram Desktop'da yuz beradi.
+        </p>
+        <p class="mt-3 text-sm text-slate-700 leading-relaxed">
+            <strong>Mobile Telegram'da</strong> bot bilan suhbatga <code>/start</code> yuboring va Menu Button'ni qaytadan oching.
+        </p>
+    </div>
+    <div class="mt-6 grid grid-cols-1 gap-3">
+        <a href="{% url 'accounts:onboarding' %}"
+           class="btn-primary text-center"
+           aria-label="Onboarding sahifasini ko'rish">📖 Tanishuv (3 qadam)</a>
+        <a href="{% url 'transactions:history' %}"
+           class="btn-secondary text-center"
+           aria-label="Tarix sahifasini ochish">📋 Tarix</a>
+    </div>
+</section>

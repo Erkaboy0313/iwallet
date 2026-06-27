@@ -47,10 +47,13 @@ def test_home_shell_extends_base_layout() -> None:
 
 
 @pytest.mark.django_db
-def test_home_content_rejects_anonymous() -> None:
+def test_home_content_returns_anonymous_fallback_when_init_data_missing() -> None:
+    """Post-deploy fix: render a fallback card instead of 401 so users see something."""
     client = Client()
     response = client.get(reverse("core:home_content"))
-    assert response.status_code == 401
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    assert "Telegram sizning identifikatoringizni uzatmadi" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
