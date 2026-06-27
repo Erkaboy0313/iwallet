@@ -138,7 +138,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CONTENT_SECURITY_POLICY = {
     "DIRECTIVES": {
         "default-src": ["'self'"],
-        "script-src": ["'self'", "https://telegram.org"],
+        # 'unsafe-inline' needed for the small bootstrap <script> blocks in
+        # base.html and the debug overlay; 'unsafe-eval' needed because
+        # Alpine.js evaluates x-* expressions via new Function(). Migrate to
+        # per-request nonces (CSP_INCLUDE_NONCE_IN) before public launch.
+        "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://telegram.org"],
         "style-src": ["'self'", "'unsafe-inline'"],  # Tailwind utilities + inline svg
         "img-src": ["'self'", "data:", "https://t.me"],
         "connect-src": ["'self'", "https://api.telegram.org"],
