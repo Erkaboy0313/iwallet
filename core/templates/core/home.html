@@ -1,8 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}Uy — IWALLET{% endblock %}
 {% block content %}
-    {# TEMP debug overlay so Eric can confirm what Telegram.WebApp exposes
-       in his client without DevTools. Removed once auth flow is verified. #}
+    {% comment %}
+    TEMP debug overlay so Eric can confirm what Telegram.WebApp exposes
+    in his client without DevTools. Removed once auth flow is verified.
+    {% endcomment %}
     <div id="tg-debug"
          class="mx-5 mt-4 mb-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-900 font-mono whitespace-pre-wrap">
         Telegram SDK yuklanmoqda…
