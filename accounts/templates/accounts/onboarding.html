@@ -2,8 +2,7 @@
 {% block title %}IWALLET'ga xush kelibsiz{% endblock %}
 {% block bottom_nav %}{% endblock %}
 {% block content %}
-    <section class="px-5 pt-8 pb-6 flex flex-col"
-             style="min-height: 100dvh"
+    <section class="px-5 pt-8 pb-6 flex flex-col min-h-screen"
              x-data="{ card: 0, total: 3 }">
         <div class="flex-1 flex flex-col justify-center items-center">
             <article x-show="card === 0"
@@ -69,6 +68,7 @@
                 <button x-show="card === total - 1"
                         hx-post="{% url 'accounts:onboarding_complete' %}"
                         hx-swap="none"
+                        hx-on::response-error="alert('Boshlash ishlamadi (HTTP ' + event.detail.xhr.status + '). Iltimos, WebApp'ni yopib qaytadan oching.')"
                         type="button"
                         class="btn-primary flex-1"
                         style="display: none">Boshlash</button>
