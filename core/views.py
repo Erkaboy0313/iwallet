@@ -80,11 +80,10 @@ def home_content(request):
         rates_stale_days = current_rates_stale_days()
         if aggregated.rate_date is not None:
             rates_stale_date = aggregated.rate_date
-        if rates_stale_days < 0 or not aggregated.is_fully_supported:
-            # No rates bootstrapped or partial. Surface the reason to the
-            # template instead of silently dropping into raw mode so the user
-            # understands why their USD/RUB pick is showing UZS numbers — the
-            # daily `manage.py fetch_rates` cron lifts this state on its own.
+        # Only fall back when aggregation actually failed — a UZS-only user
+        # picking "Converted UZS" doesn't need any CBU.uz rate (identity), so
+        # is_fully_supported is True even when the rates table is empty.
+        if not aggregated.is_fully_supported:
             display_mode = DISPLAY_MODE_RAW
             aggregated = None
             forced_raw_no_rates = True
