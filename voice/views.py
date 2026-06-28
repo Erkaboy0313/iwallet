@@ -1,20 +1,54 @@
-"""Story 2.1 scaffolding — endpoints exist so the VoiceButton include can
-resolve `{% url 'voice:transcribe' %}` and `{% url 'voice:save' %}`. Real
-async-pipeline behavior lands in Story 2.2 (transcribe) and 2.4 (save).
+"""Story 2.2 — async voice endpoints.
+
+`transcribe` accepts an audio blob (multipart) and renders the confirm partial.
+Reads bytes into memory via `sync_to_async(file.read)` because Django's FILES
+storage descriptor is sync-only inside an async view.
+Story 2.3 fills in the Gemini call; Story 2.4 fills in `save` for real.
 """
 
 from __future__ import annotations
 
-from django.http import HttpRequest, HttpResponse
+import logging
+
+from asgiref.sync import sync_to_async
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
+from .services_async import transcribe_and_parse_async
 
-def transcribe(request: HttpRequest) -> HttpResponse:
-    """Placeholder — Story 2.2 turns this into an async endpoint."""
+logger = logging.getLogger(__name__)
+
+MAX_AUDIO_BYTES = 2 * 1024 * 1024  # Story 2.2 AC — 2 MB cap
+ALLOWED_CONTENT_TYPES = ("audio/mp4", "audio/webm")
+
+
+def _content_type_allowed(value: str) -> bool:
+    """Accept 'audio/webm' as well as 'audio/webm;codecs=opus'."""
+    if not value:
+        return False
+    base = value.split(";", 1)[0].strip().lower()
+    return base in ALLOWED_CONTENT_TYPES
+
+
+async def transcribe(request: HttpRequest) -> HttpResponse:
+    """Accept an audio blob, call the (stub) service, render the confirm partial."""
     if request.method != "POST":
         return HttpResponse(status=405)
-    return render(request, "voice/_confirm_partial.html", {"drafts": []})
+
+    audio_file = request.FILES.get("audio") if request.FILES else None
+    if audio_file is None:
+        return JsonResponse({"error": "missing_audio"}, status=400)
+
+    if not _content_type_allowed(getattr(audio_file, "content_type", "") or ""):
+        return JsonResponse({"error": "unsupported_content_type"}, status=415)
+
+    audio_bytes = await sync_to_async(audio_file.read)()
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        return JsonResponse({"error": "payload_too_large"}, status=413)
+
+    drafts = await transcribe_and_parse_async(audio_bytes, request.user)
+    return render(request, "voice/_confirm_partial.html", {"drafts": drafts})
 
 
 @require_POST
