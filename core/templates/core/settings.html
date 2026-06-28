@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}Sozlamalar — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-5 pb-32">
+        <header class="flex items-center gap-3 mb-5">
+            <a href="{% url 'core:home' %}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Orqaga">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Sozlamalar</h1>
+        </header>
+        {# PROFIL #}
+        <p style="font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; margin: 16px 0 8px">Profil</p>
+        <div style="background: #FFFFFF; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 2px 6px rgba(15,23,42,0.04); overflow: hidden">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; border-bottom: 1px solid rgba(15,23,42,0.06)">
+                <span style="font-size: 15px; color: #0B1220">Telegram ismi</span>
+                <span style="font-size: 15px; color: #475569">{{ user.first_name }}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px">
+                <span style="font-size: 15px; color: #0B1220">Til</span>
+                <span style="font-size: 15px; color: #475569">O'zbekcha</span>
+            </div>
+        </div>
+        {# PUL #}
+        <p style="font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; margin: 24px 0 8px">Pul</p>
+        <div style="background: #FFFFFF; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 2px 6px rgba(15,23,42,0.04); overflow: hidden">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; border-bottom: 1px solid rgba(15,23,42,0.06)">
+                <span style="font-size: 15px; color: #0B1220">Asosiy valyuta</span>
+                <span style="font-size: 15px; color: #475569">{{ user.default_currency }}</span>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; border-bottom: 1px solid rgba(15,23,42,0.06)">
+                <span style="font-size: 15px; color: #0B1220">Konvertatsiya</span>
+                <span style="font-size: 15px; color: #475569">{% if user.show_converted %}Aylantirilgan{% else %}Mahalliy{% endif %}</span>
+            </div>
+            <form hx-post="{% url 'core:toggle_quote_feature' %}"
+                  hx-swap="none"
+                  hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                  style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; margin: 0">
+                <span style="font-size: 15px; color: #0B1220">Kunlik ibora</span>
+                <input type="hidden" name="enabled" value="{% if quote_enabled %}0{% else %}1{% endif %}">
+                <button type="submit"
+                        aria-label="Kunlik iborani yoqish/o'chirish"
+                        style="display: inline-block;
+                               width: 44px;
+                               height: 26px;
+                               border: 0;
+                               border-radius: 13px;
+                               cursor: pointer;
+                               position: relative;
+                               background: {% if quote_enabled %}#10B981{% else %}#CBD5E1{% endif %};
+                               transition: background 120ms cubic-bezier(0.2, 0.8, 0.2, 1)">
+                    <span aria-hidden="true"
+                          style="position: absolute;
+                                 top: 3px;
+                                 left: {% if quote_enabled %}21px{% else %}3px{% endif %};
+                                 width: 20px;
+                                 height: 20px;
+                                 border-radius: 9999px;
+                                 background: #FFFFFF;
+                                 box-shadow: 0 2px 4px rgba(15,23,42,0.2);
+                                 transition: left 120ms cubic-bezier(0.2, 0.8, 0.2, 1)"></span>
+                </button>
+            </form>
+        </div>
+        {# TARTIB #}
+        <p style="font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; margin: 24px 0 8px">Tartib</p>
+        <div style="background: #FFFFFF; border-radius: 12px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 2px 6px rgba(15,23,42,0.04); overflow: hidden">
+            <a href="{% url 'categories:list' %}"
+               style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; border-bottom: 1px solid rgba(15,23,42,0.06); color: #0B1220; text-decoration: none"
+               aria-label="Kategoriyalarni boshqarish">
+                <span style="font-size: 15px">Kategoriyalar</span>
+                <span style="color: #94A3B8" aria-hidden="true">›</span>
+            </a>
+            <a href="{% url 'recurring:list' %}"
+               style="display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; min-height: 56px; color: #0B1220; text-decoration: none"
+               aria-label="Takrorlanuvchi to'lovlarni boshqarish">
+                <span style="font-size: 15px">Takrorlanuvchi to'lovlar</span>
+                <span style="color: #94A3B8" aria-hidden="true">›</span>
+            </a>
+        </div>
+        {# MAXFIYLIK #}
+        <p style="font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #94A3B8; margin: 24px 0 8px">Maxfiylik</p>
+        <div style="background: #FFFFFF; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 2px 6px rgba(15,23,42,0.04)">
+            <p style="font-size: 14px; color: #475569; line-height: 1.5; margin: 0">
+                Audio fayllar saqlanmaydi. Gemini xizmatiga matnga aylantirish uchun yuboriladi va keyin o'chiriladi.
+            </p>
+        </div>
+    </section>
+{% endblock %}

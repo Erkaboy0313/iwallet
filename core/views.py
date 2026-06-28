@@ -13,7 +13,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
 from accounts.exceptions import InvalidInitDataError
 from accounts.middleware import SESSION_KEY
@@ -29,8 +29,9 @@ from currencies.views import (
     SESSION_DISPLAY_MODE,
 )
 from debts.selectors import debt_status_summary
+from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
-from quotes.services import SESSION_HIDE_TODAY
+from quotes.services import SESSION_HIDE_TODAY, dismiss_forever, reenable
 from transactions.selectors import month_summary
 
 logger = logging.getLogger(__name__)
@@ -162,6 +163,40 @@ def _try_authenticate(init_data: str):
         return None
     logger.info("home_content auth: ok user_id=%s", user_dict.get("id"))
     return get_or_create_user_from_init_data(user_dict)
+
+
+@require_GET
+def settings_hub(request):
+    """Sprint v0.5 Phase 4 — Settings hub at /app/settings/.
+
+    Profil + Pul + Tartib + Maxfiylik. Sub-pages already exist
+    (categories, recurring) — this just gives them a stable landing.
+    """
+    user = request.user
+    return render(
+        request,
+        "core/settings.html",
+        {
+            "user": user,
+            "currency_choices": CURRENCY_CHOICES,
+            "quote_enabled": not QuoteDismissal.objects.filter(user=user).exists(),
+        },
+    )
+
+
+@require_POST
+def toggle_quote_feature(request):
+    """Flip the per-user quote opt-out from the Settings hub."""
+    enable = request.POST.get("enabled") == "1"
+    if enable:
+        reenable(request.user)
+        request.session.pop("iw_quote_hidden_today", None)
+    else:
+        dismiss_forever(request.user)
+        request.session["iw_quote_hidden_today"] = True
+    response = HttpResponse(status=200)
+    response.headers["HX-Redirect"] = reverse("core:settings_hub")
+    return response
 
 
 @require_GET
