@@ -205,7 +205,19 @@ def svg_bar(
     chart_width = BAR_WIDTH - 2 * BAR_PADDING_X
     bar_slot = chart_width / len(points)
     bar_width = max(bar_slot * 0.65, 6)
-    parts: list[str] = []
+    # Sprint v0.6 §9.3: gradient fills for depth.
+    parts: list[str] = [
+        "<defs>"
+        '<linearGradient id="bar-grad" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{color}" stop-opacity="1"/>'
+        f'<stop offset="100%" stop-color="{color}" stop-opacity="0.65"/>'
+        "</linearGradient>"
+        '<linearGradient id="bar-grad-amber" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0%" stop-color="#f59e0b" stop-opacity="1"/>'
+        '<stop offset="100%" stop-color="#f59e0b" stop-opacity="0.65"/>'
+        "</linearGradient>"
+        "</defs>"
+    ]
     for idx, point in enumerate(points):
         slot_x = BAR_PADDING_X + idx * bar_slot
         bar_x = slot_x + (bar_slot - bar_width) / 2
@@ -214,9 +226,9 @@ def svg_bar(
         else:
             h = max(float(point.value / max_val) * chart_height, 2 if point.value > 0 else 1)
         y = BAR_PADDING_TOP + (chart_height - h)
-        fill = color if point.value > 0 else "#e2e8f0"
-        if highlight_index is not None and idx == highlight_index:
-            fill = "#f59e0b"  # amber accent
+        fill = "url(#bar-grad)" if point.value > 0 else "#e2e8f0"
+        if highlight_index is not None and idx == highlight_index and point.value > 0:
+            fill = "url(#bar-grad-amber)"
         label = (
             f"{escape(point.label)}: {_short_number(point.value)}"
             if point.value
@@ -224,7 +236,7 @@ def svg_bar(
         )
         parts.append(
             f'<rect x="{bar_x:.2f}" y="{y:.2f}" width="{bar_width:.2f}" height="{h:.2f}" '
-            f'rx="3" fill="{fill}"><title>{label}</title></rect>'
+            f'rx="4" fill="{fill}"><title>{label}</title></rect>'
         )
         # Day/month label under each bar.
         parts.append(

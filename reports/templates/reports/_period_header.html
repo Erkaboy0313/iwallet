@@ -1,77 +1,169 @@
-{# Shared chrome: tab pills + period nav arrows. Reused across all 3 reports. #}
+{% comment %}
+Shared chrome — Sprint v0.6 §9.3: refined prev/next chevron buttons +
+subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
+{% endcomment %}
 <header style="display: flex;
                align-items: center;
-               gap: 12px;
-               margin-bottom: 8px">
+               gap: 8px;
+               min-height: 44px;
+               margin-bottom: 16px">
     <a href="{% url 'core:home' %}"
-       class="text-slate-500 hover:text-slate-900"
-       style="padding: 4px 8px"
-       aria-label="Uyga qaytish">←</a>
-    <h1 class="text-xl font-semibold text-slate-900">Hisobot</h1>
+       aria-label="Uyga qaytish"
+       style="display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 44px;
+              height: 44px;
+              color: var(--color-text-secondary);
+              text-decoration: none">
+        <svg width="22"
+             height="22"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+    </a>
+    <h1 style="margin: 0;
+               font-size: 18px;
+               font-weight: 600;
+               color: var(--color-text)">Hisobot</h1>
 </header>
-<nav style="display: flex;
-            gap: 8px;
-            margin-bottom: 12px"
-     role="tablist"
-     aria-label="Davr tanlash">
+{# Period tab pills — Hafta / Oy / Yil. #}
+<nav role="tablist"
+     aria-label="Davr tanlash"
+     style="display: flex;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 9999px;
+            background: #F1F5F9;
+            margin-bottom: 14px">
     {% for tab in tabs %}
         <a href="{{ tab.url }}"
-           class="px-3 py-1.5 rounded-full text-xs font-medium {% if tab.is_active %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}"
            role="tab"
            aria-selected="{% if tab.is_active %}true{% else %}false{% endif %}"
-           style="white-space: nowrap">{{ tab.label }}</a>
+           style="flex: 1;
+                  text-align: center;
+                  padding: 9px 12px;
+                  border-radius: 9999px;
+                  font-size: 13px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  {% if tab.is_active %}background: var(--color-surface);
+                  color: var(--color-text);
+                  box-shadow: var(--shadow-soft);
+                  {% else %}background: transparent;
+                  color: var(--color-text-secondary);
+                  {% endif %}">{{ tab.label }}</a>
     {% endfor %}
 </nav>
+{# Period nav strip — refined chevron buttons + Joriy pill below the range. #}
 <div style="display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 8px;
             margin-bottom: 12px">
     <a href="{{ nav.prev_url }}"
-       class="text-slate-600 hover:text-slate-900"
-       style="padding: 6px 10px;
-              background:#f1f5f9;
-              border-radius:9999px;
-              font-size:12px"
-       aria-label="Avvalgi davr">←</a>
+       aria-label="Avvalgi davr"
+       style="display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 9999px;
+              background: var(--color-surface);
+              border: 1px solid var(--color-border);
+              color: var(--color-text-secondary);
+              text-decoration: none">
+        <svg width="14"
+             height="14"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        </svg>
+    </a>
     <div style="flex: 1; text-align: center">
-        <p class="text-sm font-medium text-slate-900">{{ period_label }}</p>
+        <p style="margin: 0;
+                  font-size: 14px;
+                  font-weight: 600;
+                  color: var(--color-text)">{{ period_label }}</p>
         {% if not nav.is_current_week and not nav.is_current_month and not nav.is_current_year %}
             <a href="{{ nav.current_url }}"
-               class="text-xs text-emerald-600 underline-offset-4 hover:underline"
-               aria-label="Joriy davrga qaytish">Joriy</a>
+               aria-label="Joriy davrga qaytish"
+               style="display: inline-block;
+                      margin-top: 4px;
+                      font-size: 11px;
+                      padding: 2px 8px;
+                      border-radius: 9999px;
+                      background: var(--color-primary-light);
+                      color: var(--color-primary-hover);
+                      text-decoration: none;
+                      font-weight: 600">Joriy</a>
         {% else %}
-            <p class="text-[10px] uppercase tracking-wider text-slate-400">Joriy</p>
+            <p style="margin: 4px 0 0;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600">Joriy</p>
         {% endif %}
     </div>
     <a href="{{ nav.next_url }}"
-       class="text-slate-600 hover:text-slate-900"
-       style="padding: 6px 10px;
-              background:#f1f5f9;
-              border-radius:9999px;
-              font-size:12px"
-       aria-label="Keyingi davr">→</a>
+       aria-label="Keyingi davr"
+       style="display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 36px;
+              height: 36px;
+              border-radius: 9999px;
+              background: var(--color-surface);
+              border: 1px solid var(--color-border);
+              color: var(--color-text-secondary);
+              text-decoration: none">
+        <svg width="14"
+             height="14"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        </svg>
+    </a>
 </div>
 <div style="display: flex;
             align-items: center;
             gap: 8px;
             margin-bottom: 16px">
     <a href="{{ toggle_debts_url }}"
-       class="text-xs px-3 py-1.5 rounded-full {% if include_debts %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-600{% endif %}"
        aria-pressed="{% if include_debts %}true{% else %}false{% endif %}"
-       aria-label="Qarzlarni hisoblash">
+       aria-label="Qarzlarni hisoblash"
+       style="font-size: 12px;
+              padding: 6px 12px;
+              border-radius: 9999px;
+              text-decoration: none;
+              {% if include_debts %}background: #FEF3C7;
+              color: #92400E;
+              {% else %}background: #F1F5F9;
+              color: var(--color-text-secondary);
+              {% endif %}">
         {% if include_debts %}
             Qarzlar yoqilgan
         {% else %}
             Qarzlarni qo'shish
         {% endif %}
     </a>
-    <span class="text-xs text-slate-500">{{ display_currency }}</span>
+    <span style="font-size: 12px; color: var(--color-text-muted)">{{ display_currency }}</span>
 </div>
 {% if not summary.is_fully_supported %}
-    <p class="text-xs text-amber-700"
-       style="background:#fef3c7;
-              border-radius:8px;
-              padding:8px 10px;
-              margin-bottom:12px">Ba'zi valyutalar uchun kurs topilmadi — qisman ko'rsatildi.</p>
+    <p style="background: #FEF3C7;
+              border-radius: 10px;
+              padding: 10px 12px;
+              margin: 0 0 12px;
+              font-size: 12px;
+              color: #92400E">Ba'zi valyutalar uchun kurs topilmadi — qisman ko'rsatildi.</p>
 {% endif %}
