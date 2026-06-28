@@ -8,6 +8,23 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
 {% endcomment %}
 {% load voice_extras %}
 {% if drafts %}
+    <script>
+    // Voice-debug breadcrumb: echo each rendered draft's key fields to the
+    // in-page log so Eric can compare 'what I said' to 'what the server sent
+    // back' without journalctl access.
+    if (window._iwLog) {
+        window._iwLog("VOICE-RX", "count={{ drafts|length }}");
+        {% for d in drafts %}
+        window._iwLog(
+            "VOICE-RX#{{ forloop.counter0 }}",
+            "type={{ d.type }} amt={{ d.amount }} ccy={{ d.currency }}" +
+            " cat={{ d.category_slug|default:'-'|escapejs }}" +
+            " cp={{ d.counterparty|default:'-'|escapejs }}" +
+            " note={{ d.note|default:'-'|escapejs|truncatechars:40 }}"
+        );
+        {% endfor %}
+    }
+    </script>
     <div x-data="voiceConfirmList({{ drafts|length }}, {% drafts_payload_json drafts %}, {% recurring_payload_json recurring %}, '{% url 'voice:save_multi' %}')"
          x-cloak>
         {% if drafts|length > 1 %}

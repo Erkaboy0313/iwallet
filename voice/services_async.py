@@ -7,7 +7,9 @@ this module — keeping the pipeline composable + mockable in tests.
 
 from __future__ import annotations
 
+import json
 import logging
+from typing import Any
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
@@ -54,9 +56,24 @@ async def transcribe_and_parse_async(
         if owns_client:
             await client.aclose()
 
+    # Log the raw Gemini payload so we can tell "Gemini hallucinated dupes"
+    # from "our parser/template mangled it" without recording the audio. Strip
+    # any nested audio data just in case the model echoed it back.
+    try:
+        sanitized = _sanitize_for_log(raw)
+        logger.info("voice.gemini: raw_payload=%s", json.dumps(sanitized)[:1500])
+    except Exception:  # noqa: BLE001
+        logger.info("voice.gemini: raw_payload=<unserializable>")
+
     parsed = await sync_to_async(normalize)(raw, user)
     if not parsed.transactions:
         raise NoTransactionsParsedError("No transactions returned by Gemini")
+
+    logger.info(
+        "voice.parser: normalized count=%d kinds=%s",
+        len(parsed.transactions),
+        [(d.type, str(d.amount), d.currency, d.category_slug) for d in parsed.transactions],
+    )
     return parsed
 
 
@@ -72,3 +89,15 @@ def _categories_for_prompt(user: User, type_: str) -> tuple[tuple[str, str], ...
     from categories.selectors import categories_for
 
     return tuple((c.slug, c.name) for c in categories_for(user, type_))
+
+
+def _sanitize_for_log(payload: Any) -> Any:
+    """Strip any base64 audio blobs from a Gemini payload before logging."""
+    if isinstance(payload, dict):
+        return {
+            k: ("<redacted>" if k in {"inline_data", "data", "audio"} else _sanitize_for_log(v))
+            for k, v in payload.items()
+        }
+    if isinstance(payload, list):
+        return [_sanitize_for_log(item) for item in payload]
+    return payload
