@@ -21,6 +21,7 @@ from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
 from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
 from currencies.selectors import aggregated_month_summary, current_rates_stale_days
+from currencies.services import update_rates_if_stale
 from currencies.views import (
     DISPLAY_MODE_CONVERTED,
     DISPLAY_MODE_RAW,
@@ -76,13 +77,19 @@ def home_content(request):
     rates_stale_date = None
     forced_raw_no_rates = False
     if display_mode == DISPLAY_MODE_CONVERTED:
+        # Bootstrap CBU.uz rates on the first converted-mode render. The
+        # service is idempotent + best-effort (it logs CbuUnavailableError and
+        # returns rather than raises), so this is safe to call from a sync
+        # view — adds ≤2s on the first request after an empty DB, no-op after.
+        if current_rates_stale_days() < 0:
+            update_rates_if_stale()
         aggregated = aggregated_month_summary(user, display_currency)
         rates_stale_days = current_rates_stale_days()
         if aggregated.rate_date is not None:
             rates_stale_date = aggregated.rate_date
-        # Only fall back when aggregation actually failed — a UZS-only user
-        # picking "Converted UZS" doesn't need any CBU.uz rate (identity), so
-        # is_fully_supported is True even when the rates table is empty.
+        # Only fall back when aggregation actually failed (we couldn't convert
+        # some non-display currency). A UZS-only user picking 'Converted UZS'
+        # doesn't need any rate at all — is_fully_supported stays True.
         if not aggregated.is_fully_supported:
             display_mode = DISPLAY_MODE_RAW
             aggregated = None

@@ -51,7 +51,15 @@ def test_home_content_shows_converted_aggregate_when_user_prefers() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_falls_back_to_raw_when_rates_missing() -> None:
+def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
+    # The view self-heals an empty rates table by calling update_rates_if_stale.
+    # Stub it so the test doesn't hit live CBU.uz and stays hermetic — we still
+    # exercise the fallback path that triggers when the fetch can't populate
+    # rates (CBU outage, no network, etc.).
+    import core.views as _core_views
+
+    monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
+
     user = User.objects.create(
         telegram_id=902,
         first_name="Eric",
