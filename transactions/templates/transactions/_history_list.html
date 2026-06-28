@@ -1,73 +1,113 @@
 {% load core_extras %}
 {% if page.object_list %}
-    <ul class="space-y-2">
-        {% for tx in page.object_list %}
-            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                <a href="{% url 'transactions:edit' tx.id %}"
-                   class="flex items-center justify-between gap-3"
-                   aria-label="Tranzaksiyani tahrirlash">
-                    <span class="flex items-center gap-2 min-w-0">
-                        <span aria-hidden="true" class="text-xl">
-                            {% if tx.category %}
-                                {{ tx.category.emoji }}
-                            {% else %}
-                                📌
-                            {% endif %}
-                        </span>
-                        <span class="min-w-0">
-                            <span class="block text-sm font-medium text-slate-900 truncate">
+    {% regroup page.object_list by date|date:"F Y" as month_groups %}
+    {% for month in month_groups %}
+        <div role="heading"
+             aria-level="2"
+             style="position: sticky;
+                    top: 0;
+                    z-index: 5;
+                    padding: 6px 0;
+                    background: var(--color-bg);
+                    font-size: 10px;
+                    font-weight: 600;
+                    letter-spacing: 0.06em;
+                    text-transform: uppercase;
+                    color: var(--color-text-muted)">{{ month.grouper }}</div>
+        <ul style="display: flex;
+                   flex-direction: column;
+                   gap: 8px;
+                   margin: 8px 0 16px;
+                   padding: 0;
+                   list-style: none">
+            {% for tx in month.list %}
+                <li>
+                    <a href="{% url 'transactions:edit' tx.id %}"
+                       aria-label="Tranzaksiyani ko'rish va tahrirlash"
+                       style="display: flex;
+                              align-items: center;
+                              justify-content: space-between;
+                              gap: 12px;
+                              padding: 12px 14px;
+                              background: var(--color-surface);
+                              border: 1px solid var(--color-border);
+                              border-radius: 14px;
+                              text-decoration: none;
+                              color: var(--color-text)">
+                        <span style="display: flex;
+                                     align-items: center;
+                                     gap: 10px;
+                                     min-width: 0;
+                                     flex: 1">
+                            <span aria-hidden="true" style="font-size: 20px; flex-shrink: 0">
                                 {% if tx.category %}
-                                    {{ tx.category.name }}
+                                    {{ tx.category.emoji }}
                                 {% else %}
-                                    {{ tx.get_type_display }}
+                                    •
                                 {% endif %}
                             </span>
-                            <span class="block text-xs text-slate-500 truncate">
-                                {{ tx.date|date:"j-N" }}
-                                {% if tx.note %}· {{ tx.note|truncatechars:30 }}{% endif %}
+                            <span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                                <span style="font-size: 14px;
+                                             font-weight: 600;
+                                             color: var(--color-text);
+                                             overflow: hidden;
+                                             text-overflow: ellipsis;
+                                             white-space: nowrap">
+                                    {% if tx.category %}
+                                        {{ tx.category.name }}
+                                    {% else %}
+                                        {{ tx.get_type_display }}
+                                    {% endif %}
+                                </span>
+                                <span style="font-size: 12px;
+                                             color: var(--color-text-muted);
+                                             overflow: hidden;
+                                             text-overflow: ellipsis;
+                                             white-space: nowrap">{{ tx.date|date:"j-N" }}
+                                    {% if tx.counterparty %}
+                                        · {{ tx.counterparty }}
+                                    {% elif tx.note %}
+                                        · {{ tx.note|truncatechars:24 }}
+                                    {% endif %}
+                                </span>
                             </span>
                         </span>
-                    </span>
-                    <span class="amount text-sm font-semibold {% if tx.type == 'income' %}text-emerald-600{% elif tx.type == 'expense' %}text-slate-900{% else %}text-amber-600{% endif %}">
-                        {% if tx.type == 'income' or tx.type == 'debt_borrowed' %}
-                            +
-                        {% else %}
-                            −
-                        {% endif %}
-                        {{ tx.amount|smart_money:tx.currency }}
-                    </span>
-                </a>
-                <form hx-post="{% url 'transactions:delete' tx.id %}"
-                      hx-confirm="Bu tranzaksiyani o'chirasizmi?"
-                      class="mt-2 flex justify-end">
-                    {% csrf_token %}
-                    <button type="submit"
-                            class="text-xs text-red-600 underline-offset-4 hover:underline"
-                            aria-label="Tranzaksiyani o'chirish">O'chirish</button>
-                </form>
-            </li>
-        {% endfor %}
-    </ul>
+                        <span class="amount"
+                              style="font-size: 14px;
+                                     font-weight: 600;
+                                     white-space: nowrap;
+                                     color: {% if tx.type == 'income' %}var(--color-inflow-text){% elif tx.type == 'expense' %}var(--color-text){% else %}var(--color-debt){% endif %}">
+                            {% if tx.type == 'income' or tx.type == 'debt_borrowed' %}
+                                +
+                            {% else %}
+                                −
+                            {% endif %}
+                        {{ tx.amount|smart_money:tx.currency }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endfor %}
     {% if page.has_next %}
-        <div class="mt-4 text-center">
+        <div style="margin-top: 16px; text-align: center">
             <a hx-get="?page={{ page.next_page_number }}{% if filter_type %}&type={{ filter_type }}{% endif %}"
                hx-target="#history-list"
                hx-swap="outerHTML"
-               class="text-sm text-emerald-600 underline-offset-4 hover:underline cursor-pointer">Yana yuklash</a>
+               style="display: inline-block;
+                      padding: 8px 16px;
+                      border-radius: 9999px;
+                      background: #F1F5F9;
+                      color: var(--color-primary-hover);
+                      font-size: 13px;
+                      font-weight: 600;
+                      cursor: pointer;
+                      text-decoration: none">Yana yuklash</a>
         </div>
     {% endif %}
 {% else %}
-    <div class="text-center py-12 px-4">
-        <p class="text-sm text-slate-500">
-            {% if any_filter_active %}
-                Filterga mos tranzaksiya yo'q.
-            {% else %}
-                Hozircha tranzaksiya yo'q. Birinchisini qo'shing.
-            {% endif %}
-        </p>
-        {% if not any_filter_active %}
-            <a href="{% url 'transactions:add' %}"
-               class="btn-primary inline-block mt-4">+ Yangi tranzaksiya</a>
-        {% endif %}
-    </div>
+    {% if any_filter_active %}
+        {% include 'core/components/_empty_state.html' with emoji='🔎' title='Filtrga mos tranzaksiya yo\'q' caption='Boshqa filtrni sinab ko\'ring yoki «Tozalash» bosing.' %}
+    {% else %}
+        {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing.' cta_url='/app/transactions/add/' cta_label='+ Yangi tranzaksiya' %}
+    {% endif %}
 {% endif %}

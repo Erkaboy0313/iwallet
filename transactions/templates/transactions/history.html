@@ -2,35 +2,85 @@
 {% load core_extras %}
 {% block title %}Tarix — IWALLET{% endblock %}
 {% block content %}
-    <section class="px-5 pt-6 pb-24" x-data="{ filterOpen: false }">
-        <header class="flex items-center gap-3 mb-4">
+    <section style="padding: 16px 20px 96px">
+        <header style="display: flex;
+                       align-items: center;
+                       gap: 8px;
+                       min-height: 44px;
+                       margin-bottom: 16px">
             <a href="{% url 'core:home' %}"
-               class="text-slate-500 hover:text-slate-900 px-2 py-1"
-               aria-label="Uyga qaytish">←</a>
-            <h1 class="text-xl font-semibold text-slate-900">Tarix</h1>
+               aria-label="Uyga qaytish"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="22"
+                     height="22"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 style="margin: 0;
+                       font-size: 18px;
+                       font-weight: 600;
+                       color: var(--color-text)">Tarix</h1>
         </header>
-        <!-- Filter pills (htmx-driven) -->
-        <div class="flex gap-2 overflow-x-auto pb-2"
-             role="tablist"
-             aria-label="Tranzaksiya turini filtrlash">
+        {# Filter pills — horizontal scroll with snap. Sprint v0.6 §4.4. #}
+        <div role="tablist"
+             aria-label="Tranzaksiya turini filtrlash"
+             style="display: flex;
+                    gap: 8px;
+                    overflow-x: auto;
+                    padding: 4px 0 12px;
+                    scroll-snap-type: x mandatory;
+                    -webkit-overflow-scrolling: touch">
             {% for value, label in filter_choices %}
                 <a hx-get="?{% if value %}type={{ value }}{% endif %}"
                    hx-target="#history-list"
                    hx-push-url="true"
                    href="?{% if value %}type={{ value }}{% endif %}"
-                   class="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap {% if filter_type == value or not value and not filter_type %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}"
                    role="tab"
-                   aria-selected="{% if filter_type == value or not value and not filter_type %}true{% else %}false{% endif %}">{{ label }}</a>
+                   aria-selected="{% if filter_type == value or not value and not filter_type %}true{% else %}false{% endif %}"
+                   style="display: inline-flex;
+                          align-items: center;
+                          padding: 8px 14px;
+                          border-radius: 9999px;
+                          font-size: 13px;
+                          font-weight: 600;
+                          text-decoration: none;
+                          white-space: nowrap;
+                          scroll-snap-align: start;
+                          {% if filter_type == value or not value and not filter_type %}background: var(--color-primary);
+                          color: #FFFFFF;
+                          box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+                          {% else %}background: #F1F5F9;
+                          color: var(--color-text-secondary);
+                          {% endif %} transition: background var(--motion-micro) var(--ease-out)">{{ label }}</a>
             {% endfor %}
             {% if any_filter_active %}
                 <a hx-get="{% url 'transactions:history' %}"
                    hx-target="#history-list"
                    hx-push-url="true"
                    href="{% url 'transactions:history' %}"
-                   class="px-3 py-1.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 whitespace-nowrap">Tozalash</a>
+                   style="display: inline-flex;
+                          align-items: center;
+                          padding: 8px 14px;
+                          border-radius: 9999px;
+                          font-size: 13px;
+                          font-weight: 600;
+                          background: #FEF3C7;
+                          color: #92400E;
+                          white-space: nowrap;
+                          scroll-snap-align: start;
+                          text-decoration: none">Tozalash</a>
             {% endif %}
         </div>
-        <!-- List partial (htmx swap target) -->
-        <div id="history-list" class="mt-4">{% include 'transactions/_history_list.html' %}</div>
+        <div id="history-list" style="margin-top: 12px">{% include 'transactions/_history_list.html' %}</div>
     </section>
 {% endblock %}
