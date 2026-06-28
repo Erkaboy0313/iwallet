@@ -131,9 +131,12 @@
            aria-label="Qo'lda tranzaksiya qo'shish"
            style="min-width: 160px">✏️ Qo'lda yozish</a>
     </div>
-    <div class="mt-4 text-center">
+    <div class="mt-4 text-center flex items-center justify-center gap-4">
         <a href="{% url 'categories:list' %}"
            class="text-xs text-slate-500 underline-offset-4 hover:underline"
            aria-label="Kategoriyalarni boshqarish">⚙ Kategoriyalar</a>
+        <a href="{% url 'recurring:list' %}"
+           class="text-xs text-slate-500 underline-offset-4 hover:underline"
+           aria-label="Takrorlanuvchi to'lovlarni boshqarish">⏰ Takrorlanuvchi</a>
     </div>
 </section>
