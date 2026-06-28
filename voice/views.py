@@ -5,9 +5,10 @@
 ORM access from inside async views is wrapped in `sync_to_async`.
 
 Story 6.2 adds `save_multi` which atomically creates N Transactions from a
-single batch payload. The view never touches the ORM directly — it composes
-existing services so per-app invariants stay owned by the services they
-belong to.
+single batch payload. Story 6.3 extends it to optionally co-create a
+RecurringSchedule when the payload's `recurring` slot is populated. The view
+never touches the ORM directly — it composes existing services so per-app
+invariants stay owned by the services they belong to.
 """
 
 from __future__ import annotations
@@ -22,10 +23,18 @@ from django.db import transaction as db_transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from accounts.models import CURRENCY_CHOICES
 from categories.selectors import match_slug
+from recurring.exceptions import (
+    InvalidAmountError as RecurringInvalidAmountError,
+    InvalidNameError,
+    InvalidScheduleError,
+)
+from recurring.models import ScheduleKind
+from recurring.services import create_recurring
 from transactions.exceptions import InvalidAmountError
 from transactions.models import TransactionType
 from transactions.services import create_transaction
@@ -205,10 +214,10 @@ MAX_BATCH_DRAFTS = 5
 def save_multi(request: HttpRequest) -> HttpResponse:
     """Persist N voice-confirmed Transactions atomically.
 
-    The whole batch is one `db_transaction.atomic` block so a single failed
-    insert rolls back the entire batch — matching FR25 ("all-or-nothing"
-    multi-tx save). Story 6.3 extends this to also create an optional
-    RecurringSchedule when the payload's `recurring` slot is populated.
+    Optionally also creates a RecurringSchedule when the payload's
+    `recurring` slot is populated (Story 6.3 confirm path). The whole thing
+    is one `db_transaction.atomic` block so a single failed insert rolls
+    back the entire batch — matching FR25 ("all-or-nothing" multi-tx save).
     """
     try:
         payload = _coerce_multi_save_payload(request)
@@ -216,6 +225,7 @@ def save_multi(request: HttpRequest) -> HttpResponse:
         return _error_response(str(exc))
 
     drafts = payload["drafts"]
+    recurring = payload.get("recurring")
 
     try:
         with db_transaction.atomic():
@@ -235,11 +245,21 @@ def save_multi(request: HttpRequest) -> HttpResponse:
                     counterparty=draft["counterparty"],
                     note=draft["note"],
                 )
+            if recurring is not None:
+                _create_recurring_from_payload(request.user, recurring)
     except InvalidAmountError as exc:
+        return _error_response(str(exc))
+    except (
+        RecurringInvalidAmountError,
+        InvalidNameError,
+        InvalidScheduleError,
+    ) as exc:
         return _error_response(str(exc))
 
     count = len(drafts)
     message = "Tranzaksiya saqlandi" if count == 1 else f"{count} ta tranzaksiya saqlandi"
+    if recurring is not None:
+        message += " · takror sozlandi"
 
     response = HttpResponse(status=200)
     response.headers["HX-Redirect"] = reverse("core:home")
@@ -280,7 +300,14 @@ def _coerce_multi_save_payload(request: HttpRequest) -> dict:
             raise _SaveValidationError("Ma'lumot noto'g'ri")
         drafts.append(_coerce_one_draft(item))
 
-    return {"drafts": drafts}
+    recurring = data.get("recurring")
+    parsed_recurring: dict | None = None
+    if recurring is not None:
+        if not isinstance(recurring, dict):
+            raise _SaveValidationError("Takror ma'lumoti noto'g'ri")
+        parsed_recurring = _coerce_recurring_payload(recurring)
+
+    return {"drafts": drafts, "recurring": parsed_recurring}
 
 
 def _coerce_one_draft(data: dict) -> dict:
@@ -318,3 +345,68 @@ def _coerce_one_draft(data: dict) -> dict:
         "counterparty": counterparty,
         "note": (data.get("note") or "").strip(),
     }
+
+
+# ---------- Story 6.3 — recurring intent co-creation ----------
+
+
+def _coerce_recurring_payload(raw: dict) -> dict:
+    """Project the recurring intent draft + hint into create_recurring kwargs."""
+    base = _coerce_one_draft(raw)
+    hint = raw.get("recurring_hint") or {}
+    if not isinstance(hint, dict):
+        raise _SaveValidationError("Takror jadvali noto'g'ri")
+    kind = (hint.get("schedule_kind") or "").strip().lower()
+    if kind == "every_n_days":
+        # Epic 7's RecurringSchedule only models monthly / weekly; map every-7
+        # to weekly with day_of_week == today's weekday, otherwise refuse the
+        # auto path (the deep-link UI lets the user pick manually).
+        n = hint.get("every_n_days")
+        if isinstance(n, int) and n == 7:
+            kind = "weekly"
+            hint = {**hint, "day_of_week": timezone.localdate().weekday()}
+        else:
+            raise _SaveValidationError("Bu davriylik hozircha qo'lda sozlanadi")
+    if kind not in {k.value for k in ScheduleKind}:
+        raise _SaveValidationError("Takror turi noto'g'ri")
+
+    day_of_month = hint.get("day_of_month")
+    day_of_week = hint.get("day_of_week")
+    try:
+        day_of_month = int(day_of_month) if day_of_month not in (None, "") else None
+    except (TypeError, ValueError) as exc:
+        raise _SaveValidationError("Oy kuni noto'g'ri") from exc
+    try:
+        day_of_week = int(day_of_week) if day_of_week not in (None, "") else None
+    except (TypeError, ValueError) as exc:
+        raise _SaveValidationError("Hafta kuni noto'g'ri") from exc
+
+    return {
+        "type": base["type"],
+        "amount": base["amount"],
+        "currency": base["currency"],
+        "category_slug": base["category_slug"],
+        "note": base["note"],
+        "schedule_kind": kind,
+        "day_of_month": day_of_month,
+        "day_of_week": day_of_week,
+    }
+
+
+def _create_recurring_from_payload(user, recurring: dict) -> None:
+    category = _resolve_category_for(user, type_=recurring["type"], slug=recurring["category_slug"])
+    # Name defaults to the spoken note (or a polite fallback) — the user can
+    # rename later from /app/settings/recurring/. Truncate at the model's
+    # 64-char limit so we never bounce on `InvalidNameError`.
+    name = (recurring["note"] or "Ovozli takror")[:64]
+    create_recurring(
+        user=user,
+        type_=recurring["type"],
+        name=name,
+        amount=recurring["amount"],
+        currency=recurring["currency"],
+        category=category,
+        schedule_kind=recurring["schedule_kind"],
+        day_of_month=recurring["day_of_month"],
+        day_of_week=recurring["day_of_week"],
+    )

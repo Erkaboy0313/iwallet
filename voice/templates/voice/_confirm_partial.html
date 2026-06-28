@@ -1,10 +1,12 @@
-{# Story 2.4 + 6.2 — confirm partial. Swapped into #voice-confirm-area on transcribe success.
-   Each draft renders as its own editable card; the parent `voiceConfirmList` tracks the kept
-   indexes and orchestrates one atomic batch save against /app/voice/save-multi/. Story 6.3
-   layers an optional recurring intent card on top — handled separately above the stack. #}
+{# Story 2.4 + 6.2 + 6.3 — confirm partial. Swapped into #voice-confirm-area on transcribe
+   success. Each draft renders as its own editable card; the parent `voiceConfirmList`
+   tracks the kept indexes and orchestrates one atomic batch save against
+   /app/voice/save-multi/. If the parser surfaced a `recurring_intent`, an amber prompt card
+   appears above the stack with two actions: "Ha" toggles `createRecurring=true` so the
+   batch save also creates a RecurringSchedule, "Yo'q" keeps just the one-off Transactions. #}
 {% load voice_extras %}
 {% if drafts %}
-    <div x-data="voiceConfirmList({{ drafts|length }}, {% drafts_payload_json drafts %}, '{% url 'voice:save_multi' %}')"
+    <div x-data="voiceConfirmList({{ drafts|length }}, {% drafts_payload_json drafts %}, {% recurring_payload_json recurring %}, '{% url 'voice:save_multi' %}')"
          x-cloak>
         {% if drafts|length > 1 %}
             <header class="flex items-center justify-between mt-4 mb-2"
@@ -12,6 +14,9 @@
                 <h2 class="text-sm font-semibold text-slate-700" x-text="headerLabel"></h2>
                 <span class="text-xs text-slate-500" x-text="summaryLabel"></span>
             </header>
+        {% endif %}
+        {% if recurring %}
+            {% include 'voice/_recurring_card.html' with recurring=recurring %}
         {% endif %}
         {% for draft in drafts %}
             <div class="card-default mt-4"
@@ -125,12 +130,14 @@
     }
     function register() {
         if (!window.Alpine) return setTimeout(register, 30);
-        window.Alpine.data("voiceConfirmList", function (count, initialDrafts, saveUrl) {
+        window.Alpine.data("voiceConfirmList", function (count, initialDrafts, recurring, saveUrl) {
             return {
                 count: count,
                 kept: Array.from({ length: count }, () => true),
                 drafts: initialDrafts.map((d) => Object.assign({}, d)),
                 touched: Array.from({ length: count }, () => ({})),
+                recurringDraft: recurring ? Object.assign({}, recurring) : null,
+                createRecurring: false,
                 saving: false,
                 saveUrl: saveUrl,
                 get keptCount() {
@@ -210,6 +217,9 @@
                     var payload = {
                         drafts: this.drafts.filter((_d, i) => this.kept[i]),
                     };
+                    if (this.recurringDraft && this.createRecurring) {
+                        payload.recurring = this.recurringDraft;
+                    }
                     var fd = new FormData();
                     fd.append("payload", JSON.stringify(payload));
                     var headers = {};

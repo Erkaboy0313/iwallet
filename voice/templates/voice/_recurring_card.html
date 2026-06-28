@@ -1,0 +1,50 @@
+{# Story 6.3 — recurring intent prompt card. Sits above the transaction stack.
+   Two actions: "Ha — har oy [date]" sets `createRecurring=true` so the batch save also creates
+   a RecurringSchedule via /app/voice/save-multi/. "Yo'q — faqat bu safar" leaves it false so
+   only the Transaction is created. If the parser couldn't infer a cadence the "Ha" button
+   becomes a deep-link to the manual create form. #}
+{% load voice_extras %}
+<div class="card-default mt-4"
+     style="border: 2px solid #f59e0b;
+            border-radius: 24px;
+            background-color: #fffbeb">
+    <div class="flex items-start gap-3">
+        <span aria-hidden="true" style="font-size: 24px">⏰</span>
+        <div class="flex-1">
+            <h3 class="text-sm font-semibold text-amber-900">Bu xarajat takrorlanadimi?</h3>
+            <p class="mt-1 text-xs text-amber-800">
+                {% if recurring.note %}
+                    "{{ recurring.note }}" — {% hint_label recurring %}.
+                {% else %}
+                    Quyidagi tranzaksiya {% hint_label recurring %}.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+    <div class="mt-4 grid grid-cols-2 gap-3">
+        {% if recurring.recurring_hint %}
+            <button type="button"
+                    class="btn-primary text-sm"
+                    aria-label="Takrorlanuvchi sifatida qo'shish"
+                    style="background-color: #d97706;
+                           color: white"
+                    :class="createRecurring ? 'ring-2 ring-amber-500' : ''"
+                    @click="createRecurring = !createRecurring">
+                <span x-show="!createRecurring">Ha — {% hint_label recurring %}</span>
+                <span x-show="createRecurring">✓ Takror sifatida tanlandi</span>
+            </button>
+        {% else %}
+            <a href="{% url 'recurring:create' %}?type={{ recurring.type }}&amount={{ recurring.amount|stringformat:'s' }}&currency={{ recurring.currency }}&category_slug={{ recurring.category_slug }}"
+               class="btn-primary text-sm text-center"
+               style="background-color: #d97706;
+                      color: white;
+                      display: inline-flex;
+                      align-items: center;
+                      justify-content: center">Ha — qo'lda sozlash</a>
+        {% endif %}
+        <button type="button"
+                class="btn-secondary text-sm"
+                aria-label="Faqat bu safargi tranzaksiya"
+                @click="createRecurring = false">Yo'q — faqat bu safar</button>
+    </div>
+</div>

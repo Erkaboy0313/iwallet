@@ -1,11 +1,14 @@
-"""Template helpers for the voice confirm screen (Story 2.4 + 6.2).
+"""Template helpers for the voice confirm screen (Story 2.4 + 6.2 + 6.3).
 
 Serializes a `VoiceDraft` into a JSON object literal suitable for embedding
 inside an Alpine `x-data` attribute, with category emoji/name attached so the
 client doesn't need a second round-trip just to render the pill.
 
 Story 6.2 adds `drafts_payload_json` so the parent Alpine component can
-hydrate from the full list.
+hydrate from the full list. Story 6.3 adds `recurring_payload_json` which
+appends the structured `RecurringHint` so the recurring card can show
+"har oy 1-sanasida" without a second round-trip, plus `hint_label` for
+rendering the cadence into the amber prompt headline.
 """
 
 from __future__ import annotations
@@ -29,6 +32,16 @@ TYPE_LABELS = {
     "debt_lent": "Qarz berdim",
     "debt_borrowed": "Qarz oldim",
 }
+
+WEEKDAY_LABELS = [
+    "dushanba",
+    "seshanba",
+    "chorshanba",
+    "payshanba",
+    "juma",
+    "shanba",
+    "yakshanba",
+]
 
 
 def _category_display(user, draft: VoiceDraft) -> tuple[str, str]:
@@ -75,9 +88,60 @@ def drafts_payload_json(context, drafts):
     return mark_safe(encoded)
 
 
+@register.simple_tag(takes_context=True)
+def recurring_payload_json(context, recurring):
+    """JS object literal for the recurring intent draft — Story 6.3.
+
+    Returns `null` when there's no recurring intent so the consumer can keep
+    its Alpine state simple (`recurring ? Object.assign({}, recurring) : null`).
+    """
+    if recurring is None:
+        encoded = "null"
+    else:
+        payload = _payload_dict(context.get("request"), recurring)
+        payload["recurring_hint"] = _serialize_hint(recurring)
+        encoded = json.dumps(payload, ensure_ascii=True).replace('"', "&quot;")
+    return mark_safe(encoded)
+
+
+@register.simple_tag()
+def hint_label(recurring):
+    """Render the Uzbek cadence label for the recurring card header — Story 6.3."""
+    if recurring is None:
+        return ""
+    hint = getattr(recurring, "recurring_hint", None)
+    if hint is None:
+        return ""
+    return _hint_label(hint)
+
+
 @register.filter(name="draft_payload_json")
 def draft_payload_json_filter(draft: VoiceDraft, user=None):
     return _serialize_draft(_RequestStub(user), draft)
+
+
+def _serialize_hint(draft: VoiceDraft) -> dict | None:
+    hint = getattr(draft, "recurring_hint", None)
+    if hint is None:
+        return None
+    return {
+        "schedule_kind": hint.schedule_kind,
+        "day_of_month": hint.day_of_month,
+        "day_of_week": hint.day_of_week,
+        "every_n_days": hint.every_n_days,
+        "label": _hint_label(hint),
+    }
+
+
+def _hint_label(hint) -> str:
+    """Polite Uzbek summary of the cadence — shown on the recurring card."""
+    if hint.schedule_kind == "monthly" and hint.day_of_month is not None:
+        return f"har oy {hint.day_of_month}-sanasida"
+    if hint.schedule_kind == "weekly" and hint.day_of_week is not None:
+        return f"har {WEEKDAY_LABELS[hint.day_of_week]}"
+    if hint.schedule_kind == "every_n_days" and hint.every_n_days is not None:
+        return f"har {hint.every_n_days} kunda"
+    return "takrorlanib turadi"
 
 
 class _RequestStub:
