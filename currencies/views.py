@@ -55,6 +55,10 @@ def switch_display(request):
     # a fresh chance to warn the user.
     request.session.pop(SESSION_STALE_BANNER_DISMISSED, None)
 
+    # Redirect to the full home shell (which then htmx-swaps the BalanceHero
+    # partial back in with the new preference). Pointing HX-Redirect at the
+    # bare /content/ endpoint navigates the browser to a shell-less partial —
+    # no Tailwind, no Alpine, no base layout — so the user sees raw HTML.
     response = HttpResponse(status=204)
-    response.headers["HX-Redirect"] = reverse("core:home_content")
+    response.headers["HX-Redirect"] = reverse("core:home")
     return response

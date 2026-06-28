@@ -27,7 +27,9 @@ def test_switch_display_persists_session_and_user() -> None:
         data={"display_mode": "converted", "display_currency": "USD"},
     )
     assert response.status_code == 204
-    assert response.headers["HX-Redirect"] == reverse("core:home_content")
+    # Must redirect to the full /app/home/ shell, not the partial /content/
+    # endpoint — the partial is shell-less HTML and would render unstyled.
+    assert response.headers["HX-Redirect"] == reverse("core:home")
 
     # Session updated.
     session = client.session
