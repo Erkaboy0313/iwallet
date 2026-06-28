@@ -1,44 +1,105 @@
 {% load core_extras %}
+{% include 'currencies/_stale_banner.html' %}
 <section class="px-5 pt-6">
     <header class="flex items-center justify-between mb-6">
         <div>
             <h1 class="text-lg font-semibold text-slate-900">Salom, {{ user.first_name }}!</h1>
             <p class="text-xs text-slate-500">Joriy oy</p>
         </div>
-        <span class="text-xs font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-700"
-              aria-label="Joriy valyuta">{{ summary.currency }}</span>
+        {% include 'currencies/_switcher.html' %}
     </header>
-    <div class="card-default">
-        <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
-        <p class="amount mt-2 text-4xl font-bold text-slate-900"
-           aria-live="polite">{{ net_balance|smart_money:summary.currency }}</p>
-        <p class="mt-3 text-xs text-slate-500">
-            Kirim: {{ summary.total_income|smart_money:summary.currency }} ·
-            Chiqim: {{ summary.total_expense|smart_money:summary.currency }}
-        </p>
-        <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
-            <div>
-                <p class="text-slate-500">Naqd</p>
-                <p class="amount font-medium text-slate-900">{{ summary.cash_balance|smart_money:summary.currency }}</p>
-            </div>
-            <div>
-                <p class="text-slate-500">Sof</p>
-                <p class="amount font-medium text-slate-900">{{ net_balance|smart_money:summary.currency }}</p>
-            </div>
-            <div>
-                <p class="text-slate-500">Qarz</p>
-                {% if debts.has_any %}
-                    <a href="{% url 'debts:list' %}"
-                       class="block font-medium text-amber-700 underline-offset-4 hover:underline"
-                       aria-label="Qarzlar ro'yxatini ochish">
-                        {{ debts.open_lent_count }} ta menga · {{ debts.open_borrowed_count }} ta menda
-                    </a>
-                {% else %}
-                    <p class="font-medium text-slate-500">Yo'q</p>
-                {% endif %}
+    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+        <div class="card-default">
+            <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
+            <p class="amount mt-2 text-4xl font-bold text-slate-900"
+               aria-live="polite">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
+            <p class="mt-1 text-[11px] text-slate-500">≈ {{ display_currency|currency_label }} bo'yicha</p>
+            <p class="mt-3 text-xs text-slate-500">
+                Kirim: {{ aggregated.total_income|smart_money:display_currency }} ·
+                Chiqim: {{ aggregated.total_expense|smart_money:display_currency }}
+            </p>
+            <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                    <p class="text-slate-500">Naqd</p>
+                    <p class="amount font-medium text-slate-900">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Sof</p>
+                    <p class="amount font-medium text-slate-900">{{ net_balance|smart_money:display_currency }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Qarz</p>
+                    {% if debts.has_any %}
+                        <a href="{% url 'debts:list' %}"
+                           class="block font-medium text-amber-700 underline-offset-4 hover:underline"
+                           aria-label="Qarzlar ro'yxatini ochish">
+                            {{ debts.open_lent_count }} ta menga · {{ debts.open_borrowed_count }} ta menda
+                        </a>
+                    {% else %}
+                        <p class="font-medium text-slate-500">Yo'q</p>
+                    {% endif %}
+                </div>
             </div>
         </div>
-    </div>
+        {% if aggregated.per_currency|length > 1 %}
+            <div class="mt-4">
+                <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Manba valyutalar</p>
+                <ul class="space-y-2">
+                    {% for row in aggregated.per_currency %}
+                        <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
+                            <span class="text-xs text-slate-500">{{ row.currency }}</span>
+                            <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="card-default">
+            <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
+            <p class="amount mt-2 text-4xl font-bold text-slate-900"
+               aria-live="polite">{{ net_balance|smart_money:summary.currency }}</p>
+            <p class="mt-3 text-xs text-slate-500">
+                Kirim: {{ summary.total_income|smart_money:summary.currency }} ·
+                Chiqim: {{ summary.total_expense|smart_money:summary.currency }}
+            </p>
+            <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
+                <div>
+                    <p class="text-slate-500">Naqd</p>
+                    <p class="amount font-medium text-slate-900">{{ summary.cash_balance|smart_money:summary.currency }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Sof</p>
+                    <p class="amount font-medium text-slate-900">{{ net_balance|smart_money:summary.currency }}</p>
+                </div>
+                <div>
+                    <p class="text-slate-500">Qarz</p>
+                    {% if debts.has_any %}
+                        <a href="{% url 'debts:list' %}"
+                           class="block font-medium text-amber-700 underline-offset-4 hover:underline"
+                           aria-label="Qarzlar ro'yxatini ochish">
+                            {{ debts.open_lent_count }} ta menga · {{ debts.open_borrowed_count }} ta menda
+                        </a>
+                    {% else %}
+                        <p class="font-medium text-slate-500">Yo'q</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% if other_currency_summaries %}
+            <div class="mt-4">
+                <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Boshqa valyutalar</p>
+                <ul class="space-y-2">
+                    {% for row in other_currency_summaries %}
+                        <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
+                            <span class="text-xs text-slate-500">{{ row.currency }}</span>
+                            <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+    {% endif %}
     {% if summary.top_categories %}
         <div class="mt-6">
             <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Eng ko'p sarflandi</p>

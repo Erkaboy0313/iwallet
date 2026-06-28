@@ -9,7 +9,8 @@ from datetime import date as _date_type
 
 from django.db import models
 
-from accounts.models import CURRENCY_CHOICES, User
+from accounts.models import User
+from currencies.constants import CURRENCY_CHOICES
 
 MAX_DIGITS = 15
 DECIMAL_PLACES = 2

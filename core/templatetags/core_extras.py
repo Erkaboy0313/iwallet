@@ -7,7 +7,16 @@ from decimal import Decimal
 
 from django import template
 
+from currencies.constants import currency_label as _currency_label
+
 register = template.Library()
+
+
+@register.filter(name="currency_label")
+def currency_label(code: str) -> str:
+    """Render the Uzbek label for a currency code (so'm/rubl/dollar)."""
+    return _currency_label(code or "")
+
 
 THIN_SPACE = " "
 ONE_MILLION = Decimal("1000000")

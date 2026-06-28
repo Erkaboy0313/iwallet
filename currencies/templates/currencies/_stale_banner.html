@@ -1,0 +1,26 @@
+{% if rates_stale_days > 1 %}
+    <div x-data="{ shown: true }"
+         x-show="shown"
+         x-cloak
+         class="px-5 pt-3"
+         role="status"
+         aria-live="polite">
+        <div class="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 flex items-start gap-3"
+             style="padding: 10px 12px">
+            <span aria-hidden="true" style="font-size: 16px; line-height: 1;">💱</span>
+            <div class="flex-1 text-xs leading-relaxed">
+                Valyuta kursi {{ rates_stale_days }} kun eski.
+                Tranzaksiyalar normal saqlanmoqda.
+                {% if rates_stale_date %}
+                    <span class="opacity-70">(oxirgi kurs: {{ rates_stale_date|date:"Y-m-d" }})</span>
+                {% endif %}
+            </div>
+            <button type="button"
+                    @click="shown = false"
+                    class="text-amber-700 hover:text-amber-900"
+                    aria-label="Banner'ni yopish"
+                    style="line-height: 1;
+                           font-size: 16px">×</button>
+        </div>
+    </div>
+{% endif %}

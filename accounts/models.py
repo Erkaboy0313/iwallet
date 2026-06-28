@@ -2,11 +2,9 @@
 
 from django.db import models
 
-CURRENCY_CHOICES = [
-    ("UZS", "so'm"),
-    ("RUB", "rubl"),
-    ("USD", "dollar"),
-]
+from currencies.constants import CURRENCY_CHOICES
+
+__all__ = ["CURRENCY_CHOICES", "User"]
 
 
 class User(models.Model):
@@ -18,6 +16,9 @@ class User(models.Model):
     username = models.CharField(max_length=32, blank=True, default="")
     language_code = models.CharField(max_length=8, default="uz")
     default_currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="UZS")
+    # Epic 5 — display preference. False = raw per-currency amounts (no conversion).
+    # True = aggregate everything into default_currency using CBU.uz rates.
+    show_converted = models.BooleanField(default=False)
     onboarded_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)

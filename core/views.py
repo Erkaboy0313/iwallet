@@ -19,6 +19,14 @@ from accounts.exceptions import InvalidInitDataError
 from accounts.middleware import SESSION_KEY
 from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
+from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
+from currencies.selectors import aggregated_month_summary, current_rates_stale_days
+from currencies.views import (
+    DISPLAY_MODE_CONVERTED,
+    DISPLAY_MODE_RAW,
+    SESSION_DISPLAY_CURRENCY,
+    SESSION_DISPLAY_MODE,
+)
 from debts.selectors import debt_status_summary
 from transactions.selectors import month_summary
 
@@ -52,14 +60,46 @@ def home_content(request):
         response.headers["HX-Redirect"] = reverse("accounts:onboarding")
         return response
 
-    summary = month_summary(user, currency=user.default_currency)
+    display_currency, display_mode = _resolve_display_preference(request, user)
+    summary = month_summary(user, currency=display_currency)
     debts = debt_status_summary(user)
-    # Sof balans (FR Epic 4 Story 4.4): cash − borrowed + lent for the active
-    # display currency. Cross-currency debts are intentionally excluded — full
-    # multi-currency math lands with Epic 5.
-    lent_same_ccy = debts.lent_remaining_by_currency.get(user.default_currency, 0)
-    borrowed_same_ccy = debts.borrowed_remaining_by_currency.get(user.default_currency, 0)
+
+    # Sof balans (Epic 4 Story 4.4): cash − borrowed + lent for the active
+    # display currency. Cross-currency debts are intentionally excluded —
+    # full multi-currency math via the aggregated_month_summary path below.
+    lent_same_ccy = debts.lent_remaining_by_currency.get(display_currency, 0)
+    borrowed_same_ccy = debts.borrowed_remaining_by_currency.get(display_currency, 0)
     net_balance = summary.cash_balance - borrowed_same_ccy + lent_same_ccy
+
+    aggregated = None
+    rates_stale_days = None
+    rates_stale_date = None
+    if display_mode == DISPLAY_MODE_CONVERTED:
+        aggregated = aggregated_month_summary(user, display_currency)
+        rates_stale_days = current_rates_stale_days()
+        if aggregated.rate_date is not None:
+            rates_stale_date = aggregated.rate_date
+        if rates_stale_days < 0 or not aggregated.is_fully_supported:
+            # No rates bootstrapped or partial: silently fall back to raw display
+            # — better than crashing. The switcher still shows "converted" so the
+            # user can see we tried; the banner will still warn if stale_days>1.
+            display_mode = DISPLAY_MODE_RAW
+            aggregated = None
+
+    other_currency_summaries = []
+    if display_mode == DISPLAY_MODE_RAW:
+        for ccy in CURRENCY_CODES:
+            if ccy == display_currency:
+                continue
+            other = month_summary(user, currency=ccy)
+            if other.transaction_count:
+                other_currency_summaries.append(
+                    {
+                        "currency": ccy,
+                        "cash_balance": other.cash_balance,
+                    },
+                )
+
     return render(
         request,
         "core/_balance_hero.html",
@@ -68,8 +108,26 @@ def home_content(request):
             "user": user,
             "debts": debts,
             "net_balance": net_balance,
+            "aggregated": aggregated,
+            "display_currency": display_currency,
+            "display_mode": display_mode,
+            "currency_choices": CURRENCY_CHOICES,
+            "other_currency_summaries": other_currency_summaries,
+            "rates_stale_days": rates_stale_days,
+            "rates_stale_date": rates_stale_date,
         },
     )
+
+
+def _resolve_display_preference(request, user: User) -> tuple[str, str]:
+    """Pick (display_currency, display_mode) from session > user > defaults."""
+    currency = request.session.get(SESSION_DISPLAY_CURRENCY) or user.default_currency
+    if currency not in CURRENCY_CODES:
+        currency = "UZS"
+    mode = request.session.get(SESSION_DISPLAY_MODE)
+    if mode not in (DISPLAY_MODE_RAW, DISPLAY_MODE_CONVERTED):
+        mode = DISPLAY_MODE_CONVERTED if user.show_converted else DISPLAY_MODE_RAW
+    return currency, mode
 
 
 def _try_authenticate(init_data: str):
