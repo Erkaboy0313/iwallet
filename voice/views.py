@@ -1,9 +1,8 @@
-"""Story 2.2 — async voice endpoints.
+"""Story 2.2+ — async voice endpoint.
 
 `transcribe` accepts an audio blob (multipart) and renders the confirm partial.
-Reads bytes into memory via `sync_to_async(file.read)` because Django's FILES
-storage descriptor is sync-only inside an async view.
-Story 2.3 fills in the Gemini call; Story 2.4 fills in `save` for real.
+`save` (Story 2.4) persists the user-confirmed draft via the transactions
+service. ORM access from inside async views goes through `sync_to_async`.
 """
 
 from __future__ import annotations
@@ -15,6 +14,11 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
+from .exceptions import (
+    GeminiConfigError,
+    GeminiUnavailableError,
+    NoTransactionsParsedError,
+)
 from .services_async import transcribe_and_parse_async
 
 logger = logging.getLogger(__name__)
@@ -32,7 +36,7 @@ def _content_type_allowed(value: str) -> bool:
 
 
 async def transcribe(request: HttpRequest) -> HttpResponse:
-    """Accept an audio blob, call the (stub) service, render the confirm partial."""
+    """Accept an audio blob, call Gemini, render the confirm partial."""
     if request.method != "POST":
         return HttpResponse(status=405)
 
@@ -47,8 +51,27 @@ async def transcribe(request: HttpRequest) -> HttpResponse:
     if len(audio_bytes) > MAX_AUDIO_BYTES:
         return JsonResponse({"error": "payload_too_large"}, status=413)
 
-    drafts = await transcribe_and_parse_async(audio_bytes, request.user)
-    return render(request, "voice/_confirm_partial.html", {"drafts": drafts})
+    try:
+        parsed = await transcribe_and_parse_async(audio_bytes, request.user)
+    except (GeminiUnavailableError, GeminiConfigError):
+        logger.warning("voice.transcribe: Gemini unavailable")
+        response = render(request, "voice/_error_partial.html", {"reason": "unavailable"})
+        response.status_code = 503
+        return response
+    except NoTransactionsParsedError:
+        logger.info("voice.transcribe: no transactions parsed")
+        response = render(request, "voice/_error_partial.html", {"reason": "empty"})
+        response.status_code = 422
+        return response
+
+    return render(
+        request,
+        "voice/_confirm_partial.html",
+        {
+            "drafts": parsed.transactions,
+            "recurring": parsed.recurring_intent,
+        },
+    )
 
 
 @require_POST

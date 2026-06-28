@@ -1,0 +1,26 @@
+{# Story 2.5 — voice error partial. Reasons: 'unavailable' (503) or 'empty' (422). #}
+<div class="card-default mt-4"
+     style="border: 1px solid #fecaca;
+            border-radius: 24px">
+    <p class="text-sm text-red-800">
+        {% if reason == 'unavailable' %}
+            Gemini xizmati hozir mavjud emas. Yana urinib ko'ring yoki qo'lda yozing.
+        {% else %}
+            Tranzaksiya tushunmadim. Qaytadan urinib ko'ring.
+        {% endif %}
+    </p>
+    <div class="mt-3 grid grid-cols-2 gap-3">
+        <button type="button"
+                class="btn-secondary"
+                aria-label="Qaytadan yozib olish"
+                onclick="(function(){var host=document.getElementById('voice-confirm-area'); if(host) host.innerHTML='';})()">
+            🎤 Qaytadan
+        </button>
+        <a href="{% url 'transactions:add' %}"
+           class="btn-primary text-center"
+           aria-label="Qo'lda tranzaksiya qo'shish"
+           style="display: inline-flex;
+                  align-items: center;
+                  justify-content: center">✏️ Qo'lda</a>
+    </div>
+</div>
