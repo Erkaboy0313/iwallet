@@ -1,4 +1,4 @@
-"""categories/urls.py — Epic 3 routes for CRUD."""
+"""categories/urls.py — Epic 3 routes for CRUD + picker."""
 
 from django.urls import path
 
@@ -31,5 +31,10 @@ urlpatterns = [
         "settings/categories/<int:category_id>/toggle-hide/",
         views.category_toggle_hide_view,
         name="toggle_hide",
+    ),
+    path(
+        "categories/picker/",
+        views.category_picker_view,
+        name="picker",
     ),
 ]

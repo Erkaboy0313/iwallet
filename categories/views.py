@@ -1,4 +1,4 @@
-"""Category CRUD views (Epic 3 — Story 3.1)."""
+"""Category CRUD + picker views (Epic 3 — Stories 3.1, 3.2)."""
 
 import json
 
@@ -13,7 +13,7 @@ from .exceptions import (
 )
 from .forms import CategoryForm
 from .models import Category, CategoryType
-from .selectors import categories_for_settings
+from .selectors import categories_for, categories_for_settings
 from .services import create_category, delete_category, toggle_hide_preset, update_category
 
 
@@ -161,6 +161,30 @@ def category_toggle_hide_view(request, category_id: int):
     is_hidden_now = toggle_hide_preset(user=request.user, category=category)
     message = "Kategoriya yashirildi." if is_hidden_now else "Kategoriya ko'rsatildi."
     return _list_swap_response(request, message)
+
+
+# ---------- Picker (Story 3.2) ----------
+
+
+@require_GET
+def category_picker_view(request):
+    """Render the bottom-sheet picker as an htmx partial.
+
+    Caller passes `?type=income|expense` and an optional `?target=<input-id>`
+    so Alpine on the picker can write the picked slug into the right field.
+    """
+    type_ = request.GET.get("type") or CategoryType.EXPENSE.value
+    target = request.GET.get("target") or "id_category_slug"
+    if type_ not in {CategoryType.INCOME.value, CategoryType.EXPENSE.value}:
+        type_ = CategoryType.EXPENSE.value
+    categories = list(categories_for(request.user, type_))
+    # Force "Boshqa" to render last regardless of frequency ordering (AC 3.2).
+    categories.sort(key=lambda c: (c.slug == "boshqa", -c.usage_count, c.name))
+    return render(
+        request,
+        "categories/_picker.html",
+        {"categories": categories, "type": type_, "target_field": target},
+    )
 
 
 # ---------- helpers ----------
