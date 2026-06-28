@@ -174,10 +174,12 @@ def test_save_multi_empty_draft_list_rejects() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_save_multi_caps_at_five_drafts() -> None:
+def test_save_multi_caps_at_max_drafts() -> None:
+    from voice.views import MAX_BATCH_DRAFTS
+
     client = Client()
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
-    payload = {"drafts": [_payload_draft() for _ in range(6)]}
+    payload = {"drafts": [_payload_draft() for _ in range(MAX_BATCH_DRAFTS + 1)]}
     response = _post_save_multi(client, 405, payload)
     assert response.status_code == 422
     assert Transaction.objects.count() == 0

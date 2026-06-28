@@ -26,7 +26,10 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
     }
     </script>
     <div x-data="voiceConfirmList({{ drafts|length }}, {% drafts_payload_json drafts %}, {% recurring_payload_json recurring %}, '{% url 'voice:save_multi' %}')"
-         x-cloak>
+         x-cloak
+         @vc-remove.stop="remove($event.detail.idx)"
+         @vc-touch.stop="touch($event.detail.idx, $event.detail.field)"
+         @vc-draft-update.stop="updateDraft($event.detail.idx, $event.detail.draft)">
         {% if drafts|length > 1 %}
             <header class="flex items-center justify-between mt-4 mb-2"
                     style="padding: 0 4px">
@@ -56,7 +59,7 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         <button type="button"
                                 class="text-xs px-2 py-1 rounded-full bg-red-50 text-red-700"
                                 aria-label="Tranzaksiyani o'chirish"
-                                @click="$root.remove({{ forloop.counter0 }})">❌ O'chirish</button>
+                                @click="$dispatch('vc-remove', { idx: idx })">❌ O'chirish</button>
                     </div>
                 </div>
                 <div class="mb-4">
@@ -221,21 +224,23 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         : "border: 1px solid #e2e8f0; border-radius: 24px";
                 },
                 touch(idx, field) {
-                    // Replace the entry instead of mutating in place so Alpine's
-                    // reactive proxy fires for downstream getters (canSave).
-                    var next = (this.touched[idx] || {});
+                    var next = Object.assign({}, this.touched[idx] || {});
                     next[field] = true;
                     this.touched = this.touched.map(function (t, i) {
                         return i === idx ? next : t;
                     });
                 },
                 remove(idx) {
-                    // Same array-replacement pattern — `kept[idx] = false` was
-                    // hiding the card via x-show but NOT updating keptCount /
-                    // headerLabel / summaryLabel / saveLabel, so the count stayed
-                    // at the original total after deletions.
                     this.kept = this.kept.map(function (v, i) {
                         return i === idx ? false : v;
+                    });
+                },
+                updateDraft(idx, draft) {
+                    // Child voiceDraftCard dispatches this whenever the user
+                    // edits a field on its card. We replace the whole array
+                    // entry so Alpine's reactivity fires for summaryLabel.
+                    this.drafts = this.drafts.map(function (d, i) {
+                        return i === idx ? Object.assign({}, d, draft) : d;
                     });
                 },
                 cancel() {
@@ -281,9 +286,10 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                 draft: Object.assign({}, initial),
                 ambiguousFields: (initial.ambiguous_fields || []).slice(),
                 init() {
-                    if (this.$root && Array.isArray(this.$root.drafts)) {
-                        this.$root.drafts[idx] = this.draft;
-                    }
+                    // Seed the parent's `drafts[idx]` via event (in Alpine 3
+                    // `$root` is a DOM element, not the parent's reactive scope —
+                    // direct mutation didn't reach voiceConfirmList).
+                    this.$dispatch("vc-draft-update", { idx: idx, draft: this.draft });
                     // Debug breadcrumb so we can see what each card was hydrated
                     // with vs what the server's VOICE-RX log printed. If these
                     // disagree, the bug is in the template tag / x-data parsing.
@@ -321,9 +327,8 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                     return this.ambiguousFields.map((f) => FIELD_LABELS[f] || f).join(", ");
                 },
                 editField(field) {
-                    if (this.$root && typeof this.$root.touch === "function") {
-                        this.$root.touch(idx, field);
-                    }
+                    // Touch the parent (so the ambiguous-field gate flips).
+                    this.$dispatch("vc-touch", { idx: idx, field: field });
                     var current = this.draft[field];
                     var prompt = window.prompt("Yangi qiymat (" + field + "):", current == null ? "" : String(current));
                     if (prompt === null) return;
@@ -338,9 +343,9 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                     } else {
                         this.draft[field] = prompt;
                     }
-                    if (this.$root && Array.isArray(this.$root.drafts)) {
-                        this.$root.drafts[idx] = this.draft;
-                    }
+                    // Propagate the new value to parent.drafts so saveAll sends
+                    // the edited amount/currency/etc. and summaryLabel updates.
+                    this.$dispatch("vc-draft-update", { idx: idx, draft: this.draft });
                 },
             };
         });

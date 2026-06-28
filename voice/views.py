@@ -207,7 +207,8 @@ def _coerce_save_payload(request: HttpRequest) -> dict:
 # ---------- Story 6.2 — multi-draft batch save ----------
 
 
-MAX_BATCH_DRAFTS = 5
+# Keep in sync with voice.parser.MAX_DRAFTS_PER_UTTERANCE.
+MAX_BATCH_DRAFTS = 10
 
 
 @require_POST
@@ -292,7 +293,9 @@ def _coerce_multi_save_payload(request: HttpRequest) -> dict:
     if not isinstance(raw_drafts, list) or not raw_drafts:
         raise _SaveValidationError("Saqlash uchun tranzaksiya yo'q")
     if len(raw_drafts) > MAX_BATCH_DRAFTS:
-        raise _SaveValidationError("Bir vaqtda 5 tadan ortiq saqlab bo'lmaydi")
+        raise _SaveValidationError(
+            f"Bir vaqtda {MAX_BATCH_DRAFTS} tadan ortiq saqlab bo'lmaydi"
+        )
 
     drafts: list[dict] = []
     for item in raw_drafts:
