@@ -1,0 +1,93 @@
+{% load core_extras %}
+<div id="close-form-slot"
+     x-data="{ open: true, cancelConfirm: false }"
+     x-init="$nextTick(() => open = true)">
+    <div x-show="open"
+         x-cloak
+         @click.self="open = false; setTimeout(() => $el.remove(), 200)"
+         style="position: fixed;
+                inset: 0;
+                z-index: 80;
+                background: rgba(15, 23, 42, 0.45);
+                display: flex;
+                align-items: flex-end;
+                justify-content: center">
+        <div style="background:#fff;
+                    width: 100%;
+                    max-width: 430px;
+                    border-top-left-radius: 24px;
+                    border-top-right-radius: 24px;
+                    padding: 20px 20px calc(env(safe-area-inset-bottom, 0) + 20px);
+                    box-shadow: 0 -8px 24px rgba(15,23,42,0.12)">
+            <header class="flex items-center justify-between mb-3">
+                <h2 class="text-base font-semibold text-slate-900">
+                    {% if debt.direction == 'lent' %}
+                        Qarzni yopish — {{ debt.counterparty }}
+                    {% else %}
+                        Qarzni qaytarish — {{ debt.counterparty }}
+                    {% endif %}
+                </h2>
+                <button type="button"
+                        @click="open = false; setTimeout(() => $el.closest('#close-form-slot').remove(), 200)"
+                        class="text-slate-500 px-2 py-1"
+                        aria-label="Yopish">×</button>
+            </header>
+            <p class="text-xs text-slate-500 mb-3">
+                Qoldiq: <span class="amount font-medium text-slate-900">{{ debt.remaining_amount|smart_money:debt.currency }}</span>
+            </p>
+            <form hx-post="{% url 'debts:repay' debt.id %}"
+                  hx-target="#close-form-slot"
+                  hx-swap="outerHTML"
+                  class="space-y-3">
+                <div>
+                    <label for="id_repay_amount"
+                           class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
+                    <input id="id_repay_amount"
+                           name="amount"
+                           type="text"
+                           inputmode="decimal"
+                           value="{{ form.amount.value|default:debt.remaining_amount }}"
+                           required
+                           class="amount w-full text-2xl font-semibold tabular-nums rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-600 outline-none">
+                    {% if form.amount.errors %}
+                        <p class="form-error text-red-700 text-sm mt-1" role="alert">{{ form.amount.errors|join:" " }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="id_repay_note"
+                           class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Izoh (ixtiyoriy)</label>
+                    <textarea id="id_repay_note"
+                              name="note"
+                              rows="2"
+                              class="w-full rounded-2xl border border-slate-200 px-3 py-2">{{ form.note.value|default:'' }}</textarea>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <button type="submit"
+                            class="flex-1 btn-primary"
+                            aria-label="Qaytarishni saqlash">Saqlash</button>
+                    <button type="button"
+                            @click="cancelConfirm = true"
+                            class="px-4 py-2 rounded-2xl text-sm text-red-700 border border-red-200 bg-red-50"
+                            aria-label="Qarzni kechirish">Kechirish</button>
+                </div>
+            </form>
+            <div x-show="cancelConfirm"
+                 x-cloak
+                 class="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200">
+                <p class="text-sm text-slate-800">Bu qarzni kechirib yuborasizmi? Bu amal ortga qaytmaydi.</p>
+                <form hx-post="{% url 'debts:cancel' debt.id %}"
+                      hx-swap="none"
+                      class="mt-2 flex gap-2">
+                    <input type="hidden" name="reason" value="forgiven">
+                    <button type="submit"
+                            class="flex-1 px-3 py-2 rounded-xl text-sm font-medium bg-red-600 text-white"
+                            aria-label="Kechirishni tasdiqlash">Ha, kechirdim</button>
+                    <button type="button"
+                            @click="cancelConfirm = false"
+                            class="px-3 py-2 rounded-xl text-sm text-slate-700 bg-slate-100"
+                            aria-label="Bekor qilish">Bekor</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
