@@ -1,156 +1,378 @@
 {% extends 'base.html' %}
 {% block title %}Yangi tranzaksiya — IWALLET{% endblock %}
 {% block content %}
-    <section class="px-5 pt-5 pb-32"
+    <section style="padding: 16px 20px 96px"
              x-data="{ type: '{{ form.type.value|default:'expense' }}', amount: '{{ form.amount.value|default:'' }}', picker: null, pickerLabel: '', pickerEmoji: '' }">
-        <header class="flex items-center justify-between gap-3 mb-5">
-            <div class="flex items-center gap-3">
+        {# Header: back + title + voice quick action. Sprint v0.6 §3.3. #}
+        <header style="display: flex;
+                       align-items: center;
+                       justify-content: space-between;
+                       gap: 12px;
+                       min-height: 44px;
+                       margin-bottom: 20px">
+            <div style="display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        flex: 1;
+                        min-width: 0">
                 <a href="{% url 'core:home' %}"
-                   class="text-slate-500 hover:text-slate-900 px-2 py-1"
-                   aria-label="Bekor qilish va orqaga qaytish">←</a>
-                <h1 class="text-xl font-semibold text-slate-900">Yangi tranzaksiya</h1>
+                   aria-label="Bekor qilish va orqaga qaytish"
+                   style="display: inline-flex;
+                          align-items: center;
+                          justify-content: center;
+                          width: 44px;
+                          height: 44px;
+                          color: var(--color-text-secondary);
+                          text-decoration: none">
+                    <svg width="22"
+                         height="22"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="1.8"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                    </svg>
+                </a>
+                <h1 style="margin: 0;
+                           font-size: 18px;
+                           font-weight: 600;
+                           color: var(--color-text)">Yangi tranzaksiya</h1>
             </div>
-            <div style="transform: scale(0.55); transform-origin: right center">{% include 'voice/_voice_button.html' %}</div>
+            {% include 'voice/_voice_quick_button.html' %}
         </header>
         <form id="add-form"
               hx-post="{% url 'transactions:add' %}"
               hx-target="this"
               hx-swap="outerHTML"
-              class="space-y-5">
+              style="display: flex;
+                     flex-direction: column;
+                     gap: 20px">
             {% csrf_token %}
-            <!-- Type radio -->
-            <fieldset>
-                <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Turi</legend>
-                <div class="grid grid-cols-2 gap-2">
+            {# Type radio — 2x2 grid of cards with icons. UX §3.4(2). #}
+            <fieldset style="border: 0; padding: 0; margin: 0">
+                <legend style="font-size: 10px;
+                               letter-spacing: 0.06em;
+                               text-transform: uppercase;
+                               color: var(--color-text-muted);
+                               font-weight: 600;
+                               padding: 0;
+                               margin-bottom: 8px">Turi</legend>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
                     {% for value, label in form.type.field.choices %}
-                        <label class="cursor-pointer">
+                        <label style="cursor: pointer; display: block">
                             <input type="radio"
                                    name="type"
                                    value="{{ value }}"
                                    x-model="type"
-                                   class="sr-only peer"
+                                   class="sr-only"
                                    {% if form.type.value == value %}checked{% endif %}>
-                            <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
-                                {{ label }}
+                            <div :style="type === '{{ value }}' ? 'border: 2px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary-hover);' : 'border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);'"
+                                 style="padding: 14px 12px;
+                                        border-radius: 14px;
+                                        text-align: left;
+                                        transition: border-color 120ms ease, background 120ms ease;
+                                        min-height: 76px;
+                                        display: flex;
+                                        flex-direction: column;
+                                        justify-content: space-between">
+                                <span aria-hidden="true"
+                                      style="display: inline-flex;
+                                             align-items: center;
+                                             justify-content: center;
+                                             width: 28px;
+                                             height: 28px;
+                                             border-radius: 8px;
+                                             background: rgba(0,0,0,0.04)">
+                                    {% if value == 'income' %}
+                                        <svg width="16"
+                                             height="16"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
+                                        </svg>
+                                    {% elif value == 'expense' %}
+                                        <svg width="16"
+                                             height="16"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
+                                        </svg>
+                                    {% elif value == 'debt_lent' %}
+                                        <svg width="16"
+                                             height="16"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                                        </svg>
+                                    {% else %}
+                                        <svg width="16"
+                                             height="16"
+                                             fill="none"
+                                             stroke="currentColor"
+                                             stroke-width="2"
+                                             viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                        </svg>
+                                    {% endif %}
+                                </span>
+                                <span style="font-size: 14px; font-weight: 600">{{ label }}</span>
                             </div>
                         </label>
                     {% endfor %}
                 </div>
                 {% if form.type.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.type.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.type.errors|join:" " }}</p>
                 {% endif %}
             </fieldset>
-            <!-- Amount + Numpad-style smart input -->
+            {# Amount input + helper chips. #}
             <div>
                 <label for="id_amount"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
-                <div class="flex gap-2">
-                    <input id="id_amount"
-                           name="amount"
-                           type="text"
-                           inputmode="decimal"
-                           x-model="amount"
-                           placeholder="0"
-                           required
-                           class="amount flex-1 text-3xl font-semibold tabular-nums rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500 outline-none">
-                </div>
-                <div class="flex gap-2 mt-2">
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Summa</label>
+                <input id="id_amount"
+                       name="amount"
+                       type="text"
+                       inputmode="decimal"
+                       x-model="amount"
+                       placeholder="0"
+                       required
+                       class="amount"
+                       style="width: 100%;
+                              font-size: 30px;
+                              font-weight: 600;
+                              padding: 14px 16px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none;
+                              transition: border-color 120ms ease">
+                <div style="display: flex; gap: 8px; margin-top: 10px">
                     <button type="button"
                             @click="amount = (parseFloat(amount || 0) * 1000).toString()"
-                            class="flex-1 text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 hover:bg-slate-200"
-                            aria-label="Kiritilgan raqamni 1000 ga ko'paytirish">× ming</button>
+                            aria-label="Kiritilgan raqamni 1000 ga ko'paytirish"
+                            style="flex: 1;
+                                   padding: 9px 0;
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   border: 0;
+                                   border-radius: 12px;
+                                   background: var(--color-primary-light);
+                                   color: var(--color-primary-hover);
+                                   cursor: pointer">× ming</button>
                     <button type="button"
                             @click="amount = (parseFloat(amount || 0) * 1000000).toString()"
-                            class="flex-1 text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 hover:bg-slate-200"
-                            aria-label="Kiritilgan raqamni million ga ko'paytirish">× mln</button>
+                            aria-label="Kiritilgan raqamni million ga ko'paytirish"
+                            style="flex: 1;
+                                   padding: 9px 0;
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   border: 0;
+                                   border-radius: 12px;
+                                   background: var(--color-primary-light);
+                                   color: var(--color-primary-hover);
+                                   cursor: pointer">× mln</button>
                     <button type="button"
                             @click="amount = ''"
-                            class="text-sm font-medium rounded-xl bg-slate-100 text-slate-700 py-2 px-3 hover:bg-slate-200"
-                            aria-label="Summa maydonini tozalash">⌫</button>
+                            aria-label="Summa maydonini tozalash"
+                            style="padding: 9px 14px;
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   border: 0;
+                                   border-radius: 12px;
+                                   background: #F1F5F9;
+                                   color: var(--color-text-secondary);
+                                   cursor: pointer">⌫</button>
                 </div>
                 {% if form.amount.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.amount.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.amount.errors|join:" " }}</p>
                 {% endif %}
             </div>
-            <!-- Currency -->
+            {# Currency #}
             <div>
                 <label for="id_currency"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Valyuta</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Valyuta</label>
                 <select id="id_currency"
                         name="currency"
-                        class="w-full rounded-2xl border border-slate-200 px-3 py-3 bg-white">
+                        style="width: 100%;
+                               padding: 14px 16px;
+                               font-size: 15px;
+                               border: 1.5px solid var(--color-border);
+                               border-radius: 14px;
+                               background: var(--color-surface);
+                               appearance: none;
+                               background-image: url(&quot;
+                               data:image/svg+xml;
+                               utf8,&lt;
+                               svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394A3B8' stroke-width='2' viewBox='0 0 24 24'&gt;
+                               &lt;
+                               path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/&gt;
+                               &lt;
+                               /svg&gt;
+                               &quot;
+                               );
+                               background-repeat: no-repeat;
+                               background-position: right 16px center">
                     {% for value, label in form.currency.field.choices %}
                         <option value="{{ value }}"
                                 {% if form.currency.value == value or value == 'UZS' and not form.currency.value %}selected{% endif %}>{{ label }} ({{ value }})</option>
                     {% endfor %}
                 </select>
             </div>
-            <!-- Category (income/expense only) — opens picker bottom sheet -->
+            {# Category (income/expense only) #}
             <div x-show="type === 'income' || type === 'expense'" x-cloak>
                 <label for="id_category_slug"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kategoriya</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Kategoriya</label>
                 <input id="id_category_slug"
                        name="category_slug"
                        type="hidden"
                        value="{{ form.category_slug.value|default:'' }}">
                 <button type="button"
                         @click="picker = true; htmx.ajax('GET', '{% url 'categories:picker' %}?type=' + type + '&target=id_category_slug', '#category-picker-host')"
-                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white text-left flex items-center justify-between"
-                        aria-label="Kategoriyani tanlash">
-                    <span class="flex items-center gap-2">
-                        <span class="text-xl" aria-hidden="true" x-text="pickerEmoji || '📌'"></span>
-                        <span class="text-sm text-slate-700"
-                              x-text="pickerLabel || 'Kategoriyani tanlang'"></span>
+                        aria-label="Kategoriyani tanlash"
+                        style="width: 100%;
+                               padding: 14px 16px;
+                               border: 1.5px solid var(--color-border);
+                               border-radius: 14px;
+                               background: var(--color-surface);
+                               text-align: left;
+                               display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               font-size: 15px;
+                               color: var(--color-text);
+                               cursor: pointer">
+                    <span style="display: inline-flex; align-items: center; gap: 10px">
+                        <span aria-hidden="true"
+                              style="font-size: 18px"
+                              x-text="pickerEmoji || '📌'"></span>
+                        <span x-text="pickerLabel || 'Kategoriyani tanlang'"></span>
                     </span>
-                    <span class="text-slate-400" aria-hidden="true">›</span>
+                    <span aria-hidden="true" style="color: var(--color-text-muted)">›</span>
                 </button>
             </div>
-            <!-- Counterparty (debt only) -->
+            {# Counterparty (debt only) #}
             <div x-show="type === 'debt_lent' || type === 'debt_borrowed'" x-cloak>
                 <label for="id_counterparty"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kim bilan</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Kim bilan</label>
                 <input id="id_counterparty"
                        name="counterparty"
                        type="text"
                        value="{{ form.counterparty.value|default:'' }}"
                        placeholder="Masalan: Akram"
-                       class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+                       style="width: 100%;
+                              padding: 14px 16px;
+                              font-size: 15px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none">
                 {% if form.counterparty.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.counterparty.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.counterparty.errors|join:" " }}</p>
                 {% endif %}
             </div>
-            <!-- Date -->
+            {# Date #}
             <div>
                 <label for="id_date"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Sana</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Sana</label>
                 <input id="id_date"
                        name="date"
                        type="date"
                        value="{{ form.date.value|date:'Y-m-d'|default:'' }}"
                        required
-                       class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                       style="width: 100%;
+                              padding: 14px 16px;
+                              font-size: 15px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none">
                 {% if form.date.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.date.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.date.errors|join:" " }}</p>
                 {% endif %}
             </div>
-            <!-- Note -->
+            {# Note (optional) #}
             <div>
                 <label for="id_note"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Izoh (ixtiyoriy)</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Izoh (ixtiyoriy)</label>
                 <textarea id="id_note"
                           name="note"
                           rows="2"
-                          class="w-full rounded-2xl border border-slate-200 px-3 py-3">{{ form.note.value|default:'' }}</textarea>
+                          style="width: 100%;
+                                 padding: 14px 16px;
+                                 font-size: 15px;
+                                 border: 1.5px solid var(--color-border);
+                                 border-radius: 14px;
+                                 background: var(--color-surface);
+                                 outline: none;
+                                 resize: vertical;
+                                 font-family: inherit">{{ form.note.value|default:'' }}</textarea>
             </div>
         </form>
-        <!-- Sticky bottom CTA — sits ABOVE the bottom nav (nav ≈ 60px tall). -->
-        <div class="fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200 px-5 py-3"
-             style="bottom: 72px;
-                    z-index: 30">
+        {# Sticky bottom CTA — Sprint v0.5 placement (above nav). Gradient primary. #}
+        <div style="position: fixed;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 100%;
+                    max-width: 430px;
+                    bottom: 72px;
+                    z-index: 30;
+                    background: var(--color-surface);
+                    border-top: 1px solid var(--color-border);
+                    padding: 12px 20px">
             <button type="submit"
                     form="add-form"
-                    class="btn-primary w-full"
-                    aria-label="Tranzaksiyani saqlash">Saqlash</button>
+                    aria-label="Tranzaksiyani saqlash"
+                    style="width: 100%;
+                           padding: 14px 20px;
+                           border: 0;
+                           border-radius: 14px;
+                           font-size: 16px;
+                           font-weight: 600;
+                           color: #FFFFFF;
+                           background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                           box-shadow: var(--shadow-cta);
+                           cursor: pointer">Saqlash</button>
         </div>
         {# Picker host — htmx swaps the bottom sheet partial in. #}
         <div id="category-picker-host"

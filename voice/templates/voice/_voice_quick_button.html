@@ -1,0 +1,137 @@
+{% comment %}
+Compact 44x44 mic icon for page headers (Sprint v0.6 §3.4). Same recorder
+flow + confirm swap as the full-size button on Home; just smaller.
+States are coalesced to two visual states (idle / busy) because the small
+button has no room for the dots-and-shake choreography.
+{% endcomment %}
+{% load static %}
+<div id="voice-confirm-area"></div>
+<div x-data="voiceQuick('{% url 'voice:transcribe' %}')"
+     x-init="init()"
+     style="display: inline-block">
+    <button type="button"
+            aria-label="Ovoz bilan tranzaksiya qo'shish"
+            :aria-pressed="state === 'recording' ? 'true' : 'false'"
+            :disabled="state === 'processing' || state === 'error'"
+            @click="toggle()"
+            style="display: inline-flex;
+                   align-items: center;
+                   justify-content: center;
+                   width: 44px;
+                   height: 44px;
+                   border-radius: 9999px;
+                   border: 0;
+                   color: #FFFFFF;
+                   cursor: pointer;
+                   box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+                   transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1)"
+            :style="state === 'recording' ? 'animation: vb-pulse 1.6s ease-in-out infinite; background: linear-gradient(135deg, #10B981 0%, #047857 100%);' : state === 'processing' ? 'background: #6B7280;' : state === 'error' ? 'background: #DC2626;' : 'background: linear-gradient(135deg, #10B981 0%, #047857 100%);'">
+        <svg x-show="state !== 'recording'"
+             width="20"
+             height="20"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+        </svg>
+        <svg x-show="state === 'recording'"
+             x-cloak
+             width="20"
+             height="20"
+             fill="currentColor"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path d="M6 6h12v12H6z" />
+        </svg>
+    </button>
+</div>
+<script src="{% static 'js/voice-recorder.js' %}?v={% now 'U' %}" defer></script>
+<script>
+(function () {
+    if (window.__voiceQuickRegistered) return;
+    window.__voiceQuickRegistered = true;
+    function register() {
+        if (!window.Alpine) return setTimeout(register, 30);
+        window.Alpine.data("voiceQuick", function (transcribeUrl) {
+            return {
+                state: "idle",
+                recorder: null,
+                init() {
+                    var self = this;
+                    var tries = 0;
+                    function ready() {
+                        if (!window.VoiceRecorder || !window.VoiceRecorderSupport) {
+                            if (tries++ < 40) return setTimeout(ready, 50);
+                            self.state = "error";
+                            return;
+                        }
+                        if (!window.VoiceRecorderSupport.isSupported()) {
+                            self.state = "error";
+                            return;
+                        }
+                        self.recorder = new window.VoiceRecorder({
+                            onStateChange: function (s) {
+                                if (self.state === "error" && s !== "idle") return;
+                                self.state = s;
+                            },
+                        });
+                    }
+                    ready();
+                },
+                async toggle() {
+                    if (!this.recorder) return;
+                    if (this.state === "idle") {
+                        try { await this.recorder.start(); }
+                        catch (e) { this.state = "error"; setTimeout(() => { this.state = "idle"; }, 600); }
+                        return;
+                    }
+                    if (this.state === "recording") {
+                        let blob = null;
+                        try { blob = await this.recorder.stop(); }
+                        catch (e) { this.state = "error"; return; }
+                        if (!blob) { this.state = "idle"; return; }
+                        if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
+                            this.state = "idle";
+                            return;
+                        }
+                        await this.upload(blob);
+                    }
+                },
+                async upload(blob) {
+                    this.state = "processing";
+                    const fd = new FormData();
+                    const ext = (blob.type && blob.type.indexOf("mp4") !== -1) ? "m4a" : "webm";
+                    fd.append("audio", blob, "voice." + ext);
+                    const headers = {};
+                    try {
+                        var initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || "";
+                        if (initData) headers["X-Telegram-InitData"] = initData;
+                    } catch (e) { /* noop */ }
+                    try {
+                        const resp = await fetch(transcribeUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" });
+                        const html = await resp.text();
+                        const host = document.getElementById("voice-confirm-area");
+                        if (host) {
+                            host.innerHTML = html;
+                            host.querySelectorAll("script").forEach(function (oldScript) {
+                                var newScript = document.createElement("script");
+                                Array.from(oldScript.attributes).forEach(function (a) { newScript.setAttribute(a.name, a.value); });
+                                newScript.textContent = oldScript.textContent;
+                                oldScript.parentNode.replaceChild(newScript, oldScript);
+                            });
+                            if (window.htmx) window.htmx.process(host);
+                        }
+                        this.state = "idle";
+                    } catch (e) {
+                        this.state = "error";
+                        setTimeout(() => { this.state = "idle"; }, 600);
+                    }
+                },
+            };
+        });
+    }
+    register();
+})();
+</script>
