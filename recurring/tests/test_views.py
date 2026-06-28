@@ -293,9 +293,11 @@ def test_toggle_view_404_on_other_user() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_balance_hero_renders_recurring_link() -> None:
-    """Eric's discoverability requirement: BalanceHero footer points at
-    the recurring settings page next to the Kategoriyalar link."""
+def test_balance_hero_does_not_render_recurring_link_after_v0_5() -> None:
+    """Sprint v0.5 redesign moved Kategoriyalar/Takrorlanuvchi off Home — they
+    live on the Settings hub at /app/settings/ (Phase 4). The recurring page
+    is still reachable via direct URL; we just don't surface it on Home.
+    """
     UserFactory(telegram_id=7, onboarded_at=date(2026, 1, 1))
     response = Client().get(
         reverse("core:home_content"),
@@ -303,5 +305,5 @@ def test_balance_hero_renders_recurring_link() -> None:
     )
     assert response.status_code == 200
     body = response.content.decode("utf-8")
-    assert reverse("recurring:list") in body
-    assert "Takrorlanuvchi" in body
+    assert reverse("recurring:list") not in body
+    assert "Takrorlanuvchi" not in body

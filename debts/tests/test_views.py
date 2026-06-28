@@ -426,7 +426,11 @@ def test_create_debt_empty_counterparty_returns_422() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_balance_hero_shows_debt_counts() -> None:
+def test_home_balance_hero_does_not_show_debt_strip_after_v0_5() -> None:
+    """Sprint v0.5 redesign removed the 3-stat (Naqd / Sof / Qarz) strip from
+    Home — debts live on the dedicated /app/debts/ page now. We still surface
+    the user-visible Sof balans, just without the debt sub-counts.
+    """
     user = _user(80)
     DebtFactory(user=user, direction="lent", remaining_amount=Decimal("100"))
     DebtFactory(user=user, direction="borrowed", remaining_amount=Decimal("40"))
@@ -437,18 +441,6 @@ def test_home_balance_hero_shows_debt_counts() -> None:
     )
     assert response.status_code == 200
     body = response.content.decode("utf-8")
-    assert "1 ta menga" in body or "1 ta menga ·" in body
-    assert "1 ta menda" in body
-
-
-@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
-@pytest.mark.django_db
-def test_home_balance_hero_no_debts_shows_yoq() -> None:
-    _user(81)
-    client = Client()
-    response = client.get(
-        reverse("core:home_content"),
-        headers={"X-Telegram-InitData": _init(81)},
-    )
-    body = response.content.decode("utf-8")
-    assert "Yo'q" in body  # No debts state label
+    assert "Sof balans" in body
+    assert "1 ta menga" not in body
+    assert "1 ta menda" not in body

@@ -21,9 +21,18 @@ class TopCategory:
 
 @dataclass(frozen=True)
 class MonthSummary:
-    cash_balance: Decimal  # income − expense (excludes debts for Story 1.5)
+    # Cash position = inflow_total − outflow_total. inflow_total is income +
+    # debt_borrowed (cash arrived this month, regardless of source). outflow_total
+    # is expense + debt_lent. Sprint v0.5 fix: borrowing money now increases
+    # cash, lending decreases it. The remaining debt obligation is still
+    # tracked separately by debts.selectors.debt_status_summary.
+    cash_balance: Decimal
+    inflow_total: Decimal
+    outflow_total: Decimal
     total_income: Decimal
     total_expense: Decimal
+    total_debt_borrowed: Decimal
+    total_debt_lent: Decimal
     currency: str
     top_categories: list[TopCategory]
     transaction_count: int
@@ -45,16 +54,23 @@ def _month_bounds(today: date | None = None) -> tuple[date, date]:
 
 
 def month_summary(user: User, currency: str = "UZS", *, today: date | None = None) -> MonthSummary:
-    """Snapshot of the current month for the BalanceHero (Story 1.5).
+    """Snapshot of the current month for the BalanceHero (Sprint v0.5 fix).
 
-    Debt accounting moves to Epic 4 — for now `cash_balance` is plain
-    income − expense, and top categories cover expenses only.
+    Cash math now includes debts: borrowing brings cash in, lending takes
+    cash out. The standing debt obligation is still tracked separately by
+    `debts.selectors.debt_status_summary` — this selector only describes the
+    cash flow for the month.
     """
     start, end = _month_bounds(today)
     qs = Transaction.objects.for_user(user).in_period(start, end).filter(currency=currency)
 
     income_total = qs.by_type("income").aggregate(t=Sum("amount"))["t"] or Decimal("0")
     expense_total = qs.by_type("expense").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    borrowed_total = qs.by_type("debt_borrowed").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    lent_total = qs.by_type("debt_lent").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+
+    inflow_total = income_total + borrowed_total
+    outflow_total = expense_total + lent_total
 
     top_qs = (
         qs.by_type("expense")
@@ -74,9 +90,13 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
     ]
 
     return MonthSummary(
-        cash_balance=income_total - expense_total,
+        cash_balance=inflow_total - outflow_total,
+        inflow_total=inflow_total,
+        outflow_total=outflow_total,
         total_income=income_total,
         total_expense=expense_total,
+        total_debt_borrowed=borrowed_total,
+        total_debt_lent=lent_total,
         currency=currency,
         top_categories=top,
         transaction_count=qs.count(),

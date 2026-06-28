@@ -1,11 +1,7 @@
 {% load core_extras %}
 {% include 'currencies/_stale_banner.html' %}
 <section class="px-5 pt-6">
-    <header class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-lg font-semibold text-slate-900">Salom, {{ user.first_name }}!</h1>
-            <p class="text-xs text-slate-500">Joriy oy</p>
-        </div>
+    <header class="flex items-center justify-end mb-4">
         {% include 'currencies/_switcher.html' %}
     </header>
     {% if forced_raw_no_rates %}
@@ -24,98 +20,121 @@
             CBU.uz kurslari kelishi bilan {{ display_currency }} bo'yicha balans avtomatik ko'rinadi.
         </div>
     {% endif %}
-    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-        <div class="card-default">
-            <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
-            <p class="amount mt-2 text-4xl font-bold text-slate-900"
-               aria-live="polite">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
-            <p class="mt-1 text-[11px] text-slate-500">≈ {{ display_currency|currency_label }} bo'yicha</p>
-            <p class="mt-3 text-xs text-slate-500">
-                Kirim: {{ aggregated.total_income|smart_money:display_currency }} ·
-                Chiqim: {{ aggregated.total_expense|smart_money:display_currency }}
+    {# Inflow / Outflow side-by-side. Phase 1, UX §3.2/§3.3. #}
+    <div class="grid grid-cols-2 gap-3 mb-3">
+        <a href="{% url 'transactions:history' %}?type=income"
+           aria-label="Kirimlar tarixini ko'rish"
+           style="display: block;
+                  padding: 14px;
+                  border-radius: 14px;
+                  background-color: #ECFDF5;
+                  text-decoration: none;
+                  transition: transform 120ms ease-out">
+            <div style="display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        margin-bottom: 6px">
+                <span aria-hidden="true" style="font-size: 14px">↗</span>
+                <span style="font-size: 10px;
+                             letter-spacing: 0.06em;
+                             text-transform: uppercase;
+                             color: rgba(4, 120, 87, 0.7);
+                             font-weight: 600">Kirim</span>
+            </div>
+            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                <p class="amount"
+                   style="font-size: 18px; font-weight: 600; color: #047857; margin: 0">{{ aggregated.total_income|smart_money:display_currency }}</p>
+            {% else %}
+                <p class="amount"
+                   style="font-size: 18px; font-weight: 600; color: #047857; margin: 0">{{ summary.inflow_total|smart_money:summary.currency }}</p>
+            {% endif %}
+        </a>
+        <a href="{% url 'transactions:history' %}?type=expense"
+           aria-label="Chiqimlar tarixini ko'rish"
+           style="display: block;
+                  padding: 14px;
+                  border-radius: 14px;
+                  background-color: #FEF2F2;
+                  text-decoration: none;
+                  transition: transform 120ms ease-out">
+            <div style="display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        margin-bottom: 6px">
+                <span aria-hidden="true" style="font-size: 14px">↘</span>
+                <span style="font-size: 10px;
+                             letter-spacing: 0.06em;
+                             text-transform: uppercase;
+                             color: rgba(190, 18, 60, 0.7);
+                             font-weight: 600">Chiqim</span>
+            </div>
+            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                <p class="amount"
+                   style="font-size: 18px; font-weight: 600; color: #BE123C; margin: 0">{{ aggregated.total_expense|smart_money:display_currency }}</p>
+            {% else %}
+                <p class="amount"
+                   style="font-size: 18px; font-weight: 600; color: #BE123C; margin: 0">{{ summary.outflow_total|smart_money:summary.currency }}</p>
+            {% endif %}
+        </a>
+    </div>
+    {# Big balance card. UX §3.4. #}
+    <div style="padding: 20px;
+                border-radius: 18px;
+                border: 1px solid rgba(15, 23, 42, 0.08);
+                background: linear-gradient(180deg, #FFFFFF 0%, #F4F6F2 140%);
+                box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06)">
+        <p style="font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: #64748B;
+                  margin: 0 0 8px">Sof balans</p>
+        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+            <p class="amount"
+               aria-live="polite"
+               style="font-size: 36px; font-weight: 700; color: #0B1220; margin: 0; line-height: 1.1">
+                {{ aggregated.cash_balance|smart_money:display_currency }}
             </p>
-            <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
-                <div>
-                    <p class="text-slate-500">Naqd</p>
-                    <p class="amount font-medium text-slate-900">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
-                </div>
-                <div>
-                    <p class="text-slate-500">Sof</p>
-                    <p class="amount font-medium text-slate-900">{{ net_balance|smart_money:display_currency }}</p>
-                </div>
-                <div>
-                    <p class="text-slate-500">Qarz</p>
-                    {% if debts.has_any %}
-                        <a href="{% url 'debts:list' %}"
-                           class="block font-medium text-amber-700 underline-offset-4 hover:underline"
-                           aria-label="Qarzlar ro'yxatini ochish">
-                            {{ debts.open_lent_count }} ta menga · {{ debts.open_borrowed_count }} ta menda
-                        </a>
-                    {% else %}
-                        <p class="font-medium text-slate-500">Yo'q</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% if aggregated.per_currency|length > 1 %}
-            <div class="mt-4">
-                <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Manba valyutalar</p>
-                <ul class="space-y-2">
-                    {% for row in aggregated.per_currency %}
-                        <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
-                            <span class="text-xs text-slate-500">{{ row.currency }}</span>
-                            <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        {% endif %}
-    {% else %}
-        <div class="card-default">
-            <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
-            <p class="amount mt-2 text-4xl font-bold text-slate-900"
-               aria-live="polite">{{ net_balance|smart_money:summary.currency }}</p>
-            <p class="mt-3 text-xs text-slate-500">
-                Kirim: {{ summary.total_income|smart_money:summary.currency }} ·
-                Chiqim: {{ summary.total_expense|smart_money:summary.currency }}
+            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">
+                ≈ {{ display_currency|currency_label }} bo'yicha
             </p>
-            <div class="mt-4 grid grid-cols-3 gap-2 text-xs">
-                <div>
-                    <p class="text-slate-500">Naqd</p>
-                    <p class="amount font-medium text-slate-900">{{ summary.cash_balance|smart_money:summary.currency }}</p>
-                </div>
-                <div>
-                    <p class="text-slate-500">Sof</p>
-                    <p class="amount font-medium text-slate-900">{{ net_balance|smart_money:summary.currency }}</p>
-                </div>
-                <div>
-                    <p class="text-slate-500">Qarz</p>
-                    {% if debts.has_any %}
-                        <a href="{% url 'debts:list' %}"
-                           class="block font-medium text-amber-700 underline-offset-4 hover:underline"
-                           aria-label="Qarzlar ro'yxatini ochish">
-                            {{ debts.open_lent_count }} ta menga · {{ debts.open_borrowed_count }} ta menda
-                        </a>
-                    {% else %}
-                        <p class="font-medium text-slate-500">Yo'q</p>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% if other_currency_summaries %}
-            <div class="mt-4">
-                <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Boshqa valyutalar</p>
-                <ul class="space-y-2">
-                    {% for row in other_currency_summaries %}
-                        <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
-                            <span class="text-xs text-slate-500">{{ row.currency }}</span>
-                            <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
+        {% else %}
+            <p class="amount"
+               aria-live="polite"
+               style="font-size: 36px; font-weight: 700; color: #0B1220; margin: 0; line-height: 1.1">
+                {{ summary.cash_balance|smart_money:summary.currency }}
+            </p>
+            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">
+                Iyun 2026 · {{ summary.currency }}
+            </p>
         {% endif %}
+    </div>
+    {# Mixed-currency / breakdown row stays as a folded section below. #}
+    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported and aggregated.per_currency|length > 1 %}
+        <div class="mt-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Manba valyutalar</p>
+            <ul class="space-y-2">
+                {% for row in aggregated.per_currency %}
+                    <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
+                        <span class="text-xs text-slate-500">{{ row.currency }}</span>
+                        <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% elif other_currency_summaries %}
+        <div class="mt-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Boshqa valyutalar</p>
+            <ul class="space-y-2">
+                {% for row in other_currency_summaries %}
+                    <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
+                        <span class="text-xs text-slate-500">{{ row.currency }}</span>
+                        <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
     {% endif %}
+    {# Top categories. UX §3 — unchanged section. #}
     {% if summary.top_categories %}
         <div class="mt-6">
             <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Eng ko'p sarflandi</p>
@@ -140,19 +159,18 @@
             {% endif %}
         </p>
     {% endif %}
-    <div class="mt-6 flex flex-col items-center gap-3">
+    {# Voice CTA — full-width gradient. UX §3.5. The "Qo'lda yozish" fallback
+       stays through Phase 1 because the elevated nav + button arrives in
+       Phase 2; once that ships, the secondary link is removed. #}
+    <div class="mt-6">
         {% include 'voice/_voice_button.html' %}
-        <a href="{% url 'transactions:add' %}"
-           class="btn-secondary text-center"
-           aria-label="Qo'lda tranzaksiya qo'shish"
-           style="min-width: 160px">✏️ Qo'lda yozish</a>
-    </div>
-    <div class="mt-4 text-center flex items-center justify-center gap-4">
-        <a href="{% url 'categories:list' %}"
-           class="text-xs text-slate-500 underline-offset-4 hover:underline"
-           aria-label="Kategoriyalarni boshqarish">⚙ Kategoriyalar</a>
-        <a href="{% url 'recurring:list' %}"
-           class="text-xs text-slate-500 underline-offset-4 hover:underline"
-           aria-label="Takrorlanuvchi to'lovlarni boshqarish">⏰ Takrorlanuvchi</a>
+        <div class="mt-3 text-center">
+            <a href="{% url 'transactions:add' %}"
+               style="font-size: 13px;
+                      color: #64748B;
+                      text-decoration: none;
+                      border-bottom: 1px dashed #CBD5E1"
+               aria-label="Qo'lda tranzaksiya qo'shish">Yoki qo'lda yozing</a>
+        </div>
     </div>
 </section>

@@ -81,8 +81,11 @@ def test_home_content_renders_balance_hero_when_onboarded() -> None:
     )
     assert response.status_code == 200
     body = response.content.decode("utf-8")
-    assert "Salom, Eric" in body
+    # Sprint v0.5 redesign — greeting removed (Phase 3 replaces with quote
+    # card). Home now leads with Kirim / Chiqim cards above Sof balans.
     assert "Sof balans" in body
+    assert "Kirim" in body
+    assert "Chiqim" in body
     assert "0 UZS" in body  # empty user — zero balance
     assert "Birinchi tranzaksiyangizni qo'shing" in body
 

@@ -63,8 +63,11 @@ def test_other_currency_excluded() -> None:
 
 
 @pytest.mark.django_db
-def test_debt_transactions_excluded_from_cash_balance_story_1_5() -> None:
-    """Per epics 1.5 simplification: debt logic lands in Epic 4; cash = income − expense only."""
+def test_cash_balance_includes_debts_sprint_v0_5() -> None:
+    """Borrow → cash in. Lend → cash out. The standing obligation is tracked
+    separately by debts.selectors.debt_status_summary; this selector only
+    describes the cash flow for the month.
+    """
     user = UserFactory()
     TransactionFactory(user=user, type="income", amount=Decimal("100"), date=date(2026, 6, 1))
     TransactionFactory(user=user, type="expense", amount=Decimal("50"), date=date(2026, 6, 2))
@@ -83,7 +86,12 @@ def test_debt_transactions_excluded_from_cash_balance_story_1_5() -> None:
         date=date(2026, 6, 4),
     )
     summary = month_summary(user, "UZS", today=date(2026, 6, 15))
-    assert summary.cash_balance == Decimal("50")
+    # 100 (income) + 888 (borrowed) - 50 (expense) - 999 (lent) = -61
+    assert summary.cash_balance == Decimal("-61")
+    assert summary.inflow_total == Decimal("988")
+    assert summary.outflow_total == Decimal("1049")
+    assert summary.total_debt_borrowed == Decimal("888")
+    assert summary.total_debt_lent == Decimal("999")
 
 
 @pytest.mark.django_db
