@@ -1,0 +1,39 @@
+{% comment %}
+Centred empty / zero-data state.
+Usage:
+    {% include 'core/components/_empty_state.html' with emoji='📊' title='Hozircha hech narsa yo\'q' caption='...' cta_url=url cta_label='+ Birinchi tranzaksiya' %}
+{% endcomment %}
+<div style="text-align: center;
+            padding: 48px 24px;
+            color: var(--color-text-secondary)">
+    {% if emoji %}
+        <div style="font-size: 56px;
+                    line-height: 1;
+                    margin-bottom: 16px"
+             aria-hidden="true">{{ emoji }}</div>
+    {% endif %}
+    {% if title %}
+        <p style="font-size: 16px;
+                  font-weight: 600;
+                  color: var(--color-text);
+                  margin: 0 0 6px">{{ title }}</p>
+    {% endif %}
+    {% if caption %}
+        <p style="font-size: 14px;
+                  color: var(--color-text-secondary);
+                  margin: 0 0 16px;
+                  line-height: 1.5">{{ caption }}</p>
+    {% endif %}
+    {% if cta_url and cta_label %}
+        <a href="{{ cta_url }}"
+           style="display: inline-block;
+                  padding: 12px 20px;
+                  border-radius: 12px;
+                  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                  color: #FFFFFF;
+                  font-size: 14px;
+                  font-weight: 600;
+                  text-decoration: none;
+                  box-shadow: var(--shadow-cta)">{{ cta_label }}</a>
+    {% endif %}
+</div>

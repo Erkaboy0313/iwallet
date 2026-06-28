@@ -23,3 +23,15 @@ repos:
     hooks:
       - id: djlint-reformat-django
       - id: djlint-django
+
+  # Block multi-line {# ... #} Django comments — Django {# #} is single-line
+  # only; multi-line variants leak as literal body text. We've hit this three
+  # times in v0.5; this hook makes the regression impossible.
+  - repo: local
+    hooks:
+      - id: no-multiline-django-comments
+        name: no multi-line {# ... #} Django comments
+        entry: python scripts/lint_no_multiline_django_comments.py
+        language: system
+        types: [html]
+        pass_filenames: false

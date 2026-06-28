@@ -1,0 +1,42 @@
+{% comment %}
+Standard page header: back arrow + centred title + optional right slot.
+Usage:
+    {% include 'core/components/_page_header.html' with back_url='...' title='Tarix' %}
+    {% include 'core/components/_page_header.html' with back_url='...' title='...' right_slot=mic_partial %}
+{% endcomment %}
+<header style="display: flex;
+               align-items: center;
+               justify-content: space-between;
+               gap: 12px;
+               margin-bottom: 20px;
+               min-height: 44px">
+    <a href="{{ back_url }}"
+       aria-label="{{ back_label|default:'Orqaga' }}"
+       style="display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              width: 44px;
+              height: 44px;
+              color: var(--color-text-muted);
+              text-decoration: none">
+        <svg width="22"
+             height="22"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+        </svg>
+    </a>
+    <h1 style="flex: 1;
+               margin: 0;
+               font-size: 18px;
+               font-weight: 600;
+               color: var(--color-text);
+               text-align: center">{{ title }}</h1>
+    <div style="width: 44px;
+                height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center">{% if right_slot %}{{ right_slot|safe }}{% endif %}</div>
+</header>

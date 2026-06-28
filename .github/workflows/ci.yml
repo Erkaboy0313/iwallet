@@ -81,5 +81,8 @@ jobs:
       - name: djlint templates (lint)
         run: djlint . --lint --extension html --profile=django
 
+      - name: No multi-line {# #} Django comments
+        run: python scripts/lint_no_multiline_django_comments.py
+
       - name: Run pytest with coverage
         run: pytest --cov=. --cov-report=term-missing --cov-fail-under=70

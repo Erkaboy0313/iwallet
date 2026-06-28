@@ -1,0 +1,22 @@
+{% comment %}
+Rounded pill chip. Used by filter tabs.
+Usage:
+    {% include 'core/components/_pill.html' with href=url label='Kirim' active=is_active %}
+{% endcomment %}
+<a href="{{ href }}"
+   aria-pressed="{% if active %}true{% else %}false{% endif %}"
+   style="display: inline-flex;
+          align-items: center;
+          padding: 8px 14px;
+          border-radius: 9999px;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          white-space: nowrap;
+          scroll-snap-align: start;
+          {% if active %}background: var(--color-primary);
+          color: #FFFFFF;
+          box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+          {% else %}background: #F1F5F9;
+          color: var(--color-text-secondary);
+          {% endif %} transition: background var(--motion-micro) var(--ease-out)">{{ label }}</a>

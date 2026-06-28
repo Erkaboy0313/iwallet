@@ -64,6 +64,35 @@
   --font-numeric: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
+  /* Typographic scale tokens (Sprint v0.6). One name per intent so the
+   * pages don't reach for raw sizes anymore. */
+  --text-display-size: 36px;
+  --text-display-weight: 700;
+  --text-display-lh: 1.1;
+
+  --text-h1-size: 22px;
+  --text-h1-weight: 600;
+  --text-h1-lh: 1.3;
+
+  --text-h2-size: 16px;
+  --text-h2-weight: 600;
+  --text-h2-lh: 1.4;
+
+  --text-body-size: 14px;
+  --text-body-weight: 400;
+  --text-body-lh: 1.5;
+
+  --text-body-strong-weight: 600;
+
+  --text-caption-size: 12px;
+  --text-caption-weight: 400;
+  --text-caption-lh: 1.4;
+
+  --text-label-size: 10px;
+  --text-label-weight: 600;
+  --text-label-lh: 1.0;
+  --text-label-tracking: 0.06em;
+
   /* ===== Layout ===== */
   --container-max: 430px;
   --radius-card: 16px;

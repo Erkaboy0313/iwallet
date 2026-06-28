@@ -1,0 +1,36 @@
+{% comment %}
+iOS-style toggle. Submits an htmx POST when clicked.
+Usage:
+    {% include 'core/components/_toggle.html' with name='enabled' on=quote_enabled post_url=toggle_url %}
+{% endcomment %}
+<form hx-post="{{ post_url }}"
+      hx-swap="none"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      style="margin: 0">
+    <input type="hidden"
+           name="{{ name|default:'enabled' }}"
+           value="{% if on %}0{% else %}1{% endif %}">
+    <button type="submit"
+            aria-label="{{ aria_label|default:'Almashtirish' }}"
+            aria-pressed="{% if on %}true{% else %}false{% endif %}"
+            style="display: inline-block;
+                   width: 44px;
+                   height: 26px;
+                   border: 0;
+                   border-radius: 13px;
+                   cursor: pointer;
+                   position: relative;
+                   background: {% if on %}var(--color-primary){% else %}#CBD5E1{% endif %};
+                   transition: background var(--motion-micro) var(--ease-out)">
+        <span aria-hidden="true"
+              style="position: absolute;
+                     top: 3px;
+                     left: {% if on %}21px{% else %}3px{% endif %};
+                     width: 20px;
+                     height: 20px;
+                     border-radius: 9999px;
+                     background: #FFFFFF;
+                     box-shadow: 0 2px 4px rgba(15, 23, 42, 0.2);
+                     transition: left var(--motion-micro) var(--ease-out)"></span>
+    </button>
+</form>

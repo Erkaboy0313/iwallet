@@ -1,0 +1,13 @@
+{% comment %}
+White surface card with soft shadow.
+Usage:
+    {% include 'core/components/_card.html' with body=card_body padding=20 %}
+or include directly with content as a block - use _card_open / _card_close instead
+when wrapping inline children.
+{% endcomment %}
+<div style="background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 14px;
+            box-shadow: var(--shadow-soft);
+            padding: {{ padding|default:16 }}px;
+            overflow: hidden">{{ body|safe }}</div>

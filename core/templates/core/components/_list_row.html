@@ -1,0 +1,47 @@
+{% comment %}
+56px-tall row used inside list cards.
+Usage:
+    {% include 'core/components/_list_row.html' with label='Asosiy valyuta' value='UZS' chevron=True %}
+    {% include 'core/components/_list_row.html' with label='Kunlik ibora' slot=toggle_html %}
+    {% include 'core/components/_list_row.html' with label='Telegram ismi' value=user.first_name %}
+Optional kwargs:
+    href      → wrap in <a> tag, makes the row tappable.
+    chevron   → append a › glyph (truthy).
+    slot      → render the supplied HTML on the right (used by toggles).
+    divider   → render a 1px border-bottom (truthy; default True).
+{% endcomment %}
+{% if href %}
+    <a href="{{ href }}"
+       style="display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 14px 16px;
+              min-height: 56px;
+              color: var(--color-text);
+              text-decoration: none;
+              {% if divider|default_if_none:True %}border-bottom: 1px solid var(--color-border);{% endif %}"
+       aria-label="{{ aria_label|default:label }}">
+    {% else %}
+        <div style="display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 14px 16px;
+                    min-height: 56px;
+                    color: var(--color-text);
+                    {% if divider|default_if_none:True %}border-bottom: 1px solid var(--color-border);{% endif %}">
+        {% endif %}
+        <span style="font-size: 15px">{{ label }}</span>
+        <span style="display: inline-flex;
+                     align-items: center;
+                     gap: 8px;
+                     font-size: 15px;
+                     color: var(--color-text-secondary)">
+            {% if value %}<span>{{ value }}</span>{% endif %}
+            {% if slot %}{{ slot|safe }}{% endif %}
+            {% if chevron %}<span aria-hidden="true" style="color: var(--color-text-muted)">›</span>{% endif %}
+        </span>
+        {% if href %}
+        </a>
+    {% else %}
+    </div>
+{% endif %}
