@@ -1,0 +1,54 @@
+{% load core_extras %}
+<div x-data="{ open: false }"
+     class="relative inline-flex items-center gap-2">
+    <button type="button"
+            @click="open = !open"
+            class="text-xs font-medium px-3 py-1 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200"
+            aria-haspopup="listbox"
+            :aria-expanded="open"
+            aria-label="Valyutani almashtirish"
+            style="display: inline-flex;
+                   align-items: center;
+                   gap: 4px">
+        <span>{{ display_currency }}</span>
+        <span aria-hidden="true" style="font-size: 10px; opacity: .6;">▾</span>
+    </button>
+    <div x-cloak
+         x-show="open"
+         @click.outside="open = false"
+         class="absolute right-0 top-full mt-2 z-30 w-56 rounded-2xl border border-slate-200 bg-white shadow-lg"
+         style="padding: 8px"
+         role="listbox"
+         aria-label="Valyuta tanlovi">
+        <p class="text-[10px] uppercase tracking-wider text-slate-400 px-2 pt-1 pb-2">Ko'rinish</p>
+        <form hx-post="{% url 'currencies:switch_display' %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-swap="none"
+              class="grid grid-cols-1 gap-1">
+            <input type="hidden" name="display_mode" value="raw">
+            <button type="submit"
+                    class="text-left text-sm px-2 py-1.5 rounded hover:bg-slate-50 {% if display_mode == 'raw' %}font-semibold text-slate-900{% else %}text-slate-600{% endif %}"
+                    role="option"
+                    aria-selected="{% if display_mode == 'raw' %}true{% else %}false{% endif %}">
+                Mahalliy valyutalarda ko'rsatish
+            </button>
+        </form>
+        <form hx-post="{% url 'currencies:switch_display' %}"
+              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+              hx-swap="none"
+              class="mt-1 grid grid-cols-1 gap-1">
+            <input type="hidden" name="display_mode" value="converted">
+            <p class="text-[10px] uppercase tracking-wider text-slate-400 px-2 pt-2 pb-1">Default valyutaga aylantirish</p>
+            {% for code, _label in currency_choices %}
+                <button type="submit"
+                        name="display_currency"
+                        value="{{ code }}"
+                        class="text-left text-sm px-2 py-1.5 rounded hover:bg-slate-50 {% if display_mode == 'converted' and display_currency == code %}font-semibold text-slate-900{% else %}text-slate-600{% endif %}"
+                        role="option"
+                        aria-selected="{% if display_mode == 'converted' and display_currency == code %}true{% else %}false{% endif %}">
+                    {{ code }} — {{ code|currency_label }}
+                </button>
+            {% endfor %}
+        </form>
+    </div>
+</div>
