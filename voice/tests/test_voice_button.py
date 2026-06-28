@@ -47,26 +47,22 @@ def test_voice_recorder_js_module_exports_expected_surface() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_includes_enabled_voice_button() -> None:
-    """The disabled '🎤 Voice' button is replaced with the live VoiceButton."""
+def test_add_page_includes_voice_button() -> None:
+    """Voice moved off Home (Eric's spec) into the Add transaction page so
+    the mic is reachable when the user starts entering a transaction."""
     from django.utils import timezone
 
     from accounts.models import User
 
     client = Client()
     init_data = _make_init_data(user_id=42)
-    # First call seeds the user; mark onboarded so home_content renders the hero.
     client.get(reverse("core:home_content"), headers={"X-Telegram-InitData": init_data})
     User.objects.filter(telegram_id=42).update(onboarded_at=timezone.now())
     response = client.get(
-        reverse("core:home_content"),
+        reverse("transactions:add"),
         headers={"X-Telegram-InitData": init_data},
     )
     assert response.status_code == 200
     body = response.content.decode("utf-8")
-    # Old disabled placeholder gone
-    assert "🎤 Voice</button>" not in body
-    assert "Ovoz bilan tranzaksiya — tez orada" not in body
-    # New include rendered
     assert "Ovoz bilan tranzaksiya qo'shish" in body
     assert "voice-confirm-area" in body
