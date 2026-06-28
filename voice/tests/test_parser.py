@@ -222,3 +222,196 @@ def test_recurring_intent_normalized_when_present() -> None:
     result = normalize(payload, user)
     assert isinstance(result.recurring_intent, VoiceDraft)
     assert result.recurring_intent.amount == Decimal("100000.00")
+
+
+# ---------- Story 6.1 — multi-transaction parsing ----------
+
+
+@pytest.mark.django_db
+def test_three_transactions_in_one_phrase_all_normalize() -> None:
+    """'Bugun 15k taxi, 30k qahva ichdim, 200k oylik tushdi' → 3 drafts."""
+    user = UserFactory()
+    Category.objects.create(user=None, type="expense", slug="transport", name="Yo'l", emoji="🚕")
+    Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
+    Category.objects.create(user=None, type="income", slug="salary", name="Oylik", emoji="💰")
+    payload = _envelope(
+        _raw(amount="15000", category_slug="transport", note="taxi"),
+        _raw(amount="30000", category_slug="food", note="qahva"),
+        _raw(type="income", amount="200000", category_slug="salary", note="oylik"),
+    )
+    result = normalize(payload, user)
+    assert len(result.transactions) == 3
+    assert result.transactions[0].amount == Decimal("15000.00")
+    assert result.transactions[1].amount == Decimal("30000.00")
+    assert result.transactions[2].type == "income"
+    assert result.transactions[2].amount == Decimal("200000.00")
+
+
+@pytest.mark.django_db
+def test_mixed_debt_and_expense_in_one_phrase_normalizes_both() -> None:
+    """'Akramga 1 mln qarz berdim va do'kondan 50k oziq-ovqat' → 2 drafts."""
+    user = UserFactory()
+    Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
+    payload = _envelope(
+        _raw(type="debt_lent", amount="1000000", counterparty="Akram", category_slug=""),
+        _raw(amount="50000", category_slug="food", note="oziq-ovqat"),
+    )
+    result = normalize(payload, user)
+    assert len(result.transactions) == 2
+    assert result.transactions[0].type == "debt_lent"
+    assert result.transactions[0].counterparty == "Akram"
+    assert result.transactions[1].type == "expense"
+    assert result.transactions[1].amount == Decimal("50000.00")
+
+
+@pytest.mark.django_db
+def test_single_transaction_still_returns_one_element_list() -> None:
+    """'15 ming taxida yurdim' → 1 draft, list of length 1."""
+    user = UserFactory()
+    payload = _envelope(_raw(amount="15 ming", category_slug="transport"))
+    result = normalize(payload, user)
+    assert len(result.transactions) == 1
+    assert result.transactions[0].amount == Decimal("15000.00")
+
+
+@pytest.mark.django_db
+def test_mixed_clear_and_ambiguous_drafts_preserve_per_card_flags() -> None:
+    """One ambiguous, one clear — both remain in the batch with independent flags."""
+    user = UserFactory()
+    Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
+    payload = _envelope(
+        _raw(amount="15000", confidence=0.95),
+        _raw(amount="30000", confidence=0.4),
+    )
+    result = normalize(payload, user)
+    assert len(result.transactions) == 2
+    assert not result.transactions[0].is_uncertain
+    assert result.transactions[1].is_uncertain
+
+
+@pytest.mark.django_db
+def test_mixed_amount_units_in_one_phrase_all_normalize() -> None:
+    """k + ming + mln in the same batch — each draft uses its own unit."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(amount="15k"),
+        _raw(amount="30 ming"),
+        _raw(amount="1 mln"),
+    )
+    result = normalize(payload, user)
+    assert [d.amount for d in result.transactions] == [
+        Decimal("15000.00"),
+        Decimal("30000.00"),
+        Decimal("1000000.00"),
+    ]
+
+
+@pytest.mark.django_db
+def test_more_than_five_drafts_capped_at_five() -> None:
+    """Runaway model output is capped at MAX_DRAFTS_PER_UTTERANCE = 5."""
+    user = UserFactory()
+    payload = _envelope(*[_raw(amount=str(1000 * (i + 1))) for i in range(7)])
+    result = normalize(payload, user)
+    assert len(result.transactions) == 5
+    assert result.transactions[0].amount == Decimal("1000.00")
+    assert result.transactions[-1].amount == Decimal("5000.00")
+
+
+@pytest.mark.django_db
+def test_one_malformed_draft_dropped_others_kept() -> None:
+    """A bad row in the middle of a batch doesn't poison the others."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(amount="15000"),
+        _raw(type="not_a_real_type"),  # dropped
+        _raw(amount="30000"),
+    )
+    result = normalize(payload, user)
+    assert len(result.transactions) == 2
+    assert result.transactions[0].amount == Decimal("15000.00")
+    assert result.transactions[1].amount == Decimal("30000.00")
+
+
+# ---------- Story 6.3 — recurring schedule_hint normalization ----------
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_monthly_schedule_hint_string_shorthand() -> None:
+    user = UserFactory()
+    rec = _raw(note="har oy ijara")
+    rec["schedule_hint"] = "monthly:day=1"
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    hint = result.recurring_intent.recurring_hint
+    assert hint is not None
+    assert hint.schedule_kind == "monthly"
+    assert hint.day_of_month == 1
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_weekly_schedule_hint_dict_form() -> None:
+    user = UserFactory()
+    rec = _raw(note="har dushanba")
+    rec["schedule_hint"] = {"kind": "weekly", "day_of_week": 0}
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    hint = result.recurring_intent.recurring_hint
+    assert hint is not None
+    assert hint.schedule_kind == "weekly"
+    assert hint.day_of_week == 0
+    assert hint.day_of_month is None
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_every_n_days_schedule_hint() -> None:
+    user = UserFactory()
+    rec = _raw(note="har 3 kunda")
+    rec["schedule_hint"] = {"kind": "every_n_days", "every_n_days": 3}
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    hint = result.recurring_intent.recurring_hint
+    assert hint is not None
+    assert hint.schedule_kind == "every_n_days"
+    assert hint.every_n_days == 3
+
+
+@pytest.mark.django_db
+def test_recurring_intent_without_schedule_hint_still_normalizes() -> None:
+    user = UserFactory()
+    payload = _envelope(_raw(), recurring=_raw(amount="100000"))
+    result = normalize(payload, user)
+    assert result.recurring_intent is not None
+    assert result.recurring_intent.recurring_hint is None
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_invalid_schedule_hint_drops_hint_keeps_draft() -> None:
+    """An unparseable schedule_hint leaves the draft intact but with no hint."""
+    user = UserFactory()
+    rec = _raw()
+    rec["schedule_hint"] = {"kind": "lunar"}  # not a known cadence
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    assert result.recurring_intent is not None
+    assert result.recurring_intent.recurring_hint is None
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_monthly_but_no_day_drops_hint() -> None:
+    user = UserFactory()
+    rec = _raw()
+    rec["schedule_hint"] = {"kind": "monthly"}  # invalid — needs day_of_month
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    assert result.recurring_intent is not None
+    assert result.recurring_intent.recurring_hint is None
+
+
+@pytest.mark.django_db
+def test_recurring_intent_with_weekly_day_out_of_range_drops_hint() -> None:
+    user = UserFactory()
+    rec = _raw()
+    rec["schedule_hint"] = {"kind": "weekly", "day_of_week": 9}
+    payload = _envelope(_raw(), recurring=rec)
+    result = normalize(payload, user)
+    assert result.recurring_intent.recurring_hint is None

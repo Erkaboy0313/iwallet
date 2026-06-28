@@ -18,7 +18,7 @@ from typing import Any
 from accounts.models import User
 from categories.selectors import match_slug
 
-from .schemas import ParsedResponse, VoiceDraft
+from .schemas import ParsedResponse, RecurringHint, VoiceDraft
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,8 @@ DEBT_TYPES = {"debt_lent", "debt_borrowed"}
 CATEGORY_TYPES = {"expense", "income"}
 FALLBACK_CATEGORY_SLUG = "boshqa"
 LOW_CONFIDENCE_THRESHOLD = 0.7
+MAX_DRAFTS_PER_UTTERANCE = 5  # Story 6.1 AC — cap a single utterance at 5 drafts.
+VALID_SCHEDULE_KINDS = {"monthly", "weekly", "every_n_days"}
 
 # "15k", "15 ming", "yarim mln" — let Gemini do the heavy lifting, but cope with
 # the cases where the model echoes the spoken phrase verbatim. Order matters:
@@ -219,10 +221,106 @@ def _normalize_draft(raw: dict[str, Any], user: User, today: _date_type) -> Voic
     )
 
 
+def _normalize_schedule_hint(raw: Any) -> RecurringHint | None:
+    """Parse Gemini's schedule_hint into a structured `RecurringHint`.
+
+    Accepts either a dict (preferred) like ``{"kind": "monthly", "day_of_month": 1}``
+    or a string shorthand ``"monthly:day=1"`` / ``"weekly:dow=0"`` /
+    ``"every_n_days:n=3"`` / ``"monthly"`` / ``"weekly"``. Returns None on any
+    unrecognized shape so Story 6.3 can fall back to a "no cadence inferred"
+    UX path without 500ing.
+    """
+    if raw is None:
+        return None
+
+    kind: str | None = None
+    day_of_month: int | None = None
+    day_of_week: int | None = None
+    every_n_days: int | None = None
+
+    if isinstance(raw, dict):
+        kind = _coerce_string(raw.get("kind") or raw.get("schedule_kind")).lower() or None
+        try:
+            dom_raw = raw.get("day_of_month")
+            if dom_raw is not None and dom_raw != "":
+                day_of_month = int(dom_raw)
+        except (TypeError, ValueError):
+            day_of_month = None
+        try:
+            dow_raw = raw.get("day_of_week")
+            if dow_raw is not None and dow_raw != "":
+                day_of_week = int(dow_raw)
+        except (TypeError, ValueError):
+            day_of_week = None
+        try:
+            n_raw = raw.get("every_n_days") or raw.get("n")
+            if n_raw is not None and n_raw != "":
+                every_n_days = int(n_raw)
+        except (TypeError, ValueError):
+            every_n_days = None
+    elif isinstance(raw, str):
+        text = raw.strip().lower()
+        if not text:
+            return None
+        head, _, tail = text.partition(":")
+        kind = head.strip() or None
+        for chunk in tail.split(","):
+            chunk = chunk.strip()
+            if not chunk:
+                continue
+            key, _, value = chunk.partition("=")
+            key = key.strip()
+            value = value.strip()
+            try:
+                if key in {"day", "dom", "day_of_month"}:
+                    day_of_month = int(value)
+                elif key in {"dow", "day_of_week"}:
+                    day_of_week = int(value)
+                elif key in {"n", "every", "every_n_days"}:
+                    every_n_days = int(value)
+            except ValueError:
+                continue
+    else:
+        return None
+
+    if kind not in VALID_SCHEDULE_KINDS:
+        return None
+
+    # Defensive clamping — invariants for the create_recurring service.
+    if kind == "monthly":
+        if day_of_month is None or not 1 <= day_of_month <= 31:
+            return None
+        day_of_week = None
+        every_n_days = None
+    elif kind == "weekly":
+        if day_of_week is None or not 0 <= day_of_week <= 6:
+            return None
+        day_of_month = None
+        every_n_days = None
+    elif kind == "every_n_days":
+        if every_n_days is None or every_n_days < 1:
+            return None
+        day_of_month = None
+        day_of_week = None
+
+    return RecurringHint(
+        schedule_kind=kind,
+        day_of_month=day_of_month,
+        day_of_week=day_of_week,
+        every_n_days=every_n_days,
+    )
+
+
 def normalize(
     raw: dict[str, Any], user: User, *, today: _date_type | None = None
 ) -> ParsedResponse:
-    """Turn raw Gemini JSON into a validated `ParsedResponse`."""
+    """Turn raw Gemini JSON into a validated `ParsedResponse`.
+
+    Story 6.1: cap multi-transaction utterances at `MAX_DRAFTS_PER_UTTERANCE`
+    so a runaway model can't flood the confirm screen.
+    Story 6.3: the optional `recurring_intent` slot carries a `RecurringHint`
+    parsed from the model's `schedule_hint` field.
+    """
     today = today or _date_type.today()
     raw = raw or {}
     raw_txs = raw.get("transactions") or []
@@ -230,6 +328,12 @@ def normalize(
     for item in raw_txs:
         if not isinstance(item, dict):
             continue
+        if len(drafts) >= MAX_DRAFTS_PER_UTTERANCE:
+            logger.info(
+                "voice.parser: drop draft — cap of %d reached",
+                MAX_DRAFTS_PER_UTTERANCE,
+            )
+            break
         draft = _normalize_draft(item, user, today)
         if draft is not None:
             drafts.append(draft)
@@ -238,5 +342,8 @@ def normalize(
     recurring_raw = raw.get("recurring_intent")
     if isinstance(recurring_raw, dict):
         recurring = _normalize_draft(recurring_raw, user, today)
+        if recurring is not None:
+            hint = _normalize_schedule_hint(recurring_raw.get("schedule_hint"))
+            recurring.recurring_hint = hint
 
     return ParsedResponse(transactions=drafts, recurring_intent=recurring)
