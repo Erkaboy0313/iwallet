@@ -154,67 +154,81 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
     function register() {
         if (!window.Alpine) return setTimeout(register, 30);
         window.Alpine.data("voiceConfirmList", function (count, initialDrafts, recurring, saveUrl) {
+            // PLAIN reactive properties — getters that chain through other
+            // getters (headerLabel → keptCount → kept) lose Alpine 3 dep
+            // tracking and stop updating when `kept` mutates. Compute labels
+            // eagerly in `_refresh()` and call it after every state change.
+            function computeKeptCount(kept) {
+                return kept.filter(Boolean).length;
+            }
+            function computeCanSave(state) {
+                if (state.keptCount === 0) return false;
+                if (state.saving) return false;
+                for (var i = 0; i < state.count; i++) {
+                    if (!state.kept[i]) continue;
+                    var amb = state.drafts[i].ambiguous_fields || [];
+                    var t = state.touched[i] || {};
+                    for (var j = 0; j < amb.length; j++) {
+                        if (!t[amb[j]]) return false;
+                    }
+                }
+                return true;
+            }
+            function computeUnresolved(state) {
+                var n = 0;
+                for (var i = 0; i < state.count; i++) {
+                    if (!state.kept[i]) continue;
+                    var amb = state.drafts[i].ambiguous_fields || [];
+                    var t = state.touched[i] || {};
+                    if (!amb.every(function (f) { return t[f]; })) n += 1;
+                }
+                return n;
+            }
+            function computeSummary(state) {
+                var sums = { expense: 0, income: 0, debt: 0 };
+                var ccy = null;
+                state.drafts.forEach(function (d, i) {
+                    if (!state.kept[i]) return;
+                    var v = Number(d.amount) || 0;
+                    ccy = ccy || d.currency;
+                    if (d.type === "expense") sums.expense += v;
+                    else if (d.type === "income") sums.income += v;
+                    else sums.debt += v;
+                });
+                var parts = [];
+                if (sums.expense > 0) parts.push("−" + formatAmount(sums.expense) + (ccy ? " " + ccy : ""));
+                if (sums.income > 0) parts.push("+" + formatAmount(sums.income) + (ccy ? " " + ccy : ""));
+                if (sums.debt > 0) parts.push("qarz " + formatAmount(sums.debt) + (ccy ? " " + ccy : ""));
+                return parts.join(" · ");
+            }
             return {
                 count: count,
-                kept: Array.from({ length: count }, () => true),
-                drafts: initialDrafts.map((d) => Object.assign({}, d)),
-                touched: Array.from({ length: count }, () => ({})),
+                kept: Array.from({ length: count }, function () { return true; }),
+                drafts: initialDrafts.map(function (d) { return Object.assign({}, d); }),
+                touched: Array.from({ length: count }, function () { return {}; }),
                 recurringDraft: recurring ? Object.assign({}, recurring) : null,
                 createRecurring: false,
                 saving: false,
                 saveUrl: saveUrl,
-                get keptCount() {
-                    return this.kept.filter(Boolean).length;
+                // Plain reactive properties — refreshed by _refresh().
+                keptCount: count,
+                headerLabel: count + " ta tranzaksiya",
+                summaryLabel: "",
+                saveLabel: count === 1 ? "Saqlash" : count + " tranzaksiya saqlash",
+                canSave: false,
+                unresolvedNote: "",
+                init() {
+                    this._refresh();
                 },
-                get canSave() {
-                    if (this.keptCount === 0) return false;
-                    if (this.saving) return false;
-                    for (var i = 0; i < this.count; i++) {
-                        if (!this.kept[i]) continue;
-                        var amb = this.drafts[i].ambiguous_fields || [];
-                        var t = this.touched[i] || {};
-                        for (var j = 0; j < amb.length; j++) {
-                            if (!t[amb[j]]) return false;
-                        }
-                    }
-                    return true;
-                },
-                get unresolvedCardCount() {
-                    var n = 0;
-                    for (var i = 0; i < this.count; i++) {
-                        if (!this.kept[i]) continue;
-                        var amb = this.drafts[i].ambiguous_fields || [];
-                        var t = this.touched[i] || {};
-                        if (!amb.every((f) => t[f])) n += 1;
-                    }
-                    return n;
-                },
-                get unresolvedNote() {
-                    var n = this.unresolvedCardCount;
-                    return n > 0 ? n + " ta kartada noaniq maydon bor" : "";
-                },
-                get headerLabel() {
-                    return this.keptCount + " ta tranzaksiya";
-                },
-                get summaryLabel() {
-                    var sums = { expense: 0, income: 0, debt: 0 };
-                    var ccy = null;
-                    this.drafts.forEach((d, i) => {
-                        if (!this.kept[i]) return;
-                        var v = Number(d.amount) || 0;
-                        ccy = ccy || d.currency;
-                        if (d.type === "expense") sums.expense += v;
-                        else if (d.type === "income") sums.income += v;
-                        else sums.debt += v;
-                    });
-                    var parts = [];
-                    if (sums.expense > 0) parts.push("−" + formatAmount(sums.expense) + (ccy ? " " + ccy : ""));
-                    if (sums.income > 0) parts.push("+" + formatAmount(sums.income) + (ccy ? " " + ccy : ""));
-                    if (sums.debt > 0) parts.push("qarz " + formatAmount(sums.debt) + (ccy ? " " + ccy : ""));
-                    return parts.join(" · ");
-                },
-                get saveLabel() {
-                    return this.keptCount === 1 ? "Saqlash" : this.keptCount + " tranzaksiya saqlash";
+                _refresh() {
+                    this.keptCount = computeKeptCount(this.kept);
+                    this.headerLabel = this.keptCount + " ta tranzaksiya";
+                    this.saveLabel = this.keptCount === 1 ? "Saqlash" : this.keptCount + " tranzaksiya saqlash";
+                    this.summaryLabel = computeSummary(this);
+                    this.canSave = computeCanSave(this);
+                    var n = computeUnresolved(this);
+                    this.unresolvedNote = n > 0 ? n + " ta kartada noaniq maydon bor" : "";
+                    if (window._iwLog) window._iwLog("VC-REFRESH", "keptCount=" + this.keptCount + " canSave=" + this.canSave);
                 },
                 cardStyle(idx) {
                     var d = this.drafts[idx];
@@ -224,24 +238,20 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         : "border: 1px solid #e2e8f0; border-radius: 24px";
                 },
                 touch(idx, field) {
-                    var next = Object.assign({}, this.touched[idx] || {});
-                    next[field] = true;
-                    this.touched = this.touched.map(function (t, i) {
-                        return i === idx ? next : t;
-                    });
+                    if (window._iwLog) window._iwLog("VC-TOUCH", "idx=" + idx + " field=" + field);
+                    if (!this.touched[idx]) this.touched[idx] = {};
+                    this.touched[idx][field] = true;
+                    this._refresh();
                 },
                 remove(idx) {
-                    this.kept = this.kept.map(function (v, i) {
-                        return i === idx ? false : v;
-                    });
+                    if (window._iwLog) window._iwLog("VC-REMOVE", "idx=" + idx);
+                    this.kept[idx] = false;
+                    this._refresh();
                 },
                 updateDraft(idx, draft) {
-                    // Child voiceDraftCard dispatches this whenever the user
-                    // edits a field on its card. We replace the whole array
-                    // entry so Alpine's reactivity fires for summaryLabel.
-                    this.drafts = this.drafts.map(function (d, i) {
-                        return i === idx ? Object.assign({}, d, draft) : d;
-                    });
+                    if (window._iwLog) window._iwLog("VC-UPDATE", "idx=" + idx);
+                    this.drafts[idx] = Object.assign({}, this.drafts[idx] || {}, draft);
+                    this._refresh();
                 },
                 cancel() {
                     var host = document.getElementById("voice-confirm-area");

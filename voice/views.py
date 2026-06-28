@@ -293,9 +293,7 @@ def _coerce_multi_save_payload(request: HttpRequest) -> dict:
     if not isinstance(raw_drafts, list) or not raw_drafts:
         raise _SaveValidationError("Saqlash uchun tranzaksiya yo'q")
     if len(raw_drafts) > MAX_BATCH_DRAFTS:
-        raise _SaveValidationError(
-            f"Bir vaqtda {MAX_BATCH_DRAFTS} tadan ortiq saqlab bo'lmaydi"
-        )
+        raise _SaveValidationError(f"Bir vaqtda {MAX_BATCH_DRAFTS} tadan ortiq saqlab bo'lmaydi")
 
     drafts: list[dict] = []
     for item in raw_drafts:
