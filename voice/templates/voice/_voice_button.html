@@ -1,0 +1,200 @@
+{# Story 2.1 — VoiceButton. States: idle / recording / processing / error.
+
+Hosts an Alpine component that owns the MediaRecorder lifecycle, swaps button
+appearance per state, and on stop uploads the audio to /app/voice/transcribe/,
+which htmx swaps into #voice-confirm-area.
+
+Inline-style critical layout (size, pulse, shake) because cached Tailwind build
+may not include arbitrary keyframes / sizes.
+#}
+{% load static %}
+<div id="voice-confirm-area"></div>
+<div x-data="voiceButton('{% url 'voice:transcribe' %}')"
+     x-init="init()"
+     class="flex flex-col items-center"
+     style="position: relative">
+    <button type="button"
+            class="btn-primary"
+            style="width: 96px;
+                   height: 96px;
+                   border-radius: 9999px;
+                   display: flex;
+                   align-items: center;
+                   justify-content: center;
+                   border: none;
+                   color: white;
+                   font-size: 28px;
+                   transition: transform 120ms ease, background-color 200ms ease"
+            :style="state === 'recording' ? 'animation: vb-pulse 1.5s ease-in-out infinite; background-color: #10b981;' : (state === 'processing' ? 'background-color: #6b7280;' : (state === 'error' ? 'animation: vb-shake 300ms ease; background-color: #dc2626;' : 'background-color: #10b981;'))"
+            :aria-pressed="state === 'recording' ? 'true' : 'false'"
+            aria-label="Ovoz bilan tranzaksiya qo'shish"
+            :disabled="state === 'processing'"
+            @click="toggle()">
+        <span x-show="state === 'idle' || state === 'error'" aria-hidden="true">🎤</span>
+        <span x-show="state === 'recording'" aria-hidden="true">⏹</span>
+        <span x-show="state === 'processing'"
+              aria-hidden="true"
+              style="display: inline-flex;
+                     gap: 4px">
+            <span style="width: 6px;
+                         height: 6px;
+                         border-radius: 9999px;
+                         background: white;
+                         animation: vb-bounce 1s infinite"></span>
+            <span style="width: 6px;
+                         height: 6px;
+                         border-radius: 9999px;
+                         background: white;
+                         animation: vb-bounce 1s infinite;
+                         animation-delay: 0.15s"></span>
+            <span style="width: 6px;
+                         height: 6px;
+                         border-radius: 9999px;
+                         background: white;
+                         animation: vb-bounce 1s infinite;
+                         animation-delay: 0.3s"></span>
+        </span>
+    </button>
+    <p class="text-xs text-slate-500 mt-2"
+       x-text="hint"
+       style="min-height: 1rem"></p>
+    <p x-show="errorTooltip"
+       x-cloak
+       class="text-xs text-red-700 mt-1 text-center"
+       style="max-width: 240px"
+       x-text="errorTooltip"></p>
+</div>
+<style>
+@keyframes vb-pulse {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(16,185,129,0.5); }
+    50%      { transform: scale(1.05); box-shadow: 0 0 0 14px rgba(16,185,129,0); }
+}
+@keyframes vb-shake {
+    0%, 100% { transform: translateX(0); }
+    25%      { transform: translateX(-4px); }
+    75%      { transform: translateX(4px); }
+}
+@keyframes vb-bounce {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 1; }
+}
+</style>
+<script src="{% static 'js/voice-recorder.js' %}?v={% now 'U' %}" defer></script>
+<script>
+(function () {
+    if (window.__voiceButtonRegistered) return;
+    window.__voiceButtonRegistered = true;
+    function register() {
+        if (!window.Alpine) { return setTimeout(register, 30); }
+        window.Alpine.data("voiceButton", function (transcribeUrl) {
+            return {
+                state: "idle",
+                hint: "Mikrofonni bosing va gapiring",
+                errorTooltip: "",
+                recorder: null,
+                init() {
+                    if (!window.VoiceRecorder || !window.VoiceRecorderSupport.isSupported()) {
+                        this.state = "error";
+                        this.hint = "Brauzer mikrofonni qo'llab-quvvatlamaydi";
+                        this.errorTooltip = "Qo'lda yozish tugmasidan foydalaning.";
+                        return;
+                    }
+                    this.recorder = new window.VoiceRecorder({
+                        onStateChange: (s) => {
+                            if (this.state === "error" && s !== "idle") return;
+                            this.state = s;
+                        },
+                    });
+                },
+                async toggle() {
+                    if (!this.recorder) return;
+                    if (this.state === "idle" || this.state === "error") {
+                        this.errorTooltip = "";
+                        this.hint = "Tinglayapman… yana bosib to'xtating";
+                        try {
+                            await this.recorder.start();
+                        } catch (e) {
+                            this.state = "error";
+                            if (e && e.name === "PermissionDeniedError") {
+                                this.hint = "Mikrofon ruxsati kerak";
+                                this.errorTooltip = "Sozlamalarga o'ting yoki qo'lda yozing.";
+                            } else if (e && e.name === "UnsupportedError") {
+                                this.hint = "Brauzer mikrofonni qo'llab-quvvatlamaydi";
+                                this.errorTooltip = "Qo'lda yozish tugmasidan foydalaning.";
+                            } else {
+                                this.hint = "Xatolik. Yana urinib ko'ring.";
+                                this.errorTooltip = String((e && e.message) || e || "noma'lum xato");
+                            }
+                            setTimeout(() => { if (this.state === "error") { this.state = "idle"; } }, 600);
+                        }
+                        return;
+                    }
+                    if (this.state === "recording") {
+                        let blob = null;
+                        try {
+                            blob = await this.recorder.stop();
+                        } catch (e) {
+                            this.state = "error";
+                            this.hint = "Yozib olishda xatolik.";
+                            return;
+                        }
+                        if (!blob) { this.state = "idle"; this.hint = "Mikrofonni bosing va gapiring"; return; }
+                        if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
+                            this.state = "idle";
+                            this.hint = "Mikrofonni bosing va gapiring";
+                            if (window.dispatchEvent) {
+                                window.dispatchEvent(new CustomEvent("voice:silence-detected"));
+                            }
+                            try {
+                                document.body.dispatchEvent(new CustomEvent("htmx:trigger", {}));
+                            } catch (e) { /* noop */ }
+                            // Show a toast via the same channel as server-triggered toasts.
+                            var ev = new CustomEvent("show-toast", { detail: { type: "info", message: "Hech narsa eshitilmadi" } });
+                            window.dispatchEvent(ev);
+                            // Fallback: drive base.html's toast state directly if present.
+                            try {
+                                var root = document.querySelector('body');
+                                if (root && root._x_dataStack && root._x_dataStack[0]) {
+                                    root._x_dataStack[0].toast = { type: "info", message: "Hech narsa eshitilmadi" };
+                                    setTimeout(() => { if (root._x_dataStack[0]) root._x_dataStack[0].toast = null; }, 3000);
+                                }
+                            } catch (e) { /* noop */ }
+                            return;
+                        }
+                        await this.upload(blob);
+                        return;
+                    }
+                },
+                async upload(blob) {
+                    this.state = "processing";
+                    this.hint = "Eshityapman…";
+                    const fd = new FormData();
+                    const ext = (blob.type && blob.type.indexOf("mp4") !== -1) ? "m4a" : "webm";
+                    fd.append("audio", blob, "voice." + ext);
+                    const headers = {};
+                    try {
+                        var initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || "";
+                        if (initData) headers["X-Telegram-InitData"] = initData;
+                    } catch (e) { /* noop */ }
+                    try {
+                        const resp = await fetch(transcribeUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" });
+                        const html = await resp.text();
+                        const host = document.getElementById("voice-confirm-area");
+                        if (host) {
+                            host.innerHTML = html;
+                            if (window.htmx) window.htmx.process(host);
+                        }
+                        this.state = "idle";
+                        this.hint = "Mikrofonni bosing va gapiring";
+                    } catch (e) {
+                        this.state = "error";
+                        this.hint = "Tarmoq xatosi. Yana urinib ko'ring.";
+                        setTimeout(() => { if (this.state === "error") { this.state = "idle"; this.hint = "Mikrofonni bosing va gapiring"; } }, 600);
+                    }
+                },
+            };
+        });
+    }
+    register();
+})();
+</script>

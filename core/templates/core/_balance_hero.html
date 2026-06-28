@@ -124,14 +124,12 @@
             {% endif %}
         </p>
     {% endif %}
-    <div class="mt-6 grid grid-cols-2 gap-3">
-        <button type="button"
-                class="btn-primary opacity-50 cursor-not-allowed"
-                disabled
-                aria-label="Ovoz bilan tranzaksiya — tez orada">🎤 Voice</button>
+    <div class="mt-6 flex flex-col items-center gap-3">
+        {% include 'voice/_voice_button.html' %}
         <a href="{% url 'transactions:add' %}"
            class="btn-secondary text-center"
-           aria-label="Qo'lda tranzaksiya qo'shish">✏️ Qo'lda</a>
+           aria-label="Qo'lda tranzaksiya qo'shish"
+           style="min-width: 160px">✏️ Qo'lda yozish</a>
     </div>
     <div class="mt-4 text-center">
         <a href="{% url 'categories:list' %}"
