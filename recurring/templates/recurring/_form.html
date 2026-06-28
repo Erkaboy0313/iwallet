@@ -1,0 +1,174 @@
+{# Create / edit recurring schedule rendered into the bottom sheet. #}
+<div x-data="{ kind: '{{ form.schedule_kind.value|default:'monthly' }}', type: '{{ form.type.value|default:'expense' }}' }">
+    <header class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-900">
+            {% if mode == 'edit' %}
+                Takrorlanuvchini tahrirlash
+            {% else %}
+                Yangi takrorlanuvchi
+            {% endif %}
+        </h2>
+        <button type="button"
+                @click="sheet = null"
+                class="text-slate-500 hover:text-slate-900 px-2 py-1"
+                aria-label="Yopish">×</button>
+    </header>
+    <form id="recurring-form"
+          hx-post="{{ action_url }}"
+          hx-target="#recurring-list"
+          hx-swap="outerHTML"
+          @htmx:after-request="if ($event.detail.xhr.status === 200) { sheet = null }"
+          class="space-y-4">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+            <p class="form-error rounded-2xl bg-red-50 text-red-700 text-sm px-3 py-2">{{ form.non_field_errors|join:" " }}</p>
+        {% endif %}
+        <fieldset>
+            <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Turi</legend>
+            <div class="grid grid-cols-2 gap-2">
+                {% for value, label in form.type.field.choices %}
+                    <label class="cursor-pointer">
+                        <input type="radio"
+                               name="type"
+                               value="{{ value }}"
+                               class="sr-only peer"
+                               x-model="type"
+                               {% if form.type.value == value %}checked{% endif %}>
+                        <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
+                            {{ label }}
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div>
+            <label for="id_name"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Nom</label>
+            <input id="id_name"
+                   name="name"
+                   type="text"
+                   maxlength="64"
+                   value="{{ form.name.value|default:'' }}"
+                   required
+                   placeholder="Masalan: Ijara"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+            {% if form.name.errors %}
+                <p class="form-error text-red-700 text-sm mt-1">{{ form.name.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+            <div class="col-span-2">
+                <label for="id_amount"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
+                <input id="id_amount"
+                       name="amount"
+                       type="text"
+                       inputmode="decimal"
+                       value="{{ form.amount.value|default:'' }}"
+                       required
+                       placeholder="0"
+                       class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-right">
+                {% if form.amount.errors %}
+                    <p class="form-error text-red-700 text-sm mt-1">{{ form.amount.errors|join:" " }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="id_currency"
+                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Valyuta</label>
+                <select id="id_currency"
+                        name="currency"
+                        class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                    {% for value, label in form.currency.field.choices %}
+                        <option value="{{ value }}"
+                                {% if form.currency.value == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div x-show="type === 'income' || type === 'expense'" x-cloak>
+            <label for="id_category_slug"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kategoriya (ixtiyoriy)</label>
+            <select id="id_category_slug"
+                    name="category_slug"
+                    class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                <option value="">— tanlanmagan —</option>
+                <optgroup label="Chiqim" x-show="type === 'expense'">
+                    {% for c in expense_categories %}
+                        <option value="{{ c.slug }}"
+                                {% if form.category_slug.value == c.slug %}selected{% endif %}>
+                            {{ c.emoji }} {{ c.name }}
+                        </option>
+                    {% endfor %}
+                </optgroup>
+                <optgroup label="Kirim" x-show="type === 'income'">
+                    {% for c in income_categories %}
+                        <option value="{{ c.slug }}"
+                                {% if form.category_slug.value == c.slug %}selected{% endif %}>
+                            {{ c.emoji }} {{ c.name }}
+                        </option>
+                    {% endfor %}
+                </optgroup>
+            </select>
+        </div>
+        <fieldset>
+            <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Davriylik</legend>
+            <div class="grid grid-cols-2 gap-2">
+                {% for value, label in form.schedule_kind.field.choices %}
+                    <label class="cursor-pointer">
+                        <input type="radio"
+                               name="schedule_kind"
+                               value="{{ value }}"
+                               class="sr-only peer"
+                               x-model="kind"
+                               {% if form.schedule_kind.value == value %}checked{% endif %}>
+                        <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
+                            {{ label }}
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div x-show="kind === 'monthly'" x-cloak>
+            <label for="id_day_of_month"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Oy kuni (1-31)</label>
+            <input id="id_day_of_month"
+                   name="day_of_month"
+                   type="number"
+                   min="1"
+                   max="31"
+                   value="{{ form.day_of_month.value|default:'1' }}"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+            <p class="text-[11px] text-slate-500 mt-1">Agar oy 30 yoki 28 kun bo'lsa, oxirgi kunga to'g'rilanadi.</p>
+            {% if form.day_of_month.errors %}
+                <p class="form-error text-red-700 text-sm mt-1">{{ form.day_of_month.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+        <div x-show="kind === 'weekly'" x-cloak>
+            <label for="id_day_of_week"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Hafta kuni</label>
+            <select id="id_day_of_week"
+                    name="day_of_week"
+                    class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                {% for value, label in form.day_of_week.field.choices %}
+                    <option value="{{ value }}"
+                            {% if form.day_of_week.value|stringformat:'s' == value|stringformat:'s' %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                {% endfor %}
+            </select>
+            {% if form.day_of_week.errors %}
+                <p class="form-error text-red-700 text-sm mt-1">{{ form.day_of_week.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="id_end_date"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Tugash sanasi (ixtiyoriy)</label>
+            <input id="id_end_date"
+                   name="end_date"
+                   type="date"
+                   value="{{ form.end_date.value|date:'Y-m-d'|default:'' }}"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+        </div>
+        <button type="submit" class="btn-primary w-full" aria-label="Saqlash">Saqlash</button>
+    </form>
+</div>

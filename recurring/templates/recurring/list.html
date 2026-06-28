@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Takrorlanuvchi — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-5 pb-32"
+             x-data="{ sheet: null }"
+             @keydown.escape.window="sheet = null">
+        <header class="flex items-center gap-3 mb-5">
+            <a href="{% url 'core:home' %}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Uyga qaytish">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Takrorlanuvchi to'lovlar</h1>
+        </header>
+        <p class="text-sm text-slate-500 mb-4">
+            Har oy yoki har hafta o'zi yoziladigan kirim/chiqim. Masalan: ijara,
+            internet, oyliq.
+        </p>
+        <button type="button"
+                class="btn-primary w-full mb-5"
+                hx-get="{% url 'recurring:create' %}"
+                hx-target="#recurring-sheet"
+                hx-swap="innerHTML"
+                @click="sheet = 'form'"
+                aria-label="Yangi takrorlanuvchi qo'shish">+ Yangi takrorlanuvchi</button>
+        <div id="recurring-list">{% include 'recurring/_list_partial.html' %}</div>
+        {# Bottom sheet host — filled by htmx swaps from forms / confirmations. #}
+        <div x-show="sheet"
+             x-cloak
+             class="fixed inset-0 z-40"
+             style="display: none">
+            <div class="absolute inset-0 bg-black/40"
+                 @click="sheet = null"
+                 aria-hidden="true"></div>
+            <div x-show="sheet"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="translate-y-full"
+                 x-transition:enter-end="translate-y-0"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="translate-y-0"
+                 x-transition:leave-end="translate-y-full"
+                 class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg"
+                 style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 2rem)"
+                 role="dialog"
+                 aria-modal="true">
+                <div id="recurring-sheet"></div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
