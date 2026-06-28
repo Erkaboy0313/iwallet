@@ -1,37 +1,96 @@
 {% load core_extras %}
 {% load debts_extras %}
 {% if tab.totals %}
-    <div class="bg-white rounded-2xl border border-slate-200 px-4 py-3 mb-4">
-        <p class="text-xs uppercase tracking-wider text-slate-500">Jami qoldiq</p>
-        <ul class="mt-1 space-y-1">
+    <div style="margin-bottom: 12px;
+                padding: 14px 16px;
+                border-radius: 14px;
+                background: {% if tab.tab == 'lent' %}var(--color-inflow-surface){% else %}var(--color-outflow-surface){% endif %};
+                border: 1px solid var(--color-border)">
+        <p style="font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  font-weight: 600;
+                  color: {% if tab.tab == 'lent' %}var(--color-inflow-text){% else %}var(--color-outflow-text){% endif %};
+                  opacity: 0.75;
+                  margin: 0">Jami qoldiq</p>
+        <ul style="margin: 6px 0 0;
+                   padding: 0;
+                   list-style: none;
+                   display: flex;
+                   flex-direction: column;
+                   gap: 4px">
             {% for line in tab.totals %}
-                <li class="amount text-base font-semibold text-amber-600">{{ line.total|smart_money:line.currency }}</li>
+                <li class="amount"
+                    style="font-size: 18px;
+                           font-weight: 700;
+                           color: {% if tab.tab == 'lent' %}var(--color-inflow-text){% else %}var(--color-outflow-text){% endif %}">{{ line.total|smart_money:line.currency }}</li>
             {% endfor %}
         </ul>
     </div>
 {% endif %}
 {% if tab.debts %}
-    <ul class="space-y-2" role="list" aria-label="Qarzlar ro'yxati">
+    <ul role="list"
+        aria-label="Qarzlar ro'yxati"
+        style="display: flex;
+               flex-direction: column;
+               gap: 8px;
+               margin: 0;
+               padding: 0;
+               list-style: none">
         {% for debt in tab.debts %}
-            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                <div class="flex items-center justify-between gap-3">
+            <li style="background: var(--color-surface);
+                       border: 1px solid var(--color-border);
+                       border-radius: 14px;
+                       padding: 12px 14px">
+                <div style="display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            gap: 12px">
                     <a href="{% url 'debts:detail' debt.id %}"
-                       class="flex items-center gap-3 min-w-0 flex-1"
-                       aria-label="Qarz tafsilotlari">
+                       aria-label="Qarz tafsilotlari"
+                       style="display: flex;
+                              align-items: center;
+                              gap: 12px;
+                              min-width: 0;
+                              flex: 1;
+                              text-decoration: none;
+                              color: var(--color-text)">
+                        {% avatar_style debt.counterparty as avatar_inline %}
                         <span aria-hidden="true"
-                              class="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-sm font-semibold shrink-0">
-                            {{ debt.counterparty|initials }}
-                        </span>
-                        <span class="min-w-0">
-                            <span class="block text-sm font-medium text-slate-900 truncate">{{ debt.counterparty }}</span>
-                            <span class="flex items-center gap-2 mt-0.5">
-                                <span class="amount text-sm font-semibold text-amber-600">{{ debt.remaining_amount|smart_money:debt.currency }}</span>
+                              style="display: inline-flex;
+                                     align-items: center;
+                                     justify-content: center;
+                                     width: 40px;
+                                     height: 40px;
+                                     border-radius: 9999px;
+                                     font-size: 13px;
+                                     font-weight: 600;
+                                     flex-shrink: 0;
+                                     {{ avatar_inline }}">{{ debt.counterparty|initials }}</span>
+                        <span style="min-width: 0; display: flex; flex-direction: column; gap: 4px">
+                            <span style="font-size: 14px;
+                                         font-weight: 600;
+                                         color: var(--color-text);
+                                         overflow: hidden;
+                                         text-overflow: ellipsis;
+                                         white-space: nowrap">{{ debt.counterparty }}</span>
+                            <span style="display: inline-flex; align-items: center; gap: 6px">
+                                <span class="amount"
+                                      style="font-size: 13px;
+                                             font-weight: 600;
+                                             color: var(--color-debt)">{{ debt.remaining_amount|smart_money:debt.currency }}</span>
                                 {% if debt.state == 'partial' %}
-                                    <span class="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
-                                        Qoldiq: {{ debt.remaining_amount|smart_money:debt.currency }} / {{ debt.original_amount|smart_money:debt.currency }}
-                                    </span>
+                                    <span style="font-size: 11px;
+                                                 padding: 2px 8px;
+                                                 border-radius: 9999px;
+                                                 background: #FEF3C7;
+                                                 color: #92400E">Qoldiq: {{ debt.remaining_amount|smart_money:debt.currency }} / {{ debt.original_amount|smart_money:debt.currency }}</span>
                                 {% else %}
-                                    <span class="text-xs px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700">Ochiq</span>
+                                    <span style="font-size: 11px;
+                                                 padding: 2px 8px;
+                                                 border-radius: 9999px;
+                                                 background: var(--color-inflow-surface);
+                                                 color: var(--color-inflow-text)">Ochiq</span>
                                 {% endif %}
                             </span>
                         </span>
@@ -40,14 +99,20 @@
                             hx-get="{% url 'debts:close_form' debt.id %}"
                             hx-target="#close-form-slot"
                             hx-swap="innerHTML"
-                            class="text-sm font-medium px-3 py-1.5 rounded-full bg-emerald-600 text-white shrink-0"
-                            aria-label="Qarzni yopish">Yopish</button>
+                            aria-label="Qarzni yopish"
+                            style="padding: 8px 14px;
+                                   border: 0;
+                                   border-radius: 9999px;
+                                   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                                   color: #FFFFFF;
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   cursor: pointer;
+                                   flex-shrink: 0">Yopish</button>
                 </div>
             </li>
         {% endfor %}
     </ul>
 {% else %}
-    <div class="text-center py-12 px-4">
-        <p class="text-sm text-slate-500">Hozircha qarz yo'q.</p>
-    </div>
+    {% include 'core/components/_empty_state.html' with emoji='🤝' title='Qarz yo\'q' caption='Bo\'sh — bu yaxshi xabar.' %}
 {% endif %}

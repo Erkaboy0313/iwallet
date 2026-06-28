@@ -95,7 +95,8 @@ def test_debts_list_empty_state() -> None:
     client = Client()
     response = client.get(reverse("debts:list"), headers={"X-Telegram-InitData": _init(13)})
     body = response.content.decode("utf-8")
-    assert "Hozircha qarz yo'q" in body
+    # Sprint v0.6: empty state copy moved into _empty_state component.
+    assert "Qarz yo&#x27;q" in body or "Qarz yo'q" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
