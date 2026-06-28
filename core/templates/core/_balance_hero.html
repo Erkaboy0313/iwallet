@@ -40,7 +40,7 @@
         </div>
     {% endif %}
     {# Inflow / Outflow side-by-side. Phase 1, UX §3.2/§3.3. #}
-    <div class="grid grid-cols-2 gap-3 mb-3">
+    <div class="grid grid-cols-2 gap-3 mb-3 iw-enter iw-enter-1">
         <a href="{% url 'transactions:history' %}?type=income"
            aria-label="Kirimlar tarixini ko'rish"
            style="display: block;
@@ -97,7 +97,8 @@
         </a>
     </div>
     {# Big balance card. UX §3.4. #}
-    <div style="padding: 20px;
+    <div class="iw-enter iw-enter-2"
+         style="padding: 20px;
                 border-radius: 18px;
                 border: 1px solid rgba(15, 23, 42, 0.08);
                 background: linear-gradient(180deg, #FFFFFF 0%, #F4F6F2 140%);
@@ -180,7 +181,7 @@
     {% endif %}
     {# Voice CTA — full-width gradient. UX §3.5. Manual add is reachable
        via the elevated centre nav + button (Phase 2). #}
-    <div class="mt-6">
+    <div class="mt-6 iw-enter iw-enter-3">
         {% include 'voice/_voice_button.html' %}
     </div>
 </section>

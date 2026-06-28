@@ -1,27 +1,53 @@
-/* IWALLET design tokens — drives Tailwind theme (Story 0.6).
- * Source of truth for color, spacing, typography.
- * Eric, hech qachon hex code'larni inline yozma — bu yerga qo'sh.
+/* IWALLET design tokens — Sprint v0.5 premium refresh.
+ * Source of truth for color, motion, spacing, typography.
+ * Don't inline hex codes anywhere else.
  */
 
 :root {
-  /* ===== Color ===== */
-  --color-bg: #FAFAF7;
+  /* ===== Surface + ink ===== */
+  --color-bg: #F4F6F2;
+  --color-bg-gradient-stop: #E9EFE5;
   --color-surface: #FFFFFF;
-  --color-text: #0F172A;
-  --color-text-muted: #64748B;
-  --color-border: #E2E8F0;
+  --color-text: #0B1220;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94A3B8;
+  --color-border: rgba(15, 23, 42, 0.08);
 
-  --color-primary: #059669;        /* emerald-600 — brand, CTA */
-  --color-primary-hover: #047857;  /* emerald-700 */
+  /* ===== Primary (CTA, balance, brand) ===== */
+  --color-primary: #059669;          /* emerald-600 */
+  --color-primary-hover: #047857;    /* emerald-700 */
+  --color-primary-light: #D1FAE5;
+  --color-primary-gradient-start: #10B981;
+  --color-primary-gradient-end: #047857;
 
-  --color-income: #10B981;         /* emerald-500 */
-  --color-expense: #0F172A;        /* slate-900 — neutral, not red */
-  --color-debt: #F59E0B;           /* amber-500 — visual flag */
-  --color-danger: #DC2626;         /* red-600 — destructive only */
+  /* ===== Inflow / outflow (Home cards) ===== */
+  --color-inflow-surface: #ECFDF5;
+  --color-inflow-text: #047857;
+  --color-inflow-icon: #10B981;
+  --color-outflow-surface: #FEF2F2;
+  --color-outflow-text: #BE123C;
+  --color-outflow-icon: #E11D48;
 
-  --color-warning-bg: #FEF3C7;     /* amber-100 — uncertainty card */
-  --color-success-bg: #D1FAE5;     /* emerald-100 — toast success */
-  --color-error-bg:   #FEE2E2;     /* red-100 — toast error */
+  /* ===== Secondary roles ===== */
+  --color-income: #10B981;
+  --color-expense: #0B1220;
+  --color-debt: #D97706;              /* amber-600 — deeper than F59E0B */
+  --color-danger: #DC2626;
+  --color-warning-bg: #FEF3C7;
+  --color-success-bg: #D1FAE5;
+  --color-error-bg: #FEE2E2;
+
+  /* ===== Shadows ===== */
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-elevated: 0 4px 10px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06);
+  --shadow-cta: 0 6px 20px rgba(5, 150, 105, 0.35);
+
+  /* ===== Motion ===== */
+  --motion-micro: 120ms;
+  --motion-standard: 220ms;
+  --motion-page: 180ms;
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ===== Spacing (4px base) ===== */
   --space-1: 4px;
@@ -49,7 +75,8 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: var(--color-bg);
+  background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-gradient-stop) 100%);
+  background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
@@ -69,7 +96,38 @@ body {
   font-feature-settings: 'tnum';
 }
 
-/* Reduced motion respect */
+/* ===== Universal interaction polish (UX §7) ===== */
+
+/* Press scales for tappable cards. Skip on text inputs / form controls. */
+a, button, [role="button"] {
+  transition: transform var(--motion-micro) var(--ease-out),
+              opacity var(--motion-micro) var(--ease-out),
+              box-shadow var(--motion-standard) var(--ease-out);
+}
+
+a:active, button:active:not(:disabled), [role="button"]:active {
+  transform: scale(0.98);
+}
+
+/* Section enter — applied by Home + Settings when htmx swaps content in.
+ * Pure opacity + tiny translateY: the cheapest 'premium' feel that survives
+ * Telegram Desktop's older WebKit without thrashing layout.
+ */
+@keyframes iw-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.iw-enter {
+  animation: iw-fade-up var(--motion-standard) var(--ease-out-soft) both;
+}
+
+/* Stagger for grouped cards — child indices add 40ms each. */
+.iw-enter-1 { animation-delay: 40ms; }
+.iw-enter-2 { animation-delay: 80ms; }
+.iw-enter-3 { animation-delay: 120ms; }
+
+/* Reduced motion respect — collapses all token-driven durations to nothing. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
