@@ -22,6 +22,11 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv(
 
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+# Public origin Telegram POSTs to (used by `setup_bot` to build the
+# webhook URL). Falls back to WEBAPP_URL's origin if unset.
+WEBHOOK_BASE_URL = config("WEBHOOK_BASE_URL", default="")
+# Public WebApp landing URL (used by the bot's /start + menu button).
+WEBAPP_URL = config("WEBAPP_URL", default="https://iwallet.buildermode.uz/app/home/")
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 
