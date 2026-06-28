@@ -21,94 +21,189 @@ and every UI binding reads from it directly.
             {% include 'voice/_recurring_card.html' with recurring=recurring %}
         {% endif %}
         <template x-for="(d, i) in drafts" :key="i">
-            <div class="card-default mt-4" x-show="kept[i]" :style="cardStyle(i)">
-                <div class="flex items-start justify-between mb-4">
+            <div x-show="kept[i]"
+                 :style="cardStyle(i)"
+                 style="margin-top: 14px;
+                        padding: 16px;
+                        border-radius: 18px;
+                        background: var(--color-surface);
+                        box-shadow: var(--shadow-soft)">
+                <div style="display: flex;
+                            align-items: flex-start;
+                            justify-content: space-between;
+                            gap: 8px;
+                            margin-bottom: 14px">
                     <button type="button"
-                            class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-sm font-medium text-slate-800"
                             aria-label="Kategoriya tanlash"
-                            @click="editField(i, 'category_slug')">
+                            @click="editField(i, 'category_slug')"
+                            style="display: inline-flex;
+                                   align-items: center;
+                                   gap: 8px;
+                                   padding: 6px 12px 6px 10px;
+                                   border-radius: 9999px;
+                                   border: 0;
+                                   background: #F1F5F9;
+                                   color: var(--color-text);
+                                   font-size: 14px;
+                                   font-weight: 600;
+                                   cursor: pointer">
                         <span aria-hidden="true" x-text="d.emoji || '📁'"></span>
                         <span x-text="d.category_name || d.category_slug || 'Kategoriya'"></span>
+                        <svg width="12"
+                             height="12"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="1.8"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true"
+                             style="opacity: 0.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                        </svg>
                     </button>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600"
+                    <div style="display: inline-flex; align-items: center; gap: 8px">
+                        <span style="font-size: 11px;
+                                     padding: 4px 10px;
+                                     border-radius: 9999px;
+                                     background: #F1F5F9;
+                                     color: var(--color-text-secondary);
+                                     font-weight: 600"
                               x-text="typeLabel(d.type)"></span>
                         <button type="button"
-                                class="text-xs px-2 py-1 rounded-full bg-red-50 text-red-700"
                                 aria-label="Tranzaksiyani o'chirish"
-                                @click="remove(i)">❌ O'chirish</button>
+                                @click="remove(i)"
+                                style="display: inline-flex;
+                                       align-items: center;
+                                       justify-content: center;
+                                       width: 28px;
+                                       height: 28px;
+                                       padding: 0;
+                                       border: 0;
+                                       border-radius: 9999px;
+                                       background: transparent;
+                                       color: var(--color-text-muted);
+                                       cursor: pointer">
+                            <svg width="14"
+                                 height="14"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 viewBox="0 0 24 24"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </div>
                 </div>
-                <div class="mb-4">
+                <div style="margin-bottom: 14px;
+                            display: flex;
+                            align-items: center;
+                            flex-wrap: wrap;
+                            gap: 8px">
                     <button type="button"
-                            class="amount text-left font-bold tabular-nums text-slate-900"
-                            style="font-size: 44px;
-                                   line-height: 1.1"
+                            class="amount"
                             aria-label="Summa tahrirlash"
-                            @click="editField(i, 'amount')">
+                            @click="editField(i, 'amount')"
+                            style="background: transparent;
+                                   border: 0;
+                                   font-size: 40px;
+                                   font-weight: 700;
+                                   color: var(--color-text);
+                                   line-height: 1.1;
+                                   cursor: pointer;
+                                   padding: 0">
                         <span x-text="fmt(d.amount)"></span>
                     </button>
                     <button type="button"
-                            class="ml-2 px-2 py-1 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
                             aria-label="Valyuta tanlash"
-                            @click="editField(i, 'currency')">
+                            @click="editField(i, 'currency')"
+                            style="padding: 6px 12px;
+                                   border-radius: 9999px;
+                                   border: 0;
+                                   background: #F1F5F9;
+                                   color: var(--color-text-secondary);
+                                   font-size: 12px;
+                                   font-weight: 600;
+                                   cursor: pointer">
                         <span x-text="d.currency"></span>
                     </button>
                 </div>
-                <div class="flex items-center gap-2 flex-wrap mb-3">
+                <div style="display: flex;
+                            align-items: center;
+                            gap: 8px;
+                            flex-wrap: wrap;
+                            margin-bottom: 12px">
                     <button type="button"
-                            class="px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
                             aria-label="Sana tanlash"
-                            @click="editField(i, 'date')">📅 <span x-text="d.date"></span></button>
+                            @click="editField(i, 'date')"
+                            style="padding: 6px 12px;
+                                   border-radius: 9999px;
+                                   border: 0;
+                                   background: #F1F5F9;
+                                   color: var(--color-text-secondary);
+                                   font-size: 12px;
+                                   font-weight: 600;
+                                   cursor: pointer">📅 <span x-text="d.date"></span></button>
                     <template x-if="d.type === 'debt_lent' || d.type === 'debt_borrowed'">
                         <button type="button"
-                                class="px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
                                 aria-label="Kim bilan"
-                                @click="editField(i, 'counterparty')">👤 <span x-text="d.counterparty || 'kim bilan?'"></span></button>
+                                @click="editField(i, 'counterparty')"
+                                style="padding: 6px 12px;
+                                       border-radius: 9999px;
+                                       border: 0;
+                                       background: #F1F5F9;
+                                       color: var(--color-text-secondary);
+                                       font-size: 12px;
+                                       font-weight: 600;
+                                       cursor: pointer">👤 <span x-text="d.counterparty || 'kim bilan?'"></span></button>
                     </template>
                     <template x-if="d.note">
-                        <span class="px-3 py-1.5 rounded-full bg-slate-50 text-xs text-slate-600"
+                        <span style="padding: 6px 12px;
+                                     border-radius: 9999px;
+                                     background: #F8FAFC;
+                                     color: var(--color-text-muted);
+                                     font-size: 12px"
                               x-text="d.note"></span>
                     </template>
                 </div>
                 <template x-if="(d.ambiguous_fields || []).length > 0">
-                    <p class="text-xs text-amber-700 mt-2"
-                       style="display: flex;
+                    <p style="display: flex;
                               align-items: flex-start;
-                              gap: 4px">
+                              gap: 6px;
+                              margin: 8px 0 0;
+                              font-size: 12px;
+                              color: #B45309">
                         <span aria-hidden="true">⚠</span>
-                        <span>Quyidagi maydonlarni tekshiring:
-                            <span x-text="ambiguousLabels(d)"></span> — noaniq, to'g'rilang.</span>
-                        </p>
-                    </template>
-                </div>
-            </template>
-            <div class="mt-4 grid grid-cols-2 gap-3"
-                 style="position: sticky;
-                        bottom: 0;
-                        background: white;
-                        padding-top: 8px;
-                        padding-bottom: 8px">
-                <button type="button"
-                        class="btn-secondary"
-                        aria-label="Bekor qilish"
-                        @click="cancel()">Bekor qilish</button>
-                <button type="button"
-                        class="btn-primary"
-                        aria-label="Hammasini saqlash"
-                        :disabled="!canSave || saving"
-                        :style="(!canSave || saving) ? 'opacity: 0.4; cursor: not-allowed' : ''"
-                        @click="saveAll()">
-                    <span x-show="!saving"
-                          x-text="keptCount === 1 ? 'Saqlash' : keptCount + ' tranzaksiya saqlash'"></span>
-                    <span x-show="saving">Saqlanmoqda…</span>
-                </button>
+                        <span>Quyidagi maydonlarni tekshiring: <span x-text="ambiguousLabels(d)"></span> — noaniq, to'g'rilang.</span>
+                    </p>
+                </template>
             </div>
-            <p class="mt-2 text-xs text-amber-700 text-center"
-               x-show="unresolvedNote"
-               x-text="unresolvedNote"></p>
+        </template>
+        <div class="mt-4 grid grid-cols-2 gap-3"
+             style="position: sticky;
+                    bottom: 0;
+                    background: white;
+                    padding-top: 8px;
+                    padding-bottom: 8px">
+            <button type="button"
+                    class="btn-secondary"
+                    aria-label="Bekor qilish"
+                    @click="cancel()">Bekor qilish</button>
+            <button type="button"
+                    class="btn-primary"
+                    aria-label="Hammasini saqlash"
+                    :disabled="!canSave || saving"
+                    :style="(!canSave || saving) ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                    @click="saveAll()">
+                <span x-show="!saving"
+                      x-text="keptCount === 1 ? 'Saqlash' : keptCount + ' tranzaksiya saqlash'"></span>
+                <span x-show="saving">Saqlanmoqda…</span>
+            </button>
         </div>
-        <script>
+        <p class="mt-2 text-xs text-amber-700 text-center"
+           x-show="unresolvedNote"
+           x-text="unresolvedNote"></p>
+    </div>
+    <script>
     (function () {
         function register() {
             if (!window.Alpine) return setTimeout(register, 30);
@@ -151,9 +246,11 @@ and every UI binding reads from it directly.
                     cardStyle: function (i) {
                         var d = this.drafts[i];
                         var amb = (d.ambiguous_fields || []).length > 0 || (d.confidence || 1) < 0.7;
+                        // Sprint v0.6 §7.3: ambiguous cards use a soft dashed
+                        // amber border ('review' cue), not a loud solid one.
                         return amb
-                            ? "border: 2px solid #f59e0b; border-radius: 24px"
-                            : "border: 1px solid #e2e8f0; border-radius: 24px";
+                            ? "border: 1.5px dashed #FCD34D"
+                            : "border: 1px solid rgba(15, 23, 42, 0.08)";
                     },
                     get keptCount() {
                         var n = 0;
@@ -279,5 +376,5 @@ and every UI binding reads from it directly.
         }
         register();
     })();
-        </script>
-    {% endif %}
+    </script>
+{% endif %}
