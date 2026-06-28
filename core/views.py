@@ -29,6 +29,8 @@ from currencies.views import (
     SESSION_DISPLAY_MODE,
 )
 from debts.selectors import debt_status_summary
+from quotes.selectors import quote_of_the_day
+from quotes.services import SESSION_HIDE_TODAY
 from transactions.selectors import month_summary
 
 logger = logging.getLogger(__name__)
@@ -109,6 +111,8 @@ def home_content(request):
                     },
                 )
 
+    quote = None if request.session.get(SESSION_HIDE_TODAY) else quote_of_the_day(user)
+
     return render(
         request,
         "core/_balance_hero.html",
@@ -125,6 +129,7 @@ def home_content(request):
             "rates_stale_days": rates_stale_days,
             "rates_stale_date": rates_stale_date,
             "forced_raw_no_rates": forced_raw_no_rates,
+            "quote": quote,
         },
     )
 

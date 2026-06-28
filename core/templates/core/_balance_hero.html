@@ -4,6 +4,7 @@
     <header class="flex items-center justify-end mb-4">
         {% include 'currencies/_switcher.html' %}
     </header>
+    {% include 'quotes/_quote_card.html' with quote=quote %}
     {% if forced_raw_no_rates %}
         <div role="status"
              aria-live="polite"

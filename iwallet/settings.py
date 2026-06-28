@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "recurring",
     "reports",
     "notifications",
+    "quotes",
 ]
 
 # Dev-only apps (django-extensions ships in requirements-dev.txt, not prod).

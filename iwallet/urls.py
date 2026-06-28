@@ -17,4 +17,5 @@ urlpatterns = [
     path("app/", include("recurring.urls")),
     path("app/", include("reports.urls")),
     path("app/", include("voice.urls")),
+    path("app/", include("quotes.urls")),
 ]

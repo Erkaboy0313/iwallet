@@ -1,0 +1,43 @@
+{% comment %}
+Daily quote card — UX §3.1/§5.3. Top of Home. htmx fires the hide-today
+endpoint and removes the card via hx-swap=outerHTML. The "Boshqa
+ko'rsatilmasin" link below the × is the permanent dismiss path; it routes
+through /app/me/quote/dismiss/ which also clears the session flag.
+{% endcomment %}
+{% if quote %}
+    <div id="quote-card"
+         style="position: relative;
+                margin-bottom: 16px;
+                padding: 14px 36px 16px 16px;
+                background-color: #F1F5F9;
+                border: 1px solid rgba(15, 23, 42, 0.06);
+                border-radius: 14px;
+                transition: opacity 220ms cubic-bezier(0.2, 0.8, 0.2, 1)">
+        <p style="margin: 0;
+                  font-size: 14px;
+                  line-height: 1.55;
+                  font-style: italic;
+                  color: #475569">«{{ quote.text_uz }}»</p>
+        <p style="margin: 8px 0 0;
+                  font-size: 12px;
+                  color: #94A3B8">— {{ quote.author }}</p>
+        <button type="button"
+                aria-label="Kunlik iborani yashirish"
+                hx-post="{% url 'quotes:hide_today' %}"
+                hx-target="#quote-card"
+                hx-swap="outerHTML"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                style="position: absolute;
+                       top: 8px;
+                       right: 8px;
+                       width: 32px;
+                       height: 32px;
+                       padding: 0;
+                       background: transparent;
+                       border: 0;
+                       color: #94A3B8;
+                       cursor: pointer;
+                       font-size: 20px;
+                       line-height: 1">×</button>
+    </div>
+{% endif %}
