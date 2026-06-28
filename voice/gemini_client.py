@@ -1,11 +1,9 @@
-"""Gemini 2.0 Flash HTTP client (Story 2.3).
+"""Gemini Flash HTTP client (Story 2.3).
 
 Uses `httpx.AsyncClient` directly against the public generativelanguage API
 rather than the google-genai SDK so we can:
   - Inject an `httpx.MockTransport` from tests with zero monkey-patching.
   - Keep retry semantics explicit and unit-testable (no hidden SDK retries).
-  - Stay drop-in compatible with the gemini-2.0-flash endpoint URL Eric will
-    set on the droplet.
 
 Audio bytes are streamed as base64 inline_data. We never log the audio nor the
 raw request body — only counts and status codes (NFR9 audio-not-stored).
@@ -15,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import contextlib
 import json
 import logging
 from datetime import date as _date_type
@@ -27,8 +26,10 @@ from .prompts import build_voice_parse_prompt
 
 logger = logging.getLogger(__name__)
 
+# gemini-2.0-flash is retired as of mid-2025; gemini-2.5-flash is the current
+# stable Flash tier and supports audio inline_data with the same v1beta surface.
 GEMINI_BASE_URL = (
-    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent"
 )
 DEFAULT_TIMEOUT = httpx.Timeout(30.0, connect=10.0)
 MAX_ATTEMPTS = 3
@@ -102,10 +103,19 @@ class GeminiClient:
             except (httpx.HTTPError, ValueError) as exc:
                 last_error = exc
                 wait = self._backoff[min(attempt - 1, len(self._backoff) - 1)]
+                # Surface the HTTP status + truncated body when available; lets
+                # us tell "model retired" from "key invalid" from "rate-limited"
+                # without ever logging the audio payload.
+                status = getattr(getattr(exc, "response", None), "status_code", None)
+                body_snippet = ""
+                with contextlib.suppress(Exception):
+                    body_snippet = (exc.response.text or "")[:240] if status else ""
                 logger.warning(
-                    "voice.gemini: attempt=%d failed (%s) — sleep=%.2fs",
+                    "voice.gemini: attempt=%d failed (%s status=%s) body=%r sleep=%.2fs",
                     attempt,
                     type(exc).__name__,
+                    status,
+                    body_snippet,
                     wait,
                 )
                 if attempt < self._max_attempts:

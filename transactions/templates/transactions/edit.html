@@ -114,8 +114,9 @@
                           class="w-full rounded-2xl border border-slate-200 px-3 py-3">{{ form.note.value|default:tx.note }}</textarea>
             </div>
         </form>
-        <div class="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200 px-5 py-4"
-             style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 1rem)">
+        <div class="fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200 px-5 py-3"
+             style="bottom: 72px;
+                    z-index: 30">
             <button type="submit"
                     form="edit-form"
                     class="btn-primary w-full"

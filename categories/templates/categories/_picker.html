@@ -31,7 +31,7 @@ then closes the sheet. The parent template provides x-data with `sheet` and
                     aria-label="Bekor qilish">×</button>
         </header>
         {% if categories %}
-            <div class="grid grid-cols-4 gap-3 max-h-[55vh] overflow-y-auto pb-2"
+            <div class="grid grid-cols-3 gap-3 max-h-[55vh] overflow-y-auto pb-2"
                  role="listbox"
                  aria-label="Kategoriyalar ro'yxati">
                 {% for cat in categories %}
@@ -41,11 +41,16 @@ then closes the sheet. The parent template provides x-data with `sheet` and
                             data-emoji="{{ cat.emoji }}"
                             data-target="{{ target_field }}"
                             @click="document.getElementById($el.dataset.target).value = $el.dataset.slug; pickerLabel = $el.dataset.name; pickerEmoji = $el.dataset.emoji; picker = null"
-                            class="flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white p-2 hover:bg-emerald-50 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                            style="min-height: 88px"
+                            class="flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 py-3 hover:bg-emerald-50 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             role="option"
                             aria-label="{{ cat.name }}">
                         <span class="text-2xl" aria-hidden="true">{{ cat.emoji }}</span>
-                        <span class="text-xs text-slate-700 truncate w-full text-center">{{ cat.name }}</span>
+                        <span style="font-size: 12px;
+                                     line-height: 1.2;
+                                     word-break: break-word;
+                                     hyphens: auto"
+                              class="text-slate-700 text-center">{{ cat.name }}</span>
                     </button>
                 {% endfor %}
             </div>
