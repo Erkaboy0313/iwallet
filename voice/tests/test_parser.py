@@ -307,14 +307,19 @@ def test_mixed_amount_units_in_one_phrase_all_normalize() -> None:
 
 
 @pytest.mark.django_db
-def test_more_than_five_drafts_capped_at_five() -> None:
-    """Runaway model output is capped at MAX_DRAFTS_PER_UTTERANCE = 5."""
+def test_more_than_max_drafts_capped() -> None:
+    """Runaway model output is capped at MAX_DRAFTS_PER_UTTERANCE."""
+    from voice.parser import MAX_DRAFTS_PER_UTTERANCE
+
     user = UserFactory()
-    payload = _envelope(*[_raw(amount=str(1000 * (i + 1))) for i in range(7)])
+    payload = _envelope(
+        *[_raw(amount=str(1000 * (i + 1))) for i in range(MAX_DRAFTS_PER_UTTERANCE + 2)]
+    )
     result = normalize(payload, user)
-    assert len(result.transactions) == 5
+    assert len(result.transactions) == MAX_DRAFTS_PER_UTTERANCE
     assert result.transactions[0].amount == Decimal("1000.00")
-    assert result.transactions[-1].amount == Decimal("5000.00")
+    expected_last = Decimal(str(1000 * MAX_DRAFTS_PER_UTTERANCE)) + Decimal("0")
+    assert result.transactions[-1].amount == expected_last.quantize(Decimal("0.01"))
 
 
 @pytest.mark.django_db

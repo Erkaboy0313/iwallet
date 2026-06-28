@@ -99,8 +99,11 @@ async def test_pipeline_returns_three_drafts_when_gemini_returns_three() -> None
 
 @pytest.mark.asyncio
 @pytest.mark.django_db
-async def test_pipeline_caps_runaway_response_at_five() -> None:
+async def test_pipeline_caps_runaway_response_at_max() -> None:
+    from voice.parser import MAX_DRAFTS_PER_UTTERANCE
+
     user = await User.objects.acreate(telegram_id=602, first_name="X")
+    overflow = MAX_DRAFTS_PER_UTTERANCE + 3
     payload = {
         "transactions": [
             {
@@ -114,7 +117,7 @@ async def test_pipeline_caps_runaway_response_at_five() -> None:
                 "confidence": 0.9,
                 "ambiguous_fields": [],
             }
-            for i in range(7)
+            for i in range(overflow)
         ],
         "recurring_intent": None,
     }
@@ -123,9 +126,10 @@ async def test_pipeline_caps_runaway_response_at_five() -> None:
         result = await transcribe_and_parse_async(b"\x00" * 64, user, client=client)
     finally:
         await client.aclose()
-    assert len(result.transactions) == 5
+    assert len(result.transactions) == MAX_DRAFTS_PER_UTTERANCE
     assert result.transactions[0].amount == Decimal("1000.00")
-    assert result.transactions[-1].amount == Decimal("5000.00")
+    expected_last = Decimal(str(1000 * MAX_DRAFTS_PER_UTTERANCE)).quantize(Decimal("0.01"))
+    assert result.transactions[-1].amount == expected_last
 
 
 @pytest.mark.asyncio
@@ -220,8 +224,8 @@ async def test_pipeline_mixed_clear_and_ambiguous_drafts() -> None:
 
 def test_prompt_contains_multi_transaction_instruction() -> None:
     prompt = build_voice_parse_prompt(default_currency="UZS", today_iso="2026-06-28")
-    assert "1, 2, 3, 4, or up to 5 separate" in prompt or "1..5" in prompt
-    assert "Cap your response at 5 transactions" in prompt
+    assert "between 1 and 10 separate" in prompt
+    assert "Cap your response at 10 transactions" in prompt
 
 
 def test_prompt_contains_recurring_intent_instruction() -> None:

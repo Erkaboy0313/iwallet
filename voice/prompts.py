@@ -52,7 +52,7 @@ Pick the slug from the list that best fits the semantic meaning of the
 spoken item; do NOT echo back English defaults like "food" or "transport"
 unless they appear in the list above.
 
-IMPORTANT — one voice note may describe 1, 2, 3, 4, or up to 5 separate
+IMPORTANT — one voice note may describe between 1 and 10 separate
 transactions. Examples:
 - "Bugun 15k taxi, 30k qahva ichdim, 200k oylik tushdi" => 3 transactions
   (expense+expense+income).
@@ -61,8 +61,8 @@ transactions. Examples:
 - "15 ming taxida yurdim" => 1 transaction.
 Always return the `transactions` array with one entry per separate event.
 Never collapse multiple events into one, and never split one event into many.
-Cap your response at 5 transactions — if the speaker rattles off more, keep
-the first 5.
+Cap your response at 10 transactions — if the speaker rattles off more,
+keep the first 10.
 
 NEVER return the same transaction multiple times. Each entry in the
 `transactions` array MUST correspond to a distinct event the speaker

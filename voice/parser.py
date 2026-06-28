@@ -28,7 +28,8 @@ DEBT_TYPES = {"debt_lent", "debt_borrowed"}
 CATEGORY_TYPES = {"expense", "income"}
 FALLBACK_CATEGORY_SLUG = "boshqa"
 LOW_CONFIDENCE_THRESHOLD = 0.7
-MAX_DRAFTS_PER_UTTERANCE = 5  # Story 6.1 AC — cap a single utterance at 5 drafts.
+# Cap single-utterance drafts. Bumped from 5 to 10 — real voice notes often list 6-8.
+MAX_DRAFTS_PER_UTTERANCE = 10
 VALID_SCHEDULE_KINDS = {"monthly", "weekly", "every_n_days"}
 
 # "15k", "15 ming", "yarim mln" — let Gemini do the heavy lifting, but cope with

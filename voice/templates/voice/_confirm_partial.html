@@ -221,11 +221,22 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         : "border: 1px solid #e2e8f0; border-radius: 24px";
                 },
                 touch(idx, field) {
-                    if (!this.touched[idx]) this.touched[idx] = {};
-                    this.touched[idx][field] = true;
+                    // Replace the entry instead of mutating in place so Alpine's
+                    // reactive proxy fires for downstream getters (canSave).
+                    var next = (this.touched[idx] || {});
+                    next[field] = true;
+                    this.touched = this.touched.map(function (t, i) {
+                        return i === idx ? next : t;
+                    });
                 },
                 remove(idx) {
-                    this.kept[idx] = false;
+                    // Same array-replacement pattern — `kept[idx] = false` was
+                    // hiding the card via x-show but NOT updating keptCount /
+                    // headerLabel / summaryLabel / saveLabel, so the count stayed
+                    // at the original total after deletions.
+                    this.kept = this.kept.map(function (v, i) {
+                        return i === idx ? false : v;
+                    });
                 },
                 cancel() {
                     var host = document.getElementById("voice-confirm-area");
