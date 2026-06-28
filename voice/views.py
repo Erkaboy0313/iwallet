@@ -3,6 +3,11 @@
 `transcribe` accepts an audio blob (multipart) and returns the confirm partial.
 `save` persists the user-confirmed draft via transactions.services.create_transaction.
 ORM access from inside async views is wrapped in `sync_to_async`.
+
+Story 6.2 adds `save_multi` which atomically creates N Transactions from a
+single batch payload. The view never touches the ORM directly — it composes
+existing services so per-app invariants stay owned by the services they
+belong to.
 """
 
 from __future__ import annotations
@@ -13,6 +18,7 @@ from datetime import date as _date_type
 from decimal import Decimal, InvalidOperation
 
 from asgiref.sync import sync_to_async
+from django.db import transaction as db_transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
@@ -153,6 +159,131 @@ def _coerce_save_payload(request: HttpRequest) -> dict:
     else:
         data = request.POST.dict()
 
+    type_ = (data.get("type") or "").strip()
+    if type_ not in VALID_TYPES:
+        raise _SaveValidationError("Tranzaksiya turi noto'g'ri")
+
+    currency = (data.get("currency") or "UZS").strip().upper()
+    if currency not in VALID_CURRENCIES:
+        raise _SaveValidationError("Valyuta noto'g'ri")
+
+    try:
+        amount = Decimal(str(data.get("amount") or "0"))
+    except (InvalidOperation, ValueError) as exc:
+        raise _SaveValidationError("Summa noto'g'ri") from exc
+    if amount <= 0:
+        raise _SaveValidationError("Summa musbat bo'lishi kerak")
+
+    date_raw = (data.get("date") or "").strip()
+    try:
+        tx_date = _date_type.fromisoformat(date_raw) if date_raw else _date_type.today()
+    except ValueError as exc:
+        raise _SaveValidationError("Sana noto'g'ri") from exc
+
+    counterparty = (data.get("counterparty") or "").strip()
+    if type_ in {"debt_lent", "debt_borrowed"} and not counterparty:
+        raise _SaveValidationError("Kim bilan ekanini yozing")
+
+    return {
+        "type": type_,
+        "amount": amount,
+        "currency": currency,
+        "date": tx_date,
+        "category_slug": (data.get("category_slug") or "").strip(),
+        "counterparty": counterparty,
+        "note": (data.get("note") or "").strip(),
+    }
+
+
+# ---------- Story 6.2 — multi-draft batch save ----------
+
+
+MAX_BATCH_DRAFTS = 5
+
+
+@require_POST
+def save_multi(request: HttpRequest) -> HttpResponse:
+    """Persist N voice-confirmed Transactions atomically.
+
+    The whole batch is one `db_transaction.atomic` block so a single failed
+    insert rolls back the entire batch — matching FR25 ("all-or-nothing"
+    multi-tx save). Story 6.3 extends this to also create an optional
+    RecurringSchedule when the payload's `recurring` slot is populated.
+    """
+    try:
+        payload = _coerce_multi_save_payload(request)
+    except _SaveValidationError as exc:
+        return _error_response(str(exc))
+
+    drafts = payload["drafts"]
+
+    try:
+        with db_transaction.atomic():
+            for draft in drafts:
+                category = _resolve_category_for(
+                    request.user,
+                    type_=draft["type"],
+                    slug=draft["category_slug"],
+                )
+                create_transaction(
+                    user=request.user,
+                    type=draft["type"],
+                    amount=draft["amount"],
+                    currency=draft["currency"],
+                    date=draft["date"],
+                    category=category,
+                    counterparty=draft["counterparty"],
+                    note=draft["note"],
+                )
+    except InvalidAmountError as exc:
+        return _error_response(str(exc))
+
+    count = len(drafts)
+    message = "Tranzaksiya saqlandi" if count == 1 else f"{count} ta tranzaksiya saqlandi"
+
+    response = HttpResponse(status=200)
+    response.headers["HX-Redirect"] = reverse("core:home")
+    response.headers["HX-Trigger"] = json.dumps({"toast": {"type": "success", "message": message}})
+    return response
+
+
+def _error_response(message: str) -> HttpResponse:
+    response = HttpResponse(status=422)
+    response.headers["HX-Trigger"] = json.dumps({"toast": {"type": "error", "message": message}})
+    return response
+
+
+def _resolve_category_for(user, *, type_: str, slug: str):
+    if type_ not in {"income", "expense"} or not slug:
+        return None
+    return match_slug(user, slug=slug, type=type_)
+
+
+def _coerce_multi_save_payload(request: HttpRequest) -> dict:
+    raw = request.POST.get("payload")
+    if not raw:
+        raise _SaveValidationError("Ma'lumot noto'g'ri")
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise _SaveValidationError("Ma'lumot noto'g'ri") from exc
+
+    raw_drafts = data.get("drafts")
+    if not isinstance(raw_drafts, list) or not raw_drafts:
+        raise _SaveValidationError("Saqlash uchun tranzaksiya yo'q")
+    if len(raw_drafts) > MAX_BATCH_DRAFTS:
+        raise _SaveValidationError("Bir vaqtda 5 tadan ortiq saqlab bo'lmaydi")
+
+    drafts: list[dict] = []
+    for item in raw_drafts:
+        if not isinstance(item, dict):
+            raise _SaveValidationError("Ma'lumot noto'g'ri")
+        drafts.append(_coerce_one_draft(item))
+
+    return {"drafts": drafts}
+
+
+def _coerce_one_draft(data: dict) -> dict:
     type_ = (data.get("type") or "").strip()
     if type_ not in VALID_TYPES:
         raise _SaveValidationError("Tranzaksiya turi noto'g'ri")

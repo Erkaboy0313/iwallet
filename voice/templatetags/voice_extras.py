@@ -1,8 +1,11 @@
-"""Template helpers for the voice confirm screen (Story 2.4).
+"""Template helpers for the voice confirm screen (Story 2.4 + 6.2).
 
 Serializes a `VoiceDraft` into a JSON object literal suitable for embedding
 inside an Alpine `x-data` attribute, with category emoji/name attached so the
 client doesn't need a second round-trip just to render the pill.
+
+Story 6.2 adds `drafts_payload_json` so the parent Alpine component can
+hydrate from the full list.
 """
 
 from __future__ import annotations
@@ -39,26 +42,10 @@ def _category_display(user, draft: VoiceDraft) -> tuple[str, str]:
     return cat.emoji, cat.name
 
 
-@register.simple_tag(takes_context=True)
-def draft_payload_json(context, draft: VoiceDraft):  # pragma: no cover - thin glue
-    return _serialize_draft(context.get("request"), draft)
-
-
-@register.filter(name="draft_payload_json")
-def draft_payload_json_filter(draft: VoiceDraft, user=None):
-    return _serialize_draft(_RequestStub(user), draft)
-
-
-class _RequestStub:
-    def __init__(self, user) -> None:
-        self.user = user
-
-
-def _serialize_draft(request, draft: VoiceDraft) -> str:
+def _payload_dict(request, draft: VoiceDraft) -> dict:
     user = getattr(request, "user", None) if request is not None else None
     emoji, category_name = _category_display(user, draft)
-
-    payload = {
+    return {
         "type": draft.type,
         "amount": _decimal_str(draft.amount),
         "currency": draft.currency,
@@ -72,6 +59,34 @@ def _serialize_draft(request, draft: VoiceDraft) -> str:
         "ambiguous_fields": list(draft.ambiguous_fields or []),
         "type_label": TYPE_LABELS.get(draft.type, draft.type),
     }
+
+
+@register.simple_tag(takes_context=True)
+def draft_payload_json(context, draft: VoiceDraft):  # pragma: no cover - thin glue
+    return _serialize_draft(context.get("request"), draft)
+
+
+@register.simple_tag(takes_context=True)
+def drafts_payload_json(context, drafts):
+    """JS array literal of all drafts — Story 6.2 (multi-card x-data init)."""
+    request = context.get("request")
+    items = [_payload_dict(request, d) for d in (drafts or [])]
+    encoded = json.dumps(items, ensure_ascii=True).replace('"', "&quot;")
+    return mark_safe(encoded)
+
+
+@register.filter(name="draft_payload_json")
+def draft_payload_json_filter(draft: VoiceDraft, user=None):
+    return _serialize_draft(_RequestStub(user), draft)
+
+
+class _RequestStub:
+    def __init__(self, user) -> None:
+        self.user = user
+
+
+def _serialize_draft(request, draft: VoiceDraft) -> str:
+    payload = _payload_dict(request, draft)
     # Render as an inline JS object literal inside an x-data="..." attribute.
     # ensure_ascii=True keeps non-ASCII chars (Uzbek apostrophes, emoji) escaped
     # so we never collide with the surrounding double quotes; we then turn the
