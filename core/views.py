@@ -74,17 +74,20 @@ def home_content(request):
     aggregated = None
     rates_stale_days = None
     rates_stale_date = None
+    forced_raw_no_rates = False
     if display_mode == DISPLAY_MODE_CONVERTED:
         aggregated = aggregated_month_summary(user, display_currency)
         rates_stale_days = current_rates_stale_days()
         if aggregated.rate_date is not None:
             rates_stale_date = aggregated.rate_date
         if rates_stale_days < 0 or not aggregated.is_fully_supported:
-            # No rates bootstrapped or partial: silently fall back to raw display
-            # — better than crashing. The switcher still shows "converted" so the
-            # user can see we tried; the banner will still warn if stale_days>1.
+            # No rates bootstrapped or partial. Surface the reason to the
+            # template instead of silently dropping into raw mode so the user
+            # understands why their USD/RUB pick is showing UZS numbers — the
+            # daily `manage.py fetch_rates` cron lifts this state on its own.
             display_mode = DISPLAY_MODE_RAW
             aggregated = None
+            forced_raw_no_rates = True
 
     other_currency_summaries = []
     if display_mode == DISPLAY_MODE_RAW:
@@ -115,6 +118,7 @@ def home_content(request):
             "other_currency_summaries": other_currency_summaries,
             "rates_stale_days": rates_stale_days,
             "rates_stale_date": rates_stale_date,
+            "forced_raw_no_rates": forced_raw_no_rates,
         },
     )
 

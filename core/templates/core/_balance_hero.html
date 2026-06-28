@@ -8,6 +8,22 @@
         </div>
         {% include 'currencies/_switcher.html' %}
     </header>
+    {% if forced_raw_no_rates %}
+        <div role="status"
+             aria-live="polite"
+             style="margin-bottom: 16px;
+                    padding: 12px 14px;
+                    border-radius: 14px;
+                    border: 1px solid #fde68a;
+                    background-color: #fffbeb;
+                    color: #92400e;
+                    font-size: 13px;
+                    line-height: 1.45">
+            <strong>Kurslar hali yuklanmagan.</strong>
+            Aylantirish o'rniga mahalliy valyutalarda ko'rsatilyapti.
+            CBU.uz kurslari kelishi bilan {{ display_currency }} bo'yicha balans avtomatik ko'rinadi.
+        </div>
+    {% endif %}
     {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
         <div class="card-default">
             <p class="text-xs uppercase tracking-wider text-slate-500">Sof balans</p>
