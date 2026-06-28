@@ -1,12 +1,10 @@
-{# Story 2.1 — VoiceButton. States: idle / recording / processing / error.
-
+{% comment %}
+Story 2.1 — VoiceButton. States: idle / recording / processing / error.
 Hosts an Alpine component that owns the MediaRecorder lifecycle, swaps button
 appearance per state, and on stop uploads the audio to /app/voice/transcribe/,
-which htmx swaps into #voice-confirm-area.
-
-Inline-style critical layout (size, pulse, shake) because cached Tailwind build
-may not include arbitrary keyframes / sizes.
-#}
+which htmx swaps into #voice-confirm-area. Inline-style critical layout (size,
+pulse, shake) because cached Tailwind build may not include arbitrary keyframes.
+{% endcomment %}
 {% load static %}
 <div id="voice-confirm-area"></div>
 <div x-data="voiceButton('{% url 'voice:transcribe' %}')"
@@ -93,18 +91,35 @@ may not include arbitrary keyframes / sizes.
                 errorTooltip: "",
                 recorder: null,
                 init() {
-                    if (!window.VoiceRecorder || !window.VoiceRecorderSupport.isSupported()) {
-                        this.state = "error";
-                        this.hint = "Brauzer mikrofonni qo'llab-quvvatlamaydi";
-                        this.errorTooltip = "Qo'lda yozish tugmasidan foydalaning.";
-                        return;
+                    // voice-recorder.js is loaded with `defer` but when this partial is
+                    // swapped in by htmx the deferred script can still be loading when
+                    // Alpine fires init(). Don't fail fast — wait for the script to
+                    // appear, then probe support. If support is genuinely missing we
+                    // flip to error; otherwise we build the recorder lazily.
+                    var self = this;
+                    var tries = 0;
+                    function ready() {
+                        if (!window.VoiceRecorder || !window.VoiceRecorderSupport) {
+                            if (tries++ < 40) return setTimeout(ready, 50);
+                            self.state = "error";
+                            self.hint = "Brauzer mikrofonni qo'llab-quvvatlamaydi";
+                            self.errorTooltip = "Qo'lda yozish tugmasidan foydalaning.";
+                            return;
+                        }
+                        if (!window.VoiceRecorderSupport.isSupported()) {
+                            self.state = "error";
+                            self.hint = "Brauzer mikrofonni qo'llab-quvvatlamaydi";
+                            self.errorTooltip = "Qo'lda yozish tugmasidan foydalaning.";
+                            return;
+                        }
+                        self.recorder = new window.VoiceRecorder({
+                            onStateChange: function (s) {
+                                if (self.state === "error" && s !== "idle") return;
+                                self.state = s;
+                            },
+                        });
                     }
-                    this.recorder = new window.VoiceRecorder({
-                        onStateChange: (s) => {
-                            if (this.state === "error" && s !== "idle") return;
-                            this.state = s;
-                        },
-                    });
+                    ready();
                 },
                 async toggle() {
                     if (!this.recorder) return;

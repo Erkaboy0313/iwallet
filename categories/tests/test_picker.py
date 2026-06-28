@@ -150,4 +150,7 @@ def test_picker_target_field_threaded_into_template() -> None:
         headers={"X-Telegram-InitData": _init_data()},
     )
     body = response.content.decode("utf-8")
-    assert "getElementById('id_custom_target')" in body
+    # Target is read via data-attribute at click time (apostrophe-safe) rather
+    # than spliced into the inline Alpine expression.
+    assert 'data-target="id_custom_target"' in body
+    assert "getElementById($el.dataset.target)" in body

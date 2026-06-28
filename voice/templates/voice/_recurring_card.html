@@ -1,8 +1,10 @@
-{# Story 6.3 — recurring intent prompt card. Sits above the transaction stack.
-   Two actions: "Ha — har oy [date]" sets `createRecurring=true` so the batch save also creates
-   a RecurringSchedule via /app/voice/save-multi/. "Yo'q — faqat bu safar" leaves it false so
-   only the Transaction is created. If the parser couldn't infer a cadence the "Ha" button
-   becomes a deep-link to the manual create form. #}
+{% comment %}
+Story 6.3 — recurring intent prompt card. Sits above the transaction stack.
+Two actions: "Ha — har oy [date]" sets createRecurring=true so the batch save
+also creates a RecurringSchedule via /app/voice/save-multi/. "Yoq — faqat bu
+safar" leaves it false so only the Transaction is created. If the parser
+couldnt infer a cadence the "Ha" button becomes a deep-link to manual create.
+{% endcomment %}
 {% load voice_extras %}
 <div class="card-default mt-4"
      style="border: 2px solid #f59e0b;

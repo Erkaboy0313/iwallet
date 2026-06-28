@@ -1,8 +1,9 @@
-{# Category picker — bottom sheet, 4-column grid of chips (UX-DR16, Story 3.2).
-   Tapping a chip writes its slug + label into the parent form's category input
-   then closes the sheet. The parent template provides x-data with `sheet` and
-   `pickerLabel`/`pickerEmoji` slots so the trigger chip can show the choice.
-#}
+{% comment %}
+Category picker — bottom sheet, 4-column grid of chips (UX-DR16, Story 3.2).
+Tapping a chip writes its slug + label into the parent form's category input
+then closes the sheet. The parent template provides x-data with `sheet` and
+`pickerLabel`/`pickerEmoji` slots so the trigger chip can show the choice.
+{% endcomment %}
 <div x-data="{ openPicker: true }"
      x-show="openPicker"
      x-transition:enter="transition ease-out duration-300"
@@ -38,7 +39,8 @@
                             data-slug="{{ cat.slug }}"
                             data-name="{{ cat.name }}"
                             data-emoji="{{ cat.emoji }}"
-                            @click="document.getElementById('{{ target_field }}').value = '{{ cat.slug }}'; pickerLabel = '{{ cat.name }}'; pickerEmoji = '{{ cat.emoji }}'; picker = null"
+                            data-target="{{ target_field }}"
+                            @click="document.getElementById($el.dataset.target).value = $el.dataset.slug; pickerLabel = $el.dataset.name; pickerEmoji = $el.dataset.emoji; picker = null"
                             class="flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white p-2 hover:bg-emerald-50 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             role="option"
                             aria-label="{{ cat.name }}">

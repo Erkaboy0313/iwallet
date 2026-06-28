@@ -1,9 +1,11 @@
-{# Story 2.4 + 6.2 + 6.3 — confirm partial. Swapped into #voice-confirm-area on transcribe
-   success. Each draft renders as its own editable card; the parent `voiceConfirmList`
-   tracks the kept indexes and orchestrates one atomic batch save against
-   /app/voice/save-multi/. If the parser surfaced a `recurring_intent`, an amber prompt card
-   appears above the stack with two actions: "Ha" toggles `createRecurring=true` so the
-   batch save also creates a RecurringSchedule, "Yo'q" keeps just the one-off Transactions. #}
+{% comment %}
+Story 2.4 + 6.2 + 6.3 — confirm partial. Swapped into #voice-confirm-area on
+transcribe success. Each draft renders as its own editable card; the parent
+voiceConfirmList tracks the kept indexes and orchestrates one atomic batch
+save against /app/voice/save-multi/. If the parser surfaced a recurring_intent
+an amber prompt card appears above the stack with two actions: "Ha" toggles
+createRecurring=true so the batch save also creates a RecurringSchedule.
+{% endcomment %}
 {% load voice_extras %}
 {% if drafts %}
     <div x-data="voiceConfirmList({{ drafts|length }}, {% drafts_payload_json drafts %}, {% recurring_payload_json recurring %}, '{% url 'voice:save_multi' %}')"
