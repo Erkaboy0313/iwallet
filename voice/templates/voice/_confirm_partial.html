@@ -274,6 +274,23 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                     if (this.$root && Array.isArray(this.$root.drafts)) {
                         this.$root.drafts[idx] = this.draft;
                     }
+                    // Debug breadcrumb so we can see what each card was hydrated
+                    // with vs what the server's VOICE-RX log printed. If these
+                    // disagree, the bug is in the template tag / x-data parsing.
+                    if (window._iwLog) {
+                        try {
+                            window._iwLog(
+                                "VOICE-CARD",
+                                "idx=" + idx +
+                                " type=" + this.draft.type +
+                                " amt=" + this.draft.amount +
+                                " ccy=" + this.draft.currency +
+                                " cat=" + (this.draft.category_slug || "-") +
+                                " cp=" + (this.draft.counterparty || "-") +
+                                " note=" + String(this.draft.note || "-").slice(0, 40),
+                            );
+                        } catch (e) { /* noop */ }
+                    }
                 },
                 get display() {
                     return this._display;
