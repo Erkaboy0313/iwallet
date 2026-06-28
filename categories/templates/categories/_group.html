@@ -1,0 +1,55 @@
+{# One group of categories — used twice from _list_partial.html. #}
+{% if rows %}
+    <ul class="space-y-2">
+        {% for cat in rows %}
+            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3 flex items-center justify-between gap-3 {% if cat.is_hidden_for_user %}opacity-60{% endif %}">
+                <span class="flex items-center gap-3 min-w-0">
+                    <span aria-hidden="true" class="text-2xl">{{ cat.emoji }}</span>
+                    <span class="min-w-0">
+                        <span class="block text-sm font-medium text-slate-900 truncate">{{ cat.name }}</span>
+                        <span class="block text-xs text-slate-500">
+                            {% if cat.is_preset %}
+                                Preset
+                            {% else %}
+                                O'zingiznikiy
+                            {% endif %}
+                        </span>
+                    </span>
+                </span>
+                <span class="flex items-center gap-2 flex-shrink-0">
+                    {% if cat.is_preset %}
+                        <button type="button"
+                                hx-post="{% url 'categories:toggle_hide' cat.id %}"
+                                hx-target="#category-list"
+                                hx-swap="outerHTML"
+                                class="text-xs font-medium px-3 py-1.5 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200"
+                                aria-label="Preset kategoriyani yashirish yoki ko'rsatish">
+                            {% if cat.is_hidden_for_user %}
+                                Ko'rsatish
+                            {% else %}
+                                Yashirish
+                            {% endif %}
+                        </button>
+                    {% else %}
+                        <button type="button"
+                                hx-get="{% url 'categories:edit' cat.id %}"
+                                hx-target="#category-sheet"
+                                hx-swap="innerHTML"
+                                @click="sheet = 'form'"
+                                class="text-xs font-medium px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                                aria-label="Tahrirlash">Tahrirlash</button>
+                        <button type="button"
+                                hx-get="{% url 'categories:delete' cat.id %}"
+                                hx-target="#category-sheet"
+                                hx-swap="innerHTML"
+                                @click="sheet = 'confirm'"
+                                class="text-xs font-medium px-3 py-1.5 rounded-full bg-red-50 text-red-700 hover:bg-red-100"
+                                aria-label="O'chirish">O'chirish</button>
+                    {% endif %}
+                </span>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p class="text-sm text-slate-500 py-3">Hozircha kategoriya yo'q.</p>
+{% endif %}
