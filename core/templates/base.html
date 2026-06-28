@@ -17,7 +17,7 @@
     <body x-data="{ toast: null }"
           @htmx:after-request.window="(function(){ var trig = $event.detail.xhr && $event.detail.xhr.getResponseHeader && $event.detail.xhr.getResponseHeader('HX-Trigger'); if (!trig) return; try { var t = JSON.parse(trig); if (t.toast) { toast = t.toast; setTimeout(function(){ toast = null; }, 3000); } } catch (e) { window._iwLog && window._iwLog('TRIG-ERR', String(e)); } })()">
         {% include 'core/_toast.html' %}
-        <main id="app-main">
+        <main id="app-main" style="padding-bottom: 96px;">
             {% block content %}{% endblock %}
         </main>
         {% block bottom_nav %}
@@ -94,7 +94,9 @@
             });
             document.addEventListener("htmx:responseError", function (e) {
                 var x = e.detail.xhr;
-                log("HX-ERR", x.status + " :: " + (x.responseText || "").slice(0, 200));
+                // 422 is form validation (expected — server re-renders with field errors), not a real bug.
+                var isRealErr = x.status >= 500 || x.status === 401 || x.status === 403 || x.status === 404;
+                log(isRealErr ? "HX-ERR" : "HX-422", x.status + " :: " + (x.responseText || "").slice(0, 200));
             });
             document.addEventListener("htmx:sendError", function () {
                 log("HX-NET-ERR", "tarmoq xatosi");
