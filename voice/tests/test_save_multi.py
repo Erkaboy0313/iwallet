@@ -83,11 +83,11 @@ def test_partial_renders_two_cards_when_two_drafts() -> None:
     user = UserFactory()
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
     html = _render_partial(user, [_draft(), _draft(note="non")])
-    # Each card renders its own x-data="voiceDraftCard(...)" component.
-    assert html.count("voiceDraftCard(") >= 2
-    # Header summary shows "X ta tranzaksiya" pluralization (rendered by JS).
-    assert "headerLabel" in html
-    # Sticky save button labels "tranzaksiya saqlash" via JS.
+    # Single voiceConfirm component; x-for iterates `drafts` to render cards.
+    assert 'x-for="(d, i) in drafts"' in html
+    # Header summary "X ta tranzaksiya" shown when drafts.length > 1.
+    assert "ta tranzaksiya" in html
+    # Sticky save button label rendered via inline JS expression.
     assert "tranzaksiya saqlash" in html
 
 
@@ -105,7 +105,10 @@ def test_partial_each_card_has_remove_button() -> None:
     user = UserFactory()
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
     html = _render_partial(user, [_draft(), _draft()])
-    assert html.count("O'chirish") >= 2
+    # x-for renders one button per draft at runtime; the partial declares it
+    # once and Alpine duplicates per array entry.
+    assert "remove(i)" in html
+    assert "O&#x27;chirish" in html or "O'chirish" in html
 
 
 # ---------- Endpoint — atomic batch save ----------

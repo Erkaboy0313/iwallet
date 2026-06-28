@@ -57,7 +57,8 @@ def test_partial_renders_single_draft_card() -> None:
     user = UserFactory()
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
     html = _render_partial(user, [_draft()])
-    assert "voiceDraftCard" in html
+    # Single voiceConfirm component handles the entire screen now.
+    assert "voiceConfirm(" in html
     assert "Saqlash" in html
     assert "Bekor qilish" in html
     # Currency pill present
