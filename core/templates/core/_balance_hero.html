@@ -159,18 +159,9 @@
             {% endif %}
         </p>
     {% endif %}
-    {# Voice CTA — full-width gradient. UX §3.5. The "Qo'lda yozish" fallback
-       stays through Phase 1 because the elevated nav + button arrives in
-       Phase 2; once that ships, the secondary link is removed. #}
+    {# Voice CTA — full-width gradient. UX §3.5. Manual add is reachable
+       via the elevated centre nav + button (Phase 2). #}
     <div class="mt-6">
         {% include 'voice/_voice_button.html' %}
-        <div class="mt-3 text-center">
-            <a href="{% url 'transactions:add' %}"
-               style="font-size: 13px;
-                      color: #64748B;
-                      text-decoration: none;
-                      border-bottom: 1px dashed #CBD5E1"
-               aria-label="Qo'lda tranzaksiya qo'shish">Yoki qo'lda yozing</a>
-        </div>
     </div>
 </section>

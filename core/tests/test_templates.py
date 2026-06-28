@@ -33,10 +33,10 @@ def test_base_template_lang_uzbek() -> None:
 
 def test_nav_has_five_tabs_with_aria_labels() -> None:
     nav = (BASE_DIR / "core" / "templates" / "core" / "_nav.html").read_text(encoding="utf-8")
-    # Five tab aria-labels (Uz)
-    for label in ["Uy", "Qo'shish", "Tarix", "Qarz", "Hisobot"]:
+    # Five tabs (Sprint v0.5 order: Uy · Tarix · [+ Qo'shish] · Qarzlar · Hisobot).
+    # Centre + uses the longer aria for screen-reader clarity.
+    for label in ["Uy", "Tarix", "Yangi tranzaksiya qo'shish", "Qarzlar", "Hisobot"]:
         assert f'aria-label="{label}"' in nav, f"Missing nav tab: {label}"
-    # Safe-area inset present
     assert "safe-area-inset-bottom" in nav
 
 
