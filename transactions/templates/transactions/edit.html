@@ -1,38 +1,82 @@
 {% extends 'base.html' %}
-{% block title %}Tranzaksiyani tahrirlash — IWALLET{% endblock %}
+{% block title %}Tahrirlash — IWALLET{% endblock %}
 {% block content %}
-    {# djlint reformats x-data containing template tags onto multiple lines and #}
-    {# corrupts the JSON; keep Alpine init simple and seed picker labels via JS. #}
-    <section class="px-5 pt-5 pb-32"
+    <section style="padding: 16px 20px 96px"
              data-initial-cat-name="{% if tx.category %}{{ tx.category.name }}{% endif %}"
              data-initial-cat-emoji="{% if tx.category %}{{ tx.category.emoji }}{% endif %}"
-             x-data="{ type: '{{ form.type.value|default:tx.type }}', amount: '{{ form.amount.value|default:tx.amount }}', picker: null, pickerLabel: '', pickerEmoji: '' }"
+             x-data="{ type: '{{ form.type.value|default:tx.type }}', amount: '{{ form.amount.value|default:tx.amount }}', picker: null, pickerLabel: '', pickerEmoji: '', confirmDelete: false }"
              x-init="pickerLabel = $el.dataset.initialCatName || ''; pickerEmoji = $el.dataset.initialCatEmoji || ''">
-        <header class="flex items-center gap-3 mb-5">
+        <header style="display: flex;
+                       align-items: center;
+                       gap: 8px;
+                       min-height: 44px;
+                       margin-bottom: 20px">
             <a href="{% url 'transactions:history' %}"
-               class="text-slate-500 hover:text-slate-900 px-2 py-1"
-               aria-label="Bekor qilish va tarixga qaytish">←</a>
-            <h1 class="text-xl font-semibold text-slate-900">Tranzaksiyani tahrirlash</h1>
+               aria-label="Bekor qilish va tarixga qaytish"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="22"
+                     height="22"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 style="margin: 0;
+                       font-size: 18px;
+                       font-weight: 600;
+                       color: var(--color-text)">Tahrirlash</h1>
         </header>
         <form id="edit-form"
               hx-post="{% url 'transactions:edit' tx.id %}"
               hx-target="this"
               hx-swap="outerHTML"
-              class="space-y-5">
+              style="display: flex;
+                     flex-direction: column;
+                     gap: 20px">
             {% csrf_token %}
-            <fieldset>
-                <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Turi</legend>
-                <div class="grid grid-cols-2 gap-2">
+            <fieldset style="border: 0; padding: 0; margin: 0">
+                <legend style="font-size: 10px;
+                               letter-spacing: 0.06em;
+                               text-transform: uppercase;
+                               color: var(--color-text-muted);
+                               font-weight: 600;
+                               padding: 0;
+                               margin-bottom: 8px">Turi</legend>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
                     {% for value, label in form.type.field.choices %}
-                        <label class="cursor-pointer">
+                        <label style="cursor: pointer; display: block">
                             <input type="radio"
                                    name="type"
                                    value="{{ value }}"
                                    x-model="type"
-                                   class="sr-only peer"
+                                   class="sr-only"
                                    {% if form.type.value == value or not form.type.value and tx.type == value %}checked{% endif %}>
-                            <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
-                                {{ label }}
+                            <div :style="type === '{{ value }}' ? 'border: 2px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary-hover);' : 'border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);'"
+                                 style="padding: 14px 12px;
+                                        border-radius: 14px;
+                                        text-align: left;
+                                        transition: border-color 120ms ease, background 120ms ease;
+                                        min-height: 76px;
+                                        display: flex;
+                                        flex-direction: column;
+                                        justify-content: space-between">
+                                <span aria-hidden="true"
+                                      style="display: inline-flex;
+                                             align-items: center;
+                                             justify-content: center;
+                                             width: 28px;
+                                             height: 28px;
+                                             border-radius: 8px;
+                                             background: rgba(0,0,0,0.04)">{{ label|slice:":1" }}</span>
+                                <span style="font-size: 14px; font-weight: 600">{{ label }}</span>
                             </div>
                         </label>
                     {% endfor %}
@@ -40,24 +84,50 @@
             </fieldset>
             <div>
                 <label for="id_amount"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Summa</label>
                 <input id="id_amount"
                        name="amount"
                        type="text"
                        inputmode="decimal"
                        x-model="amount"
                        required
-                       class="amount w-full text-3xl font-semibold tabular-nums rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-600 outline-none">
+                       class="amount"
+                       style="width: 100%;
+                              font-size: 30px;
+                              font-weight: 600;
+                              padding: 14px 16px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none">
                 {% if form.amount.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.amount.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.amount.errors|join:" " }}</p>
                 {% endif %}
             </div>
             <div>
                 <label for="id_currency"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Valyuta</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Valyuta</label>
                 <select id="id_currency"
                         name="currency"
-                        class="w-full rounded-2xl border border-slate-200 px-3 py-3 bg-white">
+                        style="width: 100%;
+                               padding: 14px 16px;
+                               font-size: 15px;
+                               border: 1.5px solid var(--color-border);
+                               border-radius: 14px;
+                               background: var(--color-surface);
+                               outline: none">
                     {% for value, label in form.currency.field.choices %}
                         <option value="{{ value }}"
                                 {% if form.currency.value == value or not form.currency.value and tx.currency == value %}selected{% endif %}>{{ label }} ({{ value }})</option>
@@ -66,63 +136,164 @@
             </div>
             <div x-show="type === 'income' || type === 'expense'" x-cloak>
                 <label for="id_category_slug"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kategoriya</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Kategoriya</label>
                 <input id="id_category_slug"
                        name="category_slug"
                        type="hidden"
                        value="{% if form.category_slug.value %}{{ form.category_slug.value }}{% elif tx.category %}{{ tx.category.slug }}{% endif %}">
                 <button type="button"
                         @click="picker = true; htmx.ajax('GET', '{% url 'categories:picker' %}?type=' + type + '&target=id_category_slug', '#category-picker-host')"
-                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white text-left flex items-center justify-between"
-                        aria-label="Kategoriyani tanlash">
-                    <span class="flex items-center gap-2">
-                        <span class="text-xl" aria-hidden="true" x-text="pickerEmoji || '📌'"></span>
-                        <span class="text-sm text-slate-700"
-                              x-text="pickerLabel || 'Kategoriyani tanlang'"></span>
+                        aria-label="Kategoriyani tanlash"
+                        style="width: 100%;
+                               padding: 14px 16px;
+                               border: 1.5px solid var(--color-border);
+                               border-radius: 14px;
+                               background: var(--color-surface);
+                               text-align: left;
+                               display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               font-size: 15px;
+                               color: var(--color-text);
+                               cursor: pointer">
+                    <span style="display: inline-flex; align-items: center; gap: 10px">
+                        <span aria-hidden="true"
+                              style="font-size: 18px"
+                              x-text="pickerEmoji || '📌'"></span>
+                        <span x-text="pickerLabel || 'Kategoriyani tanlang'"></span>
                     </span>
-                    <span class="text-slate-400" aria-hidden="true">›</span>
+                    <span aria-hidden="true" style="color: var(--color-text-muted)">›</span>
                 </button>
             </div>
             <div x-show="type === 'debt_lent' || type === 'debt_borrowed'" x-cloak>
                 <label for="id_counterparty"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kim bilan</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Kim bilan</label>
                 <input id="id_counterparty"
                        name="counterparty"
                        type="text"
                        value="{{ form.counterparty.value|default:tx.counterparty }}"
-                       class="w-full rounded-2xl border border-slate-200 px-4 py-3">
-                {% if form.counterparty.errors %}
-                    <p class="form-error text-red-700 text-sm mt-1">{{ form.counterparty.errors|join:" " }}</p>
-                {% endif %}
+                       style="width: 100%;
+                              padding: 14px 16px;
+                              font-size: 15px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none">
             </div>
             <div>
                 <label for="id_date"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Sana</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Sana</label>
                 <input id="id_date"
                        name="date"
                        type="date"
                        value="{{ form.date.value|date:'Y-m-d'|default:tx.date|date:'Y-m-d' }}"
                        required
-                       class="w-full rounded-2xl border border-slate-200 px-3 py-3">
+                       style="width: 100%;
+                              padding: 14px 16px;
+                              font-size: 15px;
+                              border: 1.5px solid var(--color-border);
+                              border-radius: 14px;
+                              background: var(--color-surface);
+                              outline: none">
             </div>
             <div>
                 <label for="id_note"
-                       class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Izoh (ixtiyoriy)</label>
+                       style="display: block;
+                              font-size: 10px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 600;
+                              margin-bottom: 8px">Izoh (ixtiyoriy)</label>
                 <textarea id="id_note"
                           name="note"
                           rows="2"
-                          class="w-full rounded-2xl border border-slate-200 px-3 py-3">{{ form.note.value|default:tx.note }}</textarea>
+                          style="width: 100%;
+                                 padding: 14px 16px;
+                                 font-size: 15px;
+                                 border: 1.5px solid var(--color-border);
+                                 border-radius: 14px;
+                                 background: var(--color-surface);
+                                 outline: none;
+                                 resize: vertical;
+                                 font-family: inherit">{{ form.note.value|default:tx.note }}</textarea>
             </div>
         </form>
-        <div class="fixed left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white border-t border-slate-200 px-5 py-3"
-             style="bottom: 72px;
-                    z-index: 30">
+        {# Destructive action — Sprint v0.6 §8 spec: live below the form, above the sticky Save. #}
+        <form hx-post="{% url 'transactions:delete' tx.id %}"
+              hx-confirm="Bu tranzaksiyani o'chirasizmi?"
+              style="margin-top: 16px">
+            {% csrf_token %}
+            <button type="submit"
+                    aria-label="Tranzaksiyani o'chirish"
+                    style="width: 100%;
+                           padding: 14px 16px;
+                           border: 0;
+                           border-radius: 14px;
+                           background: #FEE2E2;
+                           color: #B91C1C;
+                           font-size: 14px;
+                           font-weight: 600;
+                           cursor: pointer;
+                           display: inline-flex;
+                           align-items: center;
+                           justify-content: center;
+                           gap: 8px">
+                <svg width="16"
+                     height="16"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                Tranzaksiyani o'chirish
+            </button>
+        </form>
+        {# Sticky Save — gradient. #}
+        <div style="position: fixed;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 100%;
+                    max-width: 430px;
+                    bottom: 72px;
+                    z-index: 30;
+                    background: var(--color-surface);
+                    border-top: 1px solid var(--color-border);
+                    padding: 12px 20px">
             <button type="submit"
                     form="edit-form"
-                    class="btn-primary w-full"
-                    aria-label="O'zgarishlarni saqlash">Saqlash</button>
+                    aria-label="O'zgarishlarni saqlash"
+                    style="width: 100%;
+                           padding: 14px 20px;
+                           border: 0;
+                           border-radius: 14px;
+                           font-size: 16px;
+                           font-weight: 600;
+                           color: #FFFFFF;
+                           background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                           box-shadow: var(--shadow-cta);
+                           cursor: pointer">Saqlash</button>
         </div>
-        {# Picker host — htmx swaps the bottom sheet partial in. #}
         <div id="category-picker-host"
              x-show="picker"
              x-cloak
