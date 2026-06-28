@@ -18,9 +18,7 @@ through /app/me/quote/dismiss/ which also clears the session flag.
                   line-height: 1.55;
                   font-style: italic;
                   color: #475569">«{{ quote.text_uz }}»</p>
-        <p style="margin: 8px 0 0;
-                  font-size: 12px;
-                  color: #94A3B8">— {{ quote.author }}</p>
+        <p style="margin: 8px 0 0; font-size: 12px; color: #94A3B8">— {{ quote.author }}</p>
         <button type="button"
                 aria-label="Kunlik iborani yashirish"
                 hx-post="{% url 'quotes:hide_today' %}"

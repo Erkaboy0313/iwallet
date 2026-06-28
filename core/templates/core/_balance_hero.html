@@ -11,7 +11,8 @@
                   height: 44px;
                   color: #94A3B8;
                   text-decoration: none">
-            <svg style="width: 22px; height: 22px"
+            <svg style="width: 22px;
+                        height: 22px"
                  fill="none"
                  stroke="currentColor"
                  stroke-width="1.8"
@@ -62,10 +63,16 @@
             </div>
             {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
                 <p class="amount"
-                   style="font-size: 18px; font-weight: 600; color: #047857; margin: 0">{{ aggregated.total_income|smart_money:display_currency }}</p>
+                   style="font-size: 18px;
+                          font-weight: 600;
+                          color: #047857;
+                          margin: 0">{{ aggregated.total_income|smart_money:display_currency }}</p>
             {% else %}
                 <p class="amount"
-                   style="font-size: 18px; font-weight: 600; color: #047857; margin: 0">{{ summary.inflow_total|smart_money:summary.currency }}</p>
+                   style="font-size: 18px;
+                          font-weight: 600;
+                          color: #047857;
+                          margin: 0">{{ summary.inflow_total|smart_money:summary.currency }}</p>
             {% endif %}
         </a>
         <a href="{% url 'transactions:history' %}?type=expense"
@@ -89,10 +96,16 @@
             </div>
             {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
                 <p class="amount"
-                   style="font-size: 18px; font-weight: 600; color: #BE123C; margin: 0">{{ aggregated.total_expense|smart_money:display_currency }}</p>
+                   style="font-size: 18px;
+                          font-weight: 600;
+                          color: #BE123C;
+                          margin: 0">{{ aggregated.total_expense|smart_money:display_currency }}</p>
             {% else %}
                 <p class="amount"
-                   style="font-size: 18px; font-weight: 600; color: #BE123C; margin: 0">{{ summary.outflow_total|smart_money:summary.currency }}</p>
+                   style="font-size: 18px;
+                          font-weight: 600;
+                          color: #BE123C;
+                          margin: 0">{{ summary.outflow_total|smart_money:summary.currency }}</p>
             {% endif %}
         </a>
     </div>
@@ -111,21 +124,21 @@
         {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
             <p class="amount"
                aria-live="polite"
-               style="font-size: 36px; font-weight: 700; color: #0B1220; margin: 0; line-height: 1.1">
-                {{ aggregated.cash_balance|smart_money:display_currency }}
-            </p>
-            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">
-                ≈ {{ display_currency|currency_label }} bo'yicha
-            </p>
+               style="font-size: 36px;
+                      font-weight: 700;
+                      color: #0B1220;
+                      margin: 0;
+                      line-height: 1.1">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
+            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">≈ {{ display_currency|currency_label }} bo'yicha</p>
         {% else %}
             <p class="amount"
                aria-live="polite"
-               style="font-size: 36px; font-weight: 700; color: #0B1220; margin: 0; line-height: 1.1">
-                {{ summary.cash_balance|smart_money:summary.currency }}
-            </p>
-            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">
-                Iyun 2026 · {{ summary.currency }}
-            </p>
+               style="font-size: 36px;
+                      font-weight: 700;
+                      color: #0B1220;
+                      margin: 0;
+                      line-height: 1.1">{{ summary.cash_balance|smart_money:summary.currency }}</p>
+            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">Iyun 2026 · {{ summary.currency }}</p>
         {% endif %}
     </div>
     {# Mixed-currency / breakdown row stays as a folded section below. #}
@@ -181,7 +194,5 @@
     {% endif %}
     {# Voice CTA — full-width gradient. UX §3.5. Manual add is reachable
        via the elevated centre nav + button (Phase 2). #}
-    <div class="mt-6 iw-enter iw-enter-3">
-        {% include 'voice/_voice_button.html' %}
-    </div>
+    <div class="mt-6 iw-enter iw-enter-3">{% include 'voice/_voice_button.html' %}</div>
 </section>

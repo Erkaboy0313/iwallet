@@ -21,9 +21,7 @@ and every UI binding reads from it directly.
             {% include 'voice/_recurring_card.html' with recurring=recurring %}
         {% endif %}
         <template x-for="(d, i) in drafts" :key="i">
-            <div class="card-default mt-4"
-                 x-show="kept[i]"
-                 :style="cardStyle(i)">
+            <div class="card-default mt-4" x-show="kept[i]" :style="cardStyle(i)">
                 <div class="flex items-start justify-between mb-4">
                     <button type="button"
                             class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-sm font-medium text-slate-800"
@@ -75,39 +73,42 @@ and every UI binding reads from it directly.
                 </div>
                 <template x-if="(d.ambiguous_fields || []).length > 0">
                     <p class="text-xs text-amber-700 mt-2"
-                       style="display: flex; align-items: flex-start; gap: 4px">
+                       style="display: flex;
+                              align-items: flex-start;
+                              gap: 4px">
                         <span aria-hidden="true">⚠</span>
                         <span>Quyidagi maydonlarni tekshiring:
                             <span x-text="ambiguousLabels(d)"></span> — noaniq, to'g'rilang.</span>
-                    </p>
-                </template>
+                        </p>
+                    </template>
+                </div>
+            </template>
+            <div class="mt-4 grid grid-cols-2 gap-3"
+                 style="position: sticky;
+                        bottom: 0;
+                        background: white;
+                        padding-top: 8px;
+                        padding-bottom: 8px">
+                <button type="button"
+                        class="btn-secondary"
+                        aria-label="Bekor qilish"
+                        @click="cancel()">Bekor qilish</button>
+                <button type="button"
+                        class="btn-primary"
+                        aria-label="Hammasini saqlash"
+                        :disabled="!canSave || saving"
+                        :style="(!canSave || saving) ? 'opacity: 0.4; cursor: not-allowed' : ''"
+                        @click="saveAll()">
+                    <span x-show="!saving"
+                          x-text="keptCount === 1 ? 'Saqlash' : keptCount + ' tranzaksiya saqlash'"></span>
+                    <span x-show="saving">Saqlanmoqda…</span>
+                </button>
             </div>
-        </template>
-        <div class="mt-4 grid grid-cols-2 gap-3"
-             style="position: sticky;
-                    bottom: 0;
-                    background: white;
-                    padding-top: 8px;
-                    padding-bottom: 8px">
-            <button type="button"
-                    class="btn-secondary"
-                    aria-label="Bekor qilish"
-                    @click="cancel()">Bekor qilish</button>
-            <button type="button"
-                    class="btn-primary"
-                    aria-label="Hammasini saqlash"
-                    :disabled="!canSave || saving"
-                    :style="(!canSave || saving) ? 'opacity: 0.4; cursor: not-allowed' : ''"
-                    @click="saveAll()">
-                <span x-show="!saving" x-text="keptCount === 1 ? 'Saqlash' : keptCount + ' tranzaksiya saqlash'"></span>
-                <span x-show="saving">Saqlanmoqda…</span>
-            </button>
+            <p class="mt-2 text-xs text-amber-700 text-center"
+               x-show="unresolvedNote"
+               x-text="unresolvedNote"></p>
         </div>
-        <p class="mt-2 text-xs text-amber-700 text-center"
-           x-show="unresolvedNote"
-           x-text="unresolvedNote"></p>
-    </div>
-    <script>
+        <script>
     (function () {
         function register() {
             if (!window.Alpine) return setTimeout(register, 30);
@@ -278,5 +279,5 @@ and every UI binding reads from it directly.
         }
         register();
     })();
-    </script>
-{% endif %}
+        </script>
+    {% endif %}
