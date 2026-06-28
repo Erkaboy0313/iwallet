@@ -108,7 +108,8 @@ def test_partial_each_card_has_remove_button() -> None:
     # x-for renders one button per draft at runtime; the partial declares it
     # once and Alpine duplicates per array entry.
     assert "remove(i)" in html
-    assert "O&#x27;chirish" in html or "O'chirish" in html
+    # Sprint v0.6 §7.3 — destructive label demoted to an icon-only × button.
+    assert 'aria-label="Tranzaksiyani o&#x27;chirish"' in html or "aria-label=\"Tranzaksiyani o'chirish\"" in html
 
 
 # ---------- Endpoint — atomic batch save ----------

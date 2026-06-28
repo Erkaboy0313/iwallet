@@ -71,7 +71,8 @@ def test_partial_flags_ambiguous_card_with_amber_border() -> None:
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
     drafts = [_draft(ambiguous_fields=["amount"])]
     html = _render_partial(user, drafts)
-    assert "border: 2px solid #f59e0b" in html  # UX-DR uncertainty styling
+    # Sprint v0.6 §7.3 — softer dashed border for 'please review'.
+    assert "1.5px dashed #FCD34D" in html
     assert "noaniq" in html or "tekshiring" in html
 
 
