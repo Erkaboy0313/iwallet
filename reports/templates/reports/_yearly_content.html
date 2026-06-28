@@ -1,0 +1,87 @@
+{% load core_extras %}
+{% include 'reports/_period_header.html' %}
+{% if summary.is_partial %}
+    <div style="background:#fef3c7;
+                border-radius:12px;
+                padding:12px 14px;
+                margin-bottom:12px">
+        <p class="text-xs text-amber-800">
+            {% if summary.is_empty %}
+                Ma'lumot to'planmoqda. Hafta-2 dan keyin qayting.
+            {% else %}
+                Ma'lumot to'planmoqda. Yillik hisobot kamida 3 oydan keyin ma'lumotli bo'ladi.
+            {% endif %}
+        </p>
+    </div>
+{% endif %}
+<div style="background: #ffffff;
+            border-radius: 16px;
+            border: 1px solid #e2e8f0;
+            padding: 12px;
+            margin-bottom: 12px">
+    <p class="text-xs uppercase tracking-wider text-slate-500"
+       style="margin-bottom: 8px">Oylik xarajatlar</p>
+    {{ bars_svg|safe }}
+    {% if summary.most_expensive_month %}
+        <p class="text-xs text-slate-500" style="margin-top: 8px">
+            Eng katta xarajatli oy:
+            <span class="font-medium text-amber-700">{{ summary.most_expensive_month.label }}</span>
+            ·
+            <span class="amount font-medium text-slate-900">{{ summary.most_expensive_month.expense|smart_money:display_currency }}</span>
+        </p>
+    {% endif %}
+</div>
+{% if not summary.is_empty %}
+    <div style="display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 12px">
+        <div style="background:#ecfdf5; border-radius:12px; padding:10px 12px">
+            <p class="text-[10px] uppercase tracking-wider text-emerald-700">Jami kirim</p>
+            <p class="amount text-sm font-semibold text-emerald-700">{{ summary.total_income|smart_money:display_currency }}</p>
+        </div>
+        <div style="background:#f1f5f9; border-radius:12px; padding:10px 12px">
+            <p class="text-[10px] uppercase tracking-wider text-slate-600">Jami chiqim</p>
+            <p class="amount text-sm font-semibold text-slate-900">{{ summary.total_expense|smart_money:display_currency }}</p>
+        </div>
+    </div>
+    {% if summary.previous_year_total_expense is not None %}
+        <p class="text-xs text-slate-500" style="margin-bottom: 12px">
+            O'tgan yilga nisbatan:
+            <span class="amount">{{ summary.previous_year_total_expense|smart_money:display_currency }}</span>
+            {% if yoy_pct is not None %}
+                <span class="yoy-delta {% if yoy_pct > 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">· {{ yoy_pct }}%</span>
+            {% endif %}
+        </p>
+    {% endif %}
+{% endif %}
+{% if summary.top_categories %}
+    <div style="background: #ffffff;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                padding: 12px;
+                margin-bottom: 12px">
+        <p class="text-xs uppercase tracking-wider text-slate-500"
+           style="margin-bottom: 8px">Yil bo'yicha eng katta kategoriyalar</p>
+        <ul style="display: flex; flex-direction: column; gap: 6px">
+            {% for cat in summary.top_categories %}
+                <li style="display: flex;
+                           align-items: center;
+                           justify-content: space-between;
+                           gap: 8px"
+                    class="text-xs">
+                    <span class="text-slate-700"
+                          style="display: inline-flex;
+                                 align-items: center;
+                                 gap: 6px">
+                        <span aria-hidden="true">{{ cat.emoji }}</span>
+                        <span>{{ cat.name }}</span>
+                    </span>
+                    <span class="text-slate-500">
+                        {{ cat.percent }}% · <span class="amount">{{ cat.total|smart_money:display_currency }}</span>
+                    </span>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endif %}
