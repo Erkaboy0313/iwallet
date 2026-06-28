@@ -1,0 +1,124 @@
+{% load core_extras %}
+{% include 'reports/_period_header.html' %}
+{% if summary.is_empty %}
+    <div style="text-align: center; padding: 48px 16px">
+        <p class="text-sm text-slate-500">Bu oyda tranzaksiya yo'q.</p>
+        <a href="{% url 'transactions:add' %}"
+           class="btn-primary"
+           style="display: inline-block;
+                  margin-top: 16px">+ Tranzaksiya qo'shish</a>
+    </div>
+{% else %}
+    <div style="display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 16px">
+        <div style="background:#ecfdf5; border-radius:12px; padding:10px 12px">
+            <p class="text-[10px] uppercase tracking-wider text-emerald-700">Kirim</p>
+            <p class="amount text-sm font-semibold text-emerald-700">{{ summary.total_income|smart_money:display_currency }}</p>
+        </div>
+        <div style="background:#f1f5f9; border-radius:12px; padding:10px 12px">
+            <p class="text-[10px] uppercase tracking-wider text-slate-600">Chiqim</p>
+            <p class="amount text-sm font-semibold text-slate-900">{{ summary.total_expense|smart_money:display_currency }}</p>
+        </div>
+    </div>
+    <p class="text-xs text-slate-500" style="margin-bottom: 8px">
+        Sof: <span class="amount font-medium text-slate-900">{{ summary.delta|smart_money:display_currency }}</span>
+    </p>
+    <div style="background: #ffffff;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                padding: 12px;
+                margin-bottom: 12px">
+        <p class="text-xs uppercase tracking-wider text-slate-500"
+           style="margin-bottom:8px">Kirim va chiqim</p>
+        {{ io_bars_svg|safe }}
+    </div>
+    <div style="background: #ffffff;
+                border-radius: 16px;
+                border: 1px solid #e2e8f0;
+                padding: 12px;
+                margin-bottom: 12px">
+        <p class="text-xs uppercase tracking-wider text-slate-500"
+           style="margin-bottom:8px">Kategoriya taqsimoti</p>
+        {{ pie_svg|safe }}
+        {% if summary.by_category %}
+            <ul style="margin-top: 12px;
+                       display: flex;
+                       flex-direction: column;
+                       gap: 4px">
+                {% for cat in summary.by_category %}
+                    <li style="display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               gap: 8px"
+                        class="text-xs">
+                        <span class="text-slate-700"
+                              style="display: inline-flex;
+                                     align-items: center;
+                                     gap: 6px">
+                            <span aria-hidden="true">{{ cat.emoji }}</span>
+                            <span>{{ cat.name }}</span>
+                        </span>
+                        <span class="text-slate-500">
+                            {{ cat.percent }}% · <span class="amount">{{ cat.total|smart_money:display_currency }}</span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+    {% if summary.top_5_expenses %}
+        <div style="background: #ffffff;
+                    border-radius: 16px;
+                    border: 1px solid #e2e8f0;
+                    padding: 12px;
+                    margin-bottom: 12px">
+            <p class="text-xs uppercase tracking-wider text-slate-500"
+               style="margin-bottom:8px">Eng katta 5 ta xarajat</p>
+            <ol style="display: flex;
+                       flex-direction: column;
+                       gap: 8px;
+                       counter-reset: rank">
+                {% for item in summary.top_5_expenses %}
+                    <li style="display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               gap: 8px"
+                        class="text-sm">
+                        <span style="display: inline-flex; align-items: center; gap: 8px">
+                            <span aria-hidden="true">{{ item.emoji }}</span>
+                            <span class="text-slate-700">{{ item.name }}</span>
+                        </span>
+                        <span class="amount font-medium text-slate-900">{{ item.amount|smart_money:display_currency }}</span>
+                    </li>
+                {% endfor %}
+            </ol>
+        </div>
+    {% endif %}
+    {% if other_currencies %}
+        <div style="background: #ffffff;
+                    border-radius: 16px;
+                    border: 1px solid #e2e8f0;
+                    padding: 12px;
+                    margin-bottom: 12px">
+            <p class="text-xs uppercase tracking-wider text-slate-500"
+               style="margin-bottom:8px">Valyuta bo'yicha taqsimot</p>
+            <ul style="display: flex; flex-direction: column; gap: 6px">
+                {% for row in other_currencies %}
+                    <li style="display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               gap: 8px"
+                        class="text-xs">
+                        <span class="text-slate-500">{{ row.currency }}</span>
+                        <span class="text-slate-700">
+                            Kirim: <span class="amount">{{ row.income|smart_money:row.currency }}</span> ·
+                            Chiqim: <span class="amount">{{ row.expense|smart_money:row.currency }}</span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endif %}

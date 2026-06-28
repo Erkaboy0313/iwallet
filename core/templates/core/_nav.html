@@ -54,12 +54,10 @@
         </svg>
         <span>Qarz</span>
     </a>
-    {# Hisobot (Epic 8) — placeholder for now. #}
-    <a href="#"
-       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-300 cursor-not-allowed"
-       aria-label="Hisobot"
-       aria-disabled="true"
-       title="Tez orada">
+    {% url 'reports:weekly' as reports_url %}
+    <a href="{{ reports_url }}"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs {% if request.path|slice:':12' == '/app/reports' %}text-emerald-600{% else %}text-slate-500{% endif %}"
+       aria-label="Hisobot">
         <svg class="w-6 h-6"
              fill="none"
              stroke="currentColor"
