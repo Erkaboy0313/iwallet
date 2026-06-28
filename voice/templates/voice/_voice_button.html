@@ -197,6 +197,18 @@ pulse, shake) because cached Tailwind build may not include arbitrary keyframes.
                         const host = document.getElementById("voice-confirm-area");
                         if (host) {
                             host.innerHTML = html;
+                            // innerHTML doesn't execute <script> tags per HTML5 spec.
+                            // Re-create them so the Alpine.data() registrations inside
+                            // the partial (voiceConfirmList, voiceDraftCard) actually
+                            // run before Alpine evaluates the x-data expressions.
+                            host.querySelectorAll("script").forEach(function (oldScript) {
+                                var newScript = document.createElement("script");
+                                Array.from(oldScript.attributes).forEach(function (a) {
+                                    newScript.setAttribute(a.name, a.value);
+                                });
+                                newScript.textContent = oldScript.textContent;
+                                oldScript.parentNode.replaceChild(newScript, oldScript);
+                            });
                             if (window.htmx) window.htmx.process(host);
                         }
                         this.state = "idle";
