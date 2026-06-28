@@ -1,0 +1,13 @@
+{# Category list — two grouped sections, htmx-swappable. #}
+<div id="category-list" class="space-y-6">
+    <section aria-labelledby="income-heading">
+        <h2 id="income-heading"
+            class="text-xs uppercase tracking-wider text-slate-500 mb-2">Kirim kategoriyalari</h2>
+        {% include 'categories/_group.html' with rows=income_categories %}
+    </section>
+    <section aria-labelledby="expense-heading">
+        <h2 id="expense-heading"
+            class="text-xs uppercase tracking-wider text-slate-500 mb-2">Chiqim kategoriyalari</h2>
+        {% include 'categories/_group.html' with rows=expense_categories %}
+    </section>
+</div>

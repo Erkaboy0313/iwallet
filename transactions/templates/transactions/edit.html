@@ -1,8 +1,13 @@
 {% extends 'base.html' %}
 {% block title %}Tranzaksiyani tahrirlash — IWALLET{% endblock %}
 {% block content %}
+    {# djlint reformats x-data containing template tags onto multiple lines and #}
+    {# corrupts the JSON; keep Alpine init simple and seed picker labels via JS. #}
     <section class="px-5 pt-5 pb-32"
-             x-data="{ type: '{{ form.type.value|default:tx.type }}', amount: '{{ form.amount.value|default:tx.amount }}' }">
+             data-initial-cat-name="{% if tx.category %}{{ tx.category.name }}{% endif %}"
+             data-initial-cat-emoji="{% if tx.category %}{{ tx.category.emoji }}{% endif %}"
+             x-data="{ type: '{{ form.type.value|default:tx.type }}', amount: '{{ form.amount.value|default:tx.amount }}', picker: null, pickerLabel: '', pickerEmoji: '' }"
+             x-init="pickerLabel = $el.dataset.initialCatName || ''; pickerEmoji = $el.dataset.initialCatEmoji || ''">
         <header class="flex items-center gap-3 mb-5">
             <a href="{% url 'transactions:history' %}"
                class="text-slate-500 hover:text-slate-900 px-2 py-1"
@@ -62,15 +67,21 @@
             <div x-show="type === 'income' || type === 'expense'" x-cloak>
                 <label for="id_category_slug"
                        class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Kategoriya</label>
-                <select id="id_category_slug"
-                        name="category_slug"
-                        class="w-full rounded-2xl border border-slate-200 px-3 py-3 bg-white">
-                    <option value="">— tanlamaslik —</option>
-                    {% for cat in form.category_choices_for_type %}
-                        <option value="{{ cat.slug }}"
-                                {% if form.category_slug.value == cat.slug %}selected{% endif %}>{{ cat.emoji }} {{ cat.name }}</option>
-                    {% endfor %}
-                </select>
+                <input id="id_category_slug"
+                       name="category_slug"
+                       type="hidden"
+                       value="{% if form.category_slug.value %}{{ form.category_slug.value }}{% elif tx.category %}{{ tx.category.slug }}{% endif %}">
+                <button type="button"
+                        @click="picker = true; htmx.ajax('GET', '{% url 'categories:picker' %}?type=' + type + '&target=id_category_slug', '#category-picker-host')"
+                        class="w-full rounded-2xl border border-slate-200 px-4 py-3 bg-white text-left flex items-center justify-between"
+                        aria-label="Kategoriyani tanlash">
+                    <span class="flex items-center gap-2">
+                        <span class="text-xl" aria-hidden="true" x-text="pickerEmoji || '📌'"></span>
+                        <span class="text-sm text-slate-700"
+                              x-text="pickerLabel || 'Kategoriyani tanlang'"></span>
+                    </span>
+                    <span class="text-slate-400" aria-hidden="true">›</span>
+                </button>
             </div>
             <div x-show="type === 'debt_lent' || type === 'debt_borrowed'" x-cloak>
                 <label for="id_counterparty"
@@ -110,5 +121,10 @@
                     class="btn-primary w-full"
                     aria-label="O'zgarishlarni saqlash">Saqlash</button>
         </div>
+        {# Picker host — htmx swaps the bottom sheet partial in. #}
+        <div id="category-picker-host"
+             x-show="picker"
+             x-cloak
+             style="display: none"></div>
     </section>
 {% endblock %}

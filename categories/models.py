@@ -1,4 +1,4 @@
-"""Category model — preset (user=NULL) + user-custom rows (Story 1.3)."""
+"""Category model — preset (user=NULL) + user-custom rows (Story 1.3, Epic 3)."""
 
 from django.db import models
 
@@ -14,7 +14,8 @@ class Category(models.Model):
     """A label for grouping transactions.
 
     A row with user=NULL is a preset shipped via fixture and visible to every user
-    (unless globally hidden). A row with user=<U> is U's custom category.
+    (unless globally hidden via `is_hidden` OR hidden by a particular user via
+    `CategoryHide`). A row with user=<U> is U's custom category.
     """
 
     id = models.BigAutoField(primary_key=True)
@@ -55,3 +56,32 @@ class Category(models.Model):
     @property
     def is_preset(self) -> bool:
         return self.user_id is None
+
+
+class CategoryHide(models.Model):
+    """Per-user toggle for hiding a preset category.
+
+    A preset can be hidden by user A while remaining visible to user B —
+    so we cannot use the global `Category.is_hidden` flag for this. Custom
+    categories never get a CategoryHide row (we just delete them instead).
+    """
+
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="hidden_categories")
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name="hidden_for")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "categories_categoryhide"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "category"],
+                name="categories_unique_hide_per_user",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["user"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} hides {self.category_id}"

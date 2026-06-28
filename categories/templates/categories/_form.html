@@ -1,0 +1,68 @@
+{# Create / edit form rendered as a bottom-sheet partial. #}
+<div>
+    <header class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-slate-900">
+            {% if mode == 'edit' %}
+                Kategoriyani tahrirlash
+            {% else %}
+                Yangi kategoriya
+            {% endif %}
+        </h2>
+        <button type="button"
+                @click="sheet = null"
+                class="text-slate-500 hover:text-slate-900 px-2 py-1"
+                aria-label="Yopish">×</button>
+    </header>
+    <form id="category-form"
+          hx-post="{{ action_url }}"
+          hx-target="#category-list"
+          hx-swap="outerHTML"
+          @htmx:after-request="if ($event.detail.xhr.status === 200) { sheet = null }"
+          class="space-y-4">
+        {% csrf_token %}
+        <fieldset>
+            <legend class="text-xs uppercase tracking-wider text-slate-500 mb-2">Turi</legend>
+            <div class="grid grid-cols-2 gap-2">
+                {% for value, label in form.type.field.choices %}
+                    <label class="cursor-pointer">
+                        <input type="radio"
+                               name="type"
+                               value="{{ value }}"
+                               class="sr-only peer"
+                               {% if form.type.value == value %}checked{% endif %}>
+                        <div class="rounded-2xl border-2 border-slate-200 p-3 text-center text-sm font-medium text-slate-700 peer-checked:border-emerald-600 peer-checked:bg-emerald-50 peer-checked:text-emerald-800 transition">
+                            {{ label }}
+                        </div>
+                    </label>
+                {% endfor %}
+            </div>
+        </fieldset>
+        <div>
+            <label for="id_emoji"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Belgi</label>
+            <input id="id_emoji"
+                   name="emoji"
+                   type="text"
+                   maxlength="8"
+                   value="{{ form.emoji.value|default:'📌' }}"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3 text-2xl text-center"
+                   aria-label="Kategoriya belgisi (emoji)">
+        </div>
+        <div>
+            <label for="id_name"
+                   class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Nom</label>
+            <input id="id_name"
+                   name="name"
+                   type="text"
+                   maxlength="64"
+                   value="{{ form.name.value|default:'' }}"
+                   required
+                   placeholder="Masalan: Trening"
+                   class="w-full rounded-2xl border border-slate-200 px-4 py-3">
+            {% if form.name.errors %}
+                <p class="form-error text-red-700 text-sm mt-1">{{ form.name.errors|join:" " }}</p>
+            {% endif %}
+        </div>
+        <button type="submit" class="btn-primary w-full" aria-label="Saqlash">Saqlash</button>
+    </form>
+</div>
