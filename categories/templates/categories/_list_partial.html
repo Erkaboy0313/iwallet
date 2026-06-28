@@ -1,13 +1,26 @@
 {# Category list — two grouped sections, htmx-swappable. #}
-<div id="category-list" class="space-y-6">
+<div id="category-list"
+     style="display: flex;
+            flex-direction: column;
+            gap: 24px">
     <section aria-labelledby="income-heading">
-        <h2 id="income-heading"
-            class="text-xs uppercase tracking-wider text-slate-500 mb-2">Kirim kategoriyalari</h2>
+        <p id="income-heading"
+           style="margin: 0 0 8px;
+                  font-size: 10px;
+                  font-weight: 600;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted)">Kirim kategoriyalari</p>
         {% include 'categories/_group.html' with rows=income_categories %}
     </section>
     <section aria-labelledby="expense-heading">
-        <h2 id="expense-heading"
-            class="text-xs uppercase tracking-wider text-slate-500 mb-2">Chiqim kategoriyalari</h2>
+        <p id="expense-heading"
+           style="margin: 0 0 8px;
+                  font-size: 10px;
+                  font-weight: 600;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted)">Chiqim kategoriyalari</p>
         {% include 'categories/_group.html' with rows=expense_categories %}
     </section>
 </div>

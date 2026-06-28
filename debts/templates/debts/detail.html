@@ -3,22 +3,68 @@
 {% load debts_extras %}
 {% block title %}Qarz tafsilotlari — IWALLET{% endblock %}
 {% block content %}
-    <section class="px-5 pt-6 pb-24">
-        <header class="flex items-center gap-3 mb-4">
+    <section class="px-5 pt-5 pb-24">
+        <header style="display: flex;
+                       align-items: center;
+                       gap: 8px;
+                       min-height: 44px;
+                       margin-bottom: 12px">
             <a href="{% url 'debts:list' %}?tab={{ debt.direction }}"
-               class="text-slate-500 hover:text-slate-900 px-2 py-1"
-               aria-label="Qarzlar ro'yxatiga qaytish">←</a>
-            <h1 class="text-xl font-semibold text-slate-900">Qarz tafsilotlari</h1>
+               aria-label="Qarzlar ro'yxatiga qaytish"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="22"
+                     height="22"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 style="margin: 0;
+                       font-size: 18px;
+                       font-weight: 600;
+                       color: var(--color-text)">Qarz tafsilotlari</h1>
         </header>
-        <div class="bg-white rounded-2xl border border-slate-200 px-4 py-4">
-            <div class="flex items-center gap-3">
+        {# Hero card — counterparty avatar + obligation in text-display. #}
+        <div class="iw-enter"
+             style="background: var(--color-surface);
+                    border-radius: 18px;
+                    box-shadow: var(--shadow-soft);
+                    padding: 20px;
+                    margin-bottom: 20px">
+            <div style="display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        margin-bottom: 16px">
                 <span aria-hidden="true"
-                      class="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-base font-semibold">
-                    {{ debt.counterparty|initials }}
-                </span>
-                <div class="min-w-0">
-                    <p class="text-base font-semibold text-slate-900 truncate">{{ debt.counterparty }}</p>
-                    <p class="text-xs text-slate-500">
+                      style="display: inline-flex;
+                             align-items: center;
+                             justify-content: center;
+                             width: 48px;
+                             height: 48px;
+                             border-radius: 9999px;
+                             font-size: 15px;
+                             font-weight: 600;
+                             {% avatar_style debt.counterparty %}">{{ debt.counterparty|initials }}</span>
+                <div style="min-width: 0">
+                    <p style="margin: 0;
+                              font-size: 16px;
+                              font-weight: 600;
+                              color: var(--color-text);
+                              white-space: nowrap;
+                              overflow: hidden;
+                              text-overflow: ellipsis">{{ debt.counterparty }}</p>
+                    <p style="margin: 2px 0 0;
+                              font-size: 12px;
+                              color: var(--color-text-secondary)">
                         {% if debt.direction == 'lent' %}
                             Menga qarzdor
                         {% else %}
@@ -27,70 +73,158 @@
                     </p>
                 </div>
             </div>
-            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Asl summa</p>
-                    <p class="amount text-base font-semibold text-slate-900">{{ debt.original_amount|smart_money:debt.currency }}</p>
-                </div>
-                <div>
-                    <p class="text-xs uppercase tracking-wider text-slate-500">Qoldiq</p>
-                    <p class="amount text-base font-semibold text-amber-600">{{ debt.remaining_amount|smart_money:debt.currency }}</p>
-                </div>
-            </div>
-            <p class="mt-3 text-xs text-slate-500">
-                Holat:
-                {% if debt.state == 'open' %}
-                    Ochiq
-                {% elif debt.state == 'partial' %}
-                    Qisman qaytarilgan
-                {% elif debt.state == 'closed' %}
-                    Yopilgan
-                {% else %}
-                    Bekor qilingan
-                    {% if debt.cancelled_reason %}({{ debt.cancelled_reason }}){% endif %}
-                {% endif %}
-            </p>
-            {% if debt.note %}<p class="mt-2 text-sm text-slate-700">{{ debt.note }}</p>{% endif %}
-        </div>
-        <!-- Timeline: original + repayments + close -->
-        <ol class="mt-6 space-y-3" aria-label="Qarz tarixi">
-            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                <p class="text-xs text-slate-500">{{ debt.created_at|date:"j-N, H:i" }}</p>
-                <p class="text-sm text-slate-900">
-                    {% if debt.direction == 'lent' %}
-                        Berildi: <span class="amount font-medium">{{ debt.original_amount|smart_money:debt.currency }}</span>
+            <p style="margin: 0 0 2px;
+                      font-size: 10px;
+                      font-weight: 600;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted)">Qoldiq</p>
+            <p class="amount"
+               style="margin: 0 0 12px;
+                      font-size: 32px;
+                      font-weight: 700;
+                      color: {% if debt.direction == 'lent' %}#B45309{% else %}#92400E{% endif %};
+                      line-height: 1.1">{{ debt.remaining_amount|smart_money:debt.currency }}</p>
+            <div style="display: flex;
+                        gap: 16px;
+                        padding-top: 12px;
+                        border-top: 1px solid var(--color-border);
+                        font-size: 12px;
+                        color: var(--color-text-secondary)">
+                <span>Asl summa <span class="amount" style="color: var(--color-text); font-weight: 500">{{ debt.original_amount|smart_money:debt.currency }}</span></span>
+                <span style="margin-left: auto">
+                    Holat:
+                    {% if debt.state == 'open' %}
+                        Ochiq
+                    {% elif debt.state == 'partial' %}
+                        Qisman qaytarilgan
+                    {% elif debt.state == 'closed' %}
+                        Yopilgan
                     {% else %}
-                        Olindi: <span class="amount font-medium">{{ debt.original_amount|smart_money:debt.currency }}</span>
+                        Bekor qilingan
+                        {% if debt.cancelled_reason %}({{ debt.cancelled_reason }}){% endif %}
                     {% endif %}
-                </p>
+                </span>
+            </div>
+            {% if debt.note %}
+                <p style="margin: 12px 0 0;
+                          font-size: 13px;
+                          color: var(--color-text);
+                          line-height: 1.5">{{ debt.note }}</p>
+            {% endif %}
+        </div>
+        {# Timeline — left-margin vertical bar with dots, dot-coloured per event kind. #}
+        <p style="margin: 0 0 10px;
+                  font-size: 10px;
+                  font-weight: 600;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted)">Tarix</p>
+        <ol style="list-style: none;
+                   margin: 0;
+                   padding: 0 0 0 20px;
+                   border-left: 2px solid var(--color-border);
+                   display: flex;
+                   flex-direction: column;
+                   gap: 14px"
+            aria-label="Qarz tarixi">
+            <li class="iw-enter" style="position: relative">
+                <span aria-hidden="true"
+                      style="position: absolute;
+                             left: -27px;
+                             top: 6px;
+                             width: 12px;
+                             height: 12px;
+                             border-radius: 9999px;
+                             background: var(--color-surface);
+                             border: 2px solid var(--color-primary)"></span>
+                <div style="background: var(--color-surface);
+                            border-radius: 12px;
+                            box-shadow: var(--shadow-soft);
+                            padding: 12px 14px">
+                    <p style="margin: 0; font-size: 11px; color: var(--color-text-muted)">{{ debt.created_at|date:"j-N, H:i" }}</p>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: var(--color-text)">
+                        {% if debt.direction == 'lent' %}
+                            Berildi: <span class="amount" style="font-weight: 500">{{ debt.original_amount|smart_money:debt.currency }}</span>
+                        {% else %}
+                            Olindi: <span class="amount" style="font-weight: 500">{{ debt.original_amount|smart_money:debt.currency }}</span>
+                        {% endif %}
+                    </p>
+                </div>
             </li>
             {% for r in repayments %}
-                <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
-                    <p class="text-xs text-slate-500">{{ r.repaid_at|date:"j-N, H:i" }}</p>
-                    <p class="text-sm text-slate-900">
-                        Qaytarildi: <span class="amount font-medium text-emerald-700">{{ r.amount|smart_money:debt.currency }}</span>
-                    </p>
-                    {% if r.note %}<p class="mt-1 text-xs text-slate-500">{{ r.note }}</p>{% endif %}
+                <li class="iw-enter" style="position: relative">
+                    <span aria-hidden="true"
+                          style="position: absolute;
+                                 left: -27px;
+                                 top: 6px;
+                                 width: 12px;
+                                 height: 12px;
+                                 border-radius: 9999px;
+                                 background: var(--color-primary);
+                                 border: 2px solid var(--color-surface);
+                                 box-shadow: 0 0 0 1px var(--color-primary)"></span>
+                    <div style="background: var(--color-surface);
+                                border-radius: 12px;
+                                box-shadow: var(--shadow-soft);
+                                padding: 12px 14px">
+                        <p style="margin: 0; font-size: 11px; color: var(--color-text-muted)">{{ r.repaid_at|date:"j-N, H:i" }}</p>
+                        <p style="margin: 4px 0 0; font-size: 13px; color: var(--color-text)">
+                            Qaytarildi: <span class="amount" style="font-weight: 500; color: #047857">{{ r.amount|smart_money:debt.currency }}</span>
+                        </p>
+                        {% if r.note %}
+                            <p style="margin: 4px 0 0;
+                                      font-size: 12px;
+                                      color: var(--color-text-secondary)">{{ r.note }}</p>
+                        {% endif %}
+                    </div>
                 </li>
             {% endfor %}
             {% if debt.state == 'closed' %}
-                <li class="bg-emerald-50 rounded-2xl border border-emerald-200 px-4 py-3">
-                    <p class="text-sm font-medium text-emerald-700">Qarz to'liq yopildi.</p>
+                <li class="iw-enter" style="position: relative">
+                    <span aria-hidden="true"
+                          style="position: absolute;
+                                 left: -27px;
+                                 top: 6px;
+                                 width: 12px;
+                                 height: 12px;
+                                 border-radius: 9999px;
+                                 background: #047857"></span>
+                    <div style="background: #ECFDF5;
+                                border: 1px solid #A7F3D0;
+                                border-radius: 12px;
+                                padding: 12px 14px">
+                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: #047857">Qarz to'liq yopildi.</p>
+                    </div>
                 </li>
             {% elif debt.state == 'cancelled' %}
-                <li class="bg-amber-50 rounded-2xl border border-amber-200 px-4 py-3">
-                    <p class="text-sm font-medium text-amber-700">Qarz bekor qilindi.</p>
+                <li class="iw-enter" style="position: relative">
+                    <span aria-hidden="true"
+                          style="position: absolute;
+                                 left: -27px;
+                                 top: 6px;
+                                 width: 12px;
+                                 height: 12px;
+                                 border-radius: 9999px;
+                                 background: #B45309"></span>
+                    <div style="background: #FEF3C7;
+                                border: 1px solid #FCD34D;
+                                border-radius: 12px;
+                                padding: 12px 14px">
+                        <p style="margin: 0; font-size: 13px; font-weight: 500; color: #92400E">Qarz bekor qilindi.</p>
+                    </div>
                 </li>
             {% endif %}
         </ol>
         {% if debt.is_active %}
-            <div class="mt-6">
+            <div style="margin-top: 24px">
                 <button type="button"
                         hx-get="{% url 'debts:close_form' debt.id %}"
                         hx-target="#close-form-slot"
                         hx-swap="innerHTML"
-                        class="btn-primary w-full"
-                        aria-label="Qarzni yopish">Yopish / qaytarish</button>
+                        class="btn-primary"
+                        aria-label="Qarzni yopish"
+                        style="width: 100%">Yopish / qaytarish</button>
             </div>
             <div id="close-form-slot"></div>
         {% endif %}

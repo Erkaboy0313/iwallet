@@ -17,8 +17,9 @@ STATIC_JS = Path(__file__).resolve().parents[2] / "static" / "js" / "voice-recor
 def test_voice_button_partial_renders_all_states() -> None:
     """All four button states (idle/recording/processing/error) are present in the markup."""
     html = render_to_string("voice/_voice_button.html")
-    assert "🎤" in html  # idle/error glyph
-    assert "⏹" in html  # recording glyph
+    # Sprint v0.6 §11 — emoji glyphs replaced with Heroicons SVG.
+    assert "M12 18.75a6 6 0 006-6" in html  # microphone outline (idle/error)
+    assert "M21 12a9 9 0 11-18 0" in html  # stop-circle outline (recording)
     assert "vb-pulse" in html  # recording animation
     assert "vb-shake" in html  # error animation
     assert "vb-bounce" in html  # processing dots

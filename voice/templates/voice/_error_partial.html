@@ -1,26 +1,92 @@
-{# Story 2.5 — voice error partial. Reasons: 'unavailable' (503) or 'empty' (422). #}
-<div class="card-default mt-4"
-     style="border: 1px solid #fecaca;
-            border-radius: 24px">
-    <p class="text-sm text-red-800">
+{% comment %}
+Sprint v0.6 §10.5 — voice error partial.
+Reasons: 'unavailable' (Gemini 503) or 'empty' (couldn't parse).
+Wrapped in a card with a soft red rail; two action buttons below.
+{% endcomment %}
+<div class="iw-enter"
+     style="margin-top: 16px;
+            border-radius: 16px;
+            background: var(--color-surface);
+            border: 1px solid #FECACA;
+            box-shadow: var(--shadow-soft);
+            padding: 20px 18px 18px;
+            text-align: center">
+    <div style="display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 56px;
+                height: 56px;
+                border-radius: 9999px;
+                background: #FEE2E2;
+                margin-bottom: 12px"
+         aria-hidden="true">
+        <svg width="28"
+             height="28"
+             fill="none"
+             stroke="#B91C1C"
+             stroke-width="1.8"
+             viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+    </div>
+    <p style="margin: 0 0 4px;
+              font-size: 16px;
+              font-weight: 600;
+              color: var(--color-text)">
         {% if reason == 'unavailable' %}
-            Gemini xizmati hozir mavjud emas. Yana urinib ko'ring yoki qo'lda yozing.
+            Gemini xizmati hozir mavjud emas
         {% else %}
-            Tranzaksiya tushunmadim. Qaytadan urinib ko'ring.
+            Tranzaksiya tushunmadim
         {% endif %}
     </p>
-    <div class="mt-3 grid grid-cols-2 gap-3">
+    <p style="margin: 0 0 16px;
+              font-size: 13px;
+              color: var(--color-text-secondary);
+              line-height: 1.5">
+        {% if reason == 'unavailable' %}
+            Yana urinib ko'ring yoki qo'lda yozing.
+        {% else %}
+            Yana urinib ko'ring yoki qo'lda yozing.
+        {% endif %}
+    </p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
         <button type="button"
                 class="btn-secondary"
                 aria-label="Qaytadan yozib olish"
-                onclick="(function(){var host=document.getElementById('voice-confirm-area'); if(host) host.innerHTML='';})()">
-            🎤 Qaytadan
+                onclick="(function(){var host=document.getElementById('voice-confirm-area'); if(host) host.innerHTML='';})()"
+                style="display: inline-flex;
+                       align-items: center;
+                       justify-content: center;
+                       gap: 6px">
+            <svg width="16"
+                 height="16"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
+            </svg>
+            Qaytadan
         </button>
         <a href="{% url 'transactions:add' %}"
-           class="btn-primary text-center"
+           class="btn-primary"
            aria-label="Qo'lda tranzaksiya qo'shish"
            style="display: inline-flex;
                   align-items: center;
-                  justify-content: center">✏️ Qo'lda</a>
+                  justify-content: center;
+                  gap: 6px;
+                  text-decoration: none">
+            <svg width="16"
+                 height="16"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="1.8"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 18.75h-12" />
+            </svg>
+            Qo'lda
+        </a>
     </div>
 </div>

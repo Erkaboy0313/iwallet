@@ -4,23 +4,51 @@
     <section class="px-5 pt-5 pb-32"
              x-data="{ sheet: null }"
              @keydown.escape.window="sheet = null">
-        <header class="flex items-center gap-3 mb-5">
+        <header style="display: flex;
+                       align-items: center;
+                       gap: 8px;
+                       min-height: 44px;
+                       margin-bottom: 16px">
             <a href="{% url 'core:home' %}"
-               class="text-slate-500 hover:text-slate-900 px-2 py-1"
-               aria-label="Uyga qaytish">←</a>
-            <h1 class="text-xl font-semibold text-slate-900">Takrorlanuvchi to'lovlar</h1>
+               aria-label="Uyga qaytish"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="22"
+                     height="22"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 style="margin: 0;
+                       font-size: 18px;
+                       font-weight: 600;
+                       color: var(--color-text)">Takrorlanuvchi to'lovlar</h1>
         </header>
-        <p class="text-sm text-slate-500 mb-4">
+        <p style="margin: 0 0 16px;
+                  font-size: 13px;
+                  color: var(--color-text-secondary);
+                  line-height: 1.5">
             Har oy yoki har hafta o'zi yoziladigan kirim/chiqim. Masalan: ijara,
             internet, oyliq.
         </p>
         <button type="button"
-                class="btn-primary w-full mb-5"
+                class="btn-primary"
                 hx-get="{% url 'recurring:create' %}"
                 hx-target="#recurring-sheet"
                 hx-swap="innerHTML"
                 @click="sheet = 'form'"
-                aria-label="Yangi takrorlanuvchi qo'shish">+ Yangi takrorlanuvchi</button>
+                aria-label="Yangi takrorlanuvchi qo'shish"
+                style="width: 100%;
+                       margin-bottom: 20px">+ Yangi takrorlanuvchi</button>
         <div id="recurring-list">{% include 'recurring/_list_partial.html' %}</div>
         {# Bottom sheet host — filled by htmx swaps from forms / confirmations. #}
         <div x-show="sheet"
