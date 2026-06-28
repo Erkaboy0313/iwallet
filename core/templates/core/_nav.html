@@ -5,6 +5,7 @@
     {% url 'core:home' as home_url %}
     {% url 'transactions:add' as add_url %}
     {% url 'transactions:history' as history_url %}
+    {% url 'debts:list' as debts_url %}
     <a href="{{ home_url }}"
        class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs {% if request.path == home_url %}text-emerald-600{% else %}text-slate-500{% endif %}"
        aria-label="Uy">
@@ -41,12 +42,9 @@
         </svg>
         <span>Tarix</span>
     </a>
-    {# Qarz (Epic 4) — placeholder for now. #}
-    <a href="#"
-       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs text-slate-300 cursor-not-allowed"
-       aria-label="Qarz"
-       aria-disabled="true"
-       title="Tez orada">
+    <a href="{{ debts_url }}"
+       class="flex flex-col items-center justify-center min-w-11 min-h-11 py-2 text-xs {% if request.path|slice:':10' == '/app/debts' %}text-emerald-600{% else %}text-slate-500{% endif %}"
+       aria-label="Qarz">
         <svg class="w-6 h-6"
              fill="none"
              stroke="currentColor"

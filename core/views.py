@@ -19,6 +19,7 @@ from accounts.exceptions import InvalidInitDataError
 from accounts.middleware import SESSION_KEY
 from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
+from debts.selectors import debt_status_summary
 from transactions.selectors import month_summary
 
 logger = logging.getLogger(__name__)
@@ -52,10 +53,22 @@ def home_content(request):
         return response
 
     summary = month_summary(user, currency=user.default_currency)
+    debts = debt_status_summary(user)
+    # Sof balans (FR Epic 4 Story 4.4): cash − borrowed + lent for the active
+    # display currency. Cross-currency debts are intentionally excluded — full
+    # multi-currency math lands with Epic 5.
+    lent_same_ccy = debts.lent_remaining_by_currency.get(user.default_currency, 0)
+    borrowed_same_ccy = debts.borrowed_remaining_by_currency.get(user.default_currency, 0)
+    net_balance = summary.cash_balance - borrowed_same_ccy + lent_same_ccy
     return render(
         request,
         "core/_balance_hero.html",
-        {"summary": summary, "user": user},
+        {
+            "summary": summary,
+            "user": user,
+            "debts": debts,
+            "net_balance": net_balance,
+        },
     )
 
 

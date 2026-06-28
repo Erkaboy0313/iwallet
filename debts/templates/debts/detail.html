@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% load core_extras %}
+{% load debts_extras %}
+{% block title %}Qarz tafsilotlari — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-6 pb-24">
+        <header class="flex items-center gap-3 mb-4">
+            <a href="{% url 'debts:list' %}?tab={{ debt.direction }}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Qarzlar ro'yxatiga qaytish">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Qarz tafsilotlari</h1>
+        </header>
+        <div class="bg-white rounded-2xl border border-slate-200 px-4 py-4">
+            <div class="flex items-center gap-3">
+                <span aria-hidden="true"
+                      class="w-12 h-12 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-base font-semibold">
+                    {{ debt.counterparty|initials }}
+                </span>
+                <div class="min-w-0">
+                    <p class="text-base font-semibold text-slate-900 truncate">{{ debt.counterparty }}</p>
+                    <p class="text-xs text-slate-500">
+                        {% if debt.direction == 'lent' %}
+                            Menga qarzdor
+                        {% else %}
+                            Men qarzdorman
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Asl summa</p>
+                    <p class="amount text-base font-semibold text-slate-900">{{ debt.original_amount|smart_money:debt.currency }}</p>
+                </div>
+                <div>
+                    <p class="text-xs uppercase tracking-wider text-slate-500">Qoldiq</p>
+                    <p class="amount text-base font-semibold text-amber-600">{{ debt.remaining_amount|smart_money:debt.currency }}</p>
+                </div>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Holat:
+                {% if debt.state == 'open' %}
+                    Ochiq
+                {% elif debt.state == 'partial' %}
+                    Qisman qaytarilgan
+                {% elif debt.state == 'closed' %}
+                    Yopilgan
+                {% else %}
+                    Bekor qilingan
+                    {% if debt.cancelled_reason %}({{ debt.cancelled_reason }}){% endif %}
+                {% endif %}
+            </p>
+            {% if debt.note %}<p class="mt-2 text-sm text-slate-700">{{ debt.note }}</p>{% endif %}
+        </div>
+        <!-- Timeline: original + repayments + close -->
+        <ol class="mt-6 space-y-3" aria-label="Qarz tarixi">
+            <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                <p class="text-xs text-slate-500">{{ debt.created_at|date:"j-N, H:i" }}</p>
+                <p class="text-sm text-slate-900">
+                    {% if debt.direction == 'lent' %}
+                        Berildi: <span class="amount font-medium">{{ debt.original_amount|smart_money:debt.currency }}</span>
+                    {% else %}
+                        Olindi: <span class="amount font-medium">{{ debt.original_amount|smart_money:debt.currency }}</span>
+                    {% endif %}
+                </p>
+            </li>
+            {% for r in repayments %}
+                <li class="bg-white rounded-2xl border border-slate-200 px-4 py-3">
+                    <p class="text-xs text-slate-500">{{ r.repaid_at|date:"j-N, H:i" }}</p>
+                    <p class="text-sm text-slate-900">
+                        Qaytarildi: <span class="amount font-medium text-emerald-700">{{ r.amount|smart_money:debt.currency }}</span>
+                    </p>
+                    {% if r.note %}<p class="mt-1 text-xs text-slate-500">{{ r.note }}</p>{% endif %}
+                </li>
+            {% endfor %}
+            {% if debt.state == 'closed' %}
+                <li class="bg-emerald-50 rounded-2xl border border-emerald-200 px-4 py-3">
+                    <p class="text-sm font-medium text-emerald-700">Qarz to'liq yopildi.</p>
+                </li>
+            {% elif debt.state == 'cancelled' %}
+                <li class="bg-amber-50 rounded-2xl border border-amber-200 px-4 py-3">
+                    <p class="text-sm font-medium text-amber-700">Qarz bekor qilindi.</p>
+                </li>
+            {% endif %}
+        </ol>
+        {% if debt.is_active %}
+            <div class="mt-6">
+                <button type="button"
+                        hx-get="{% url 'debts:close_form' debt.id %}"
+                        hx-target="#close-form-slot"
+                        hx-swap="innerHTML"
+                        class="btn-primary w-full"
+                        aria-label="Qarzni yopish">Yopish / qaytarish</button>
+            </div>
+            <div id="close-form-slot"></div>
+        {% endif %}
+    </section>
+{% endblock %}
