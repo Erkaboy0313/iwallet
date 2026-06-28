@@ -31,7 +31,7 @@ def test_weekly_requires_auth() -> None:
 @pytest.mark.django_db
 def test_weekly_renders_chrome_and_charts_when_data_present() -> None:
     user = _user(810)
-    TransactionFactory(user=user, type="expense", amount=Decimal("500"))
+    TransactionFactory(user=user, type="expense", amount=Decimal("500"), date=timezone.localdate())
     client = Client()
     init = _make_init_data(user_id=810)
 
