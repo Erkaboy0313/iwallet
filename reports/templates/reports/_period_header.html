@@ -1,0 +1,77 @@
+{# Shared chrome: tab pills + period nav arrows. Reused across all 3 reports. #}
+<header style="display: flex;
+               align-items: center;
+               gap: 12px;
+               margin-bottom: 8px">
+    <a href="{% url 'core:home' %}"
+       class="text-slate-500 hover:text-slate-900"
+       style="padding: 4px 8px"
+       aria-label="Uyga qaytish">←</a>
+    <h1 class="text-xl font-semibold text-slate-900">Hisobot</h1>
+</header>
+<nav style="display: flex;
+            gap: 8px;
+            margin-bottom: 12px"
+     role="tablist"
+     aria-label="Davr tanlash">
+    {% for tab in tabs %}
+        <a href="{{ tab.url }}"
+           class="px-3 py-1.5 rounded-full text-xs font-medium {% if tab.is_active %}bg-emerald-600 text-white{% else %}bg-slate-100 text-slate-700{% endif %}"
+           role="tab"
+           aria-selected="{% if tab.is_active %}true{% else %}false{% endif %}"
+           style="white-space: nowrap">{{ tab.label }}</a>
+    {% endfor %}
+</nav>
+<div style="display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 12px">
+    <a href="{{ nav.prev_url }}"
+       class="text-slate-600 hover:text-slate-900"
+       style="padding: 6px 10px;
+              background:#f1f5f9;
+              border-radius:9999px;
+              font-size:12px"
+       aria-label="Avvalgi davr">←</a>
+    <div style="flex: 1; text-align: center">
+        <p class="text-sm font-medium text-slate-900">{{ period_label }}</p>
+        {% if not nav.is_current_week and not nav.is_current_month and not nav.is_current_year %}
+            <a href="{{ nav.current_url }}"
+               class="text-xs text-emerald-600 underline-offset-4 hover:underline"
+               aria-label="Joriy davrga qaytish">Joriy</a>
+        {% else %}
+            <p class="text-[10px] uppercase tracking-wider text-slate-400">Joriy</p>
+        {% endif %}
+    </div>
+    <a href="{{ nav.next_url }}"
+       class="text-slate-600 hover:text-slate-900"
+       style="padding: 6px 10px;
+              background:#f1f5f9;
+              border-radius:9999px;
+              font-size:12px"
+       aria-label="Keyingi davr">→</a>
+</div>
+<div style="display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px">
+    <a href="{{ toggle_debts_url }}"
+       class="text-xs px-3 py-1.5 rounded-full {% if include_debts %}bg-amber-100 text-amber-800{% else %}bg-slate-100 text-slate-600{% endif %}"
+       aria-pressed="{% if include_debts %}true{% else %}false{% endif %}"
+       aria-label="Qarzlarni hisoblash">
+        {% if include_debts %}
+            Qarzlar yoqilgan
+        {% else %}
+            Qarzlarni qo'shish
+        {% endif %}
+    </a>
+    <span class="text-xs text-slate-500">{{ display_currency }}</span>
+</div>
+{% if not summary.is_fully_supported %}
+    <p class="text-xs text-amber-700"
+       style="background:#fef3c7;
+              border-radius:8px;
+              padding:8px 10px;
+              margin-bottom:12px">Ba'zi valyutalar uchun kurs topilmadi — qisman ko'rsatildi.</p>
+{% endif %}
