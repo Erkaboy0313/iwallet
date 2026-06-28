@@ -1,0 +1,14 @@
+{# Story 2.4 — standalone confirm page (rarely entered directly; htmx swaps the partial). #}
+{% extends 'base.html' %}
+{% block title %}Tranzaksiyani tasdiqlash — IWALLET{% endblock %}
+{% block content %}
+    <section class="px-5 pt-5 pb-32">
+        <header class="flex items-center gap-3 mb-5">
+            <a href="{% url 'core:home' %}"
+               class="text-slate-500 hover:text-slate-900 px-2 py-1"
+               aria-label="Bekor qilish va orqaga qaytish">←</a>
+            <h1 class="text-xl font-semibold text-slate-900">Tasdiqlang</h1>
+        </header>
+        <div id="voice-confirm-area">{% include 'voice/_confirm_partial.html' %}</div>
+    </section>
+{% endblock %}

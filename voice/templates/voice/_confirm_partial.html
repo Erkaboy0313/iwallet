@@ -1,0 +1,184 @@
+{# Story 2.4 — confirm partial. Swapped into #voice-confirm-area on transcribe success. #}
+{% load voice_extras %}
+{% if drafts %}
+    {% for draft in drafts %}
+        <div class="card-default mt-4"
+             style="border: {% if draft.is_uncertain %}2px solid #f59e0b{% else %}1px solid #e2e8f0{% endif %};
+                    border-radius: 24px"
+             x-data="voiceDraftCard({{ forloop.counter0 }}, {% draft_payload_json draft %}, '{% url 'voice:save' %}')">
+            <div class="flex items-start justify-between mb-4">
+                <button type="button"
+                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 text-sm font-medium text-slate-800"
+                        aria-label="Kategoriya tanlash"
+                        @click="editField('category')">
+                    <span aria-hidden="true" x-text="display.emoji"></span>
+                    <span x-text="display.categoryName"></span>
+                </button>
+                <span class="text-xs px-2 py-1 rounded-full bg-slate-100 text-slate-600"
+                      x-text="display.typeLabel"></span>
+            </div>
+            <div class="mb-4">
+                <button type="button"
+                        class="amount text-left font-bold tabular-nums text-slate-900"
+                        style="font-size: 44px;
+                               line-height: 1.1"
+                        aria-label="Summa tahrirlash"
+                        @click="editField('amount')">
+                    <span x-text="display.amountFormatted"></span>
+                </button>
+                <button type="button"
+                        class="ml-2 px-2 py-1 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
+                        aria-label="Valyuta tanlash"
+                        @click="editField('currency')">
+                    <span x-text="draft.currency"></span>
+                </button>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap mb-3">
+                <button type="button"
+                        class="px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
+                        aria-label="Sana tanlash"
+                        @click="editField('date')">📅 <span x-text="draft.date"></span></button>
+                <template x-if="draft.type === 'debt_lent' || draft.type === 'debt_borrowed'">
+                    <button type="button"
+                            class="px-3 py-1.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700"
+                            aria-label="Kim bilan"
+                            @click="editField('counterparty')">👤 <span x-text="draft.counterparty || 'kim bilan?'"></span></button>
+                </template>
+                <template x-if="draft.note">
+                    <span class="px-3 py-1.5 rounded-full bg-slate-50 text-xs text-slate-600"
+                          x-text="draft.note"></span>
+                </template>
+            </div>
+            {% if draft.is_uncertain %}
+                <div class="text-xs text-amber-700 flex items-start gap-1 mt-2">
+                    <span aria-hidden="true">⚠</span>
+                    <span>Quyidagi maydonlarni tekshiring:
+                        <span class="font-medium" x-text="ambiguousLabels"></span> — noaniq, to'g'rilang.</span>
+                    </div>
+                {% endif %}
+                <div class="mt-4 grid grid-cols-2 gap-3"
+                     style="position: sticky;
+                            bottom: 0;
+                            background: white;
+                            padding-top: 8px">
+                    <button type="button"
+                            class="btn-secondary"
+                            aria-label="Bekor qilish"
+                            @click="cancel()">Bekor qilish</button>
+                    <button type="button"
+                            class="btn-primary"
+                            aria-label="Tranzaksiyani saqlash"
+                            :disabled="!canSave || saving"
+                            @click="save()">
+                        <span x-show="!saving">Saqlash</span>
+                        <span x-show="saving">Saqlanmoqda…</span>
+                    </button>
+                </div>
+            </div>
+        {% endfor %}
+    {% endif %}
+    <script>
+(function () {
+    if (window.__voiceDraftCardRegistered) return;
+    window.__voiceDraftCardRegistered = true;
+    var TYPE_LABELS = { expense: "Chiqim", income: "Kirim", debt_lent: "Qarz berdim", debt_borrowed: "Qarz oldim" };
+    function formatAmount(value) {
+        var n = Number(value);
+        if (!isFinite(n)) return value;
+        return n.toLocaleString("uz-UZ", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    }
+    function register() {
+        if (!window.Alpine) return setTimeout(register, 30);
+        window.Alpine.data("voiceDraftCard", function (idx, initial, saveUrl) {
+            return {
+                idx: idx,
+                draft: Object.assign({}, initial),
+                ambiguousFields: (initial.ambiguous_fields || []).slice(),
+                touched: {},
+                saving: false,
+                init() {
+                    this.recalcDisplay();
+                },
+                get canSave() {
+                    if (this.ambiguousFields.length === 0) return true;
+                    return this.ambiguousFields.every((f) => this.touched[f]);
+                },
+                get ambiguousLabels() {
+                    var L = { amount: "summa", currency: "valyuta", category_slug: "kategoriya", date: "sana", counterparty: "kim bilan", confidence: "umumiy aniqlik" };
+                    return this.ambiguousFields.map((f) => L[f] || f).join(", ");
+                },
+                get display() {
+                    return this._display;
+                },
+                recalcDisplay() {
+                    this._display = {
+                        emoji: this.draft.emoji || "📁",
+                        categoryName: this.draft.category_name || this.draft.category_slug || "Kategoriya",
+                        typeLabel: TYPE_LABELS[this.draft.type] || this.draft.type,
+                        amountFormatted: formatAmount(this.draft.amount),
+                    };
+                },
+                editField(field) {
+                    this.touched[field] = true;
+                    var current = this.draft[field];
+                    var prompt = window.prompt("Yangi qiymat (" + field + "):", current == null ? "" : String(current));
+                    if (prompt === null) return;
+                    if (field === "amount") {
+                        var n = Number(prompt.replace(/[^0-9.]/g, ""));
+                        if (!isFinite(n) || n <= 0) return;
+                        this.draft.amount = n.toFixed(2);
+                    } else if (field === "currency") {
+                        this.draft.currency = prompt.toUpperCase();
+                    } else if (field === "date") {
+                        this.draft.date = prompt;
+                    } else {
+                        this.draft[field] = prompt;
+                    }
+                    this.recalcDisplay();
+                },
+                cancel() {
+                    var host = document.getElementById("voice-confirm-area");
+                    if (host) host.innerHTML = "";
+                },
+                async save() {
+                    if (!this.canSave || this.saving) return;
+                    this.saving = true;
+                    var fd = new FormData();
+                    fd.append("payload", JSON.stringify(this.draft));
+                    var headers = {};
+                    try {
+                        var initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || "";
+                        if (initData) headers["X-Telegram-InitData"] = initData;
+                    } catch (e) { /* noop */ }
+                    try {
+                        var resp = await fetch(saveUrl, { method: "POST", body: fd, headers: headers, credentials: "same-origin" });
+                        var redirect = resp.headers.get("HX-Redirect");
+                        var trig = resp.headers.get("HX-Trigger");
+                        if (trig) {
+                            try {
+                                var t = JSON.parse(trig);
+                                if (t.toast) {
+                                    var root = document.querySelector("body");
+                                    if (root && root._x_dataStack && root._x_dataStack[0]) {
+                                        root._x_dataStack[0].toast = t.toast;
+                                        setTimeout(() => { if (root._x_dataStack[0]) root._x_dataStack[0].toast = null; }, 3000);
+                                    }
+                                }
+                            } catch (e) { /* noop */ }
+                        }
+                        if (resp.ok && redirect) {
+                            window.location.href = redirect;
+                            return;
+                        }
+                    } catch (e) {
+                        /* swallow — toast already covered */
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+            };
+        });
+    }
+    register();
+})();
+    </script>
