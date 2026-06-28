@@ -1,3 +1,6 @@
+# Claude Code agent worktrees + transcripts
+.claude/
+
 # Python
 __pycache__/
 *.py[cod]
