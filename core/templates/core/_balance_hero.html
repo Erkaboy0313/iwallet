@@ -1,7 +1,18 @@
 {% load core_extras %}
+{% comment %}
+Home BalanceHero — Sprint v0.6 §2 redesign. One scope, one purpose: the
+month at a glance. Top categories carry proportional bars, inflow/outflow
+have sparklines + month-over-month delta, the big balance card shows
+MoM direction. Voice CTA moved off Home into the Add page entirely.
+{% endcomment %}
 {% include 'currencies/_stale_banner.html' %}
-<section class="px-5 pt-6">
-    <header class="flex items-center justify-between mb-4">
+<section style="padding: 16px 20px 0">
+    {# Header: settings (adjustments) icon + currency switcher. #}
+    <header style="display: flex;
+                   align-items: center;
+                   justify-content: space-between;
+                   min-height: 44px;
+                   margin-bottom: 16px">
         <a href="{% url 'core:settings_hub' %}"
            aria-label="Sozlamalar"
            style="display: inline-flex;
@@ -9,188 +20,307 @@
                   justify-content: center;
                   width: 44px;
                   height: 44px;
-                  color: #94A3B8;
+                  color: var(--color-text-secondary);
                   text-decoration: none">
-            <svg style="width: 22px;
-                        height: 22px"
+            <svg width="22"
+                 height="22"
                  fill="none"
                  stroke="currentColor"
                  stroke-width="1.8"
                  viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
             </svg>
         </a>
         {% include 'currencies/_switcher.html' %}
     </header>
+    {# Quote card — UX §3.1 treatment lives in quotes/_quote_card.html. #}
     {% include 'quotes/_quote_card.html' with quote=quote %}
-    {% if forced_raw_no_rates %}
-        <div role="status"
-             aria-live="polite"
-             style="margin-bottom: 16px;
-                    padding: 12px 14px;
-                    border-radius: 14px;
-                    border: 1px solid #fde68a;
-                    background-color: #fffbeb;
-                    color: #92400e;
-                    font-size: 13px;
-                    line-height: 1.45">
-            <strong>Kurslar hali yuklanmagan.</strong>
-            Aylantirish o'rniga mahalliy valyutalarda ko'rsatilyapti.
-            CBU.uz kurslari kelishi bilan {{ display_currency }} bo'yicha balans avtomatik ko'rinadi.
-        </div>
-    {% endif %}
-    {# Inflow / Outflow side-by-side. Phase 1, UX §3.2/§3.3. #}
-    <div class="grid grid-cols-2 gap-3 mb-3 iw-enter iw-enter-1">
+    {# Inflow / Outflow side-by-side cards with sparkline + MoM delta. #}
+    <div class="iw-enter iw-enter-1"
+         style="display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 12px">
+        {# Inflow #}
         <a href="{% url 'transactions:history' %}?type=income"
            aria-label="Kirimlar tarixini ko'rish"
            style="display: block;
                   padding: 14px;
                   border-radius: 14px;
-                  background-color: #ECFDF5;
-                  text-decoration: none;
-                  transition: transform 120ms ease-out">
+                  background: var(--color-inflow-surface);
+                  text-decoration: none">
             <div style="display: flex;
                         align-items: center;
-                        gap: 6px;
-                        margin-bottom: 6px">
-                <span aria-hidden="true" style="font-size: 14px">↗</span>
-                <span style="font-size: 10px;
+                        justify-content: space-between;
+                        margin-bottom: 8px">
+                <span style="display: inline-flex;
+                             align-items: center;
+                             gap: 6px;
+                             font-size: 10px;
+                             font-weight: 600;
                              letter-spacing: 0.06em;
                              text-transform: uppercase;
-                             color: rgba(4, 120, 87, 0.7);
-                             font-weight: 600">Kirim</span>
+                             color: var(--color-inflow-text);
+                             opacity: 0.75">
+                    <svg width="14"
+                         height="14"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
+                    </svg>
+                    Kirim
+                </span>
             </div>
-            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                <p class="amount"
-                   style="font-size: 18px;
-                          font-weight: 600;
-                          color: #047857;
-                          margin: 0">{{ aggregated.total_income|smart_money:display_currency }}</p>
-            {% else %}
-                <p class="amount"
-                   style="font-size: 18px;
-                          font-weight: 600;
-                          color: #047857;
-                          margin: 0">{{ summary.inflow_total|smart_money:summary.currency }}</p>
+            {% sparkline_path inflow_series as inflow_path %}
+            {% if inflow_path %}
+                <svg width="100%"
+                     height="32"
+                     viewBox="0 0 100 32"
+                     preserveAspectRatio="none"
+                     style="margin-bottom: 6px;
+                            display: block"
+                     aria-hidden="true">
+                    <path d="{{ inflow_path }}" fill="none" stroke="var(--color-inflow-icon)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
             {% endif %}
+            <p class="amount"
+               style="font-size: 18px;
+                      font-weight: 600;
+                      color: var(--color-inflow-text);
+                      margin: 0">
+                {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                    {{ aggregated.total_income|smart_money:display_currency }}
+                {% else %}
+                    {{ summary.inflow_total|smart_money:summary.currency }}
+                {% endif %}
+            </p>
         </a>
+        {# Outflow #}
         <a href="{% url 'transactions:history' %}?type=expense"
            aria-label="Chiqimlar tarixini ko'rish"
            style="display: block;
                   padding: 14px;
                   border-radius: 14px;
-                  background-color: #FEF2F2;
-                  text-decoration: none;
-                  transition: transform 120ms ease-out">
+                  background: var(--color-outflow-surface);
+                  text-decoration: none">
             <div style="display: flex;
                         align-items: center;
-                        gap: 6px;
-                        margin-bottom: 6px">
-                <span aria-hidden="true" style="font-size: 14px">↘</span>
-                <span style="font-size: 10px;
+                        justify-content: space-between;
+                        margin-bottom: 8px">
+                <span style="display: inline-flex;
+                             align-items: center;
+                             gap: 6px;
+                             font-size: 10px;
+                             font-weight: 600;
                              letter-spacing: 0.06em;
                              text-transform: uppercase;
-                             color: rgba(190, 18, 60, 0.7);
-                             font-weight: 600">Chiqim</span>
+                             color: var(--color-outflow-text);
+                             opacity: 0.75">
+                    <svg width="14"
+                         height="14"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
+                    </svg>
+                    Chiqim
+                </span>
             </div>
-            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                <p class="amount"
-                   style="font-size: 18px;
-                          font-weight: 600;
-                          color: #BE123C;
-                          margin: 0">{{ aggregated.total_expense|smart_money:display_currency }}</p>
-            {% else %}
-                <p class="amount"
-                   style="font-size: 18px;
-                          font-weight: 600;
-                          color: #BE123C;
-                          margin: 0">{{ summary.outflow_total|smart_money:summary.currency }}</p>
+            {% sparkline_path outflow_series as outflow_path %}
+            {% if outflow_path %}
+                <svg width="100%"
+                     height="32"
+                     viewBox="0 0 100 32"
+                     preserveAspectRatio="none"
+                     style="margin-bottom: 6px;
+                            display: block"
+                     aria-hidden="true">
+                    <path d="{{ outflow_path }}" fill="none" stroke="var(--color-outflow-icon)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
             {% endif %}
+            <p class="amount"
+               style="font-size: 18px;
+                      font-weight: 600;
+                      color: var(--color-outflow-text);
+                      margin: 0">
+                {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                    {{ aggregated.total_expense|smart_money:display_currency }}
+                {% else %}
+                    {{ summary.outflow_total|smart_money:summary.currency }}
+                {% endif %}
+            </p>
         </a>
     </div>
-    {# Big balance card. UX §3.4. #}
+    {# Big balance card. Subtle gradient + elevated shadow + MoM delta line. #}
     <div class="iw-enter iw-enter-2"
          style="padding: 20px;
                 border-radius: 18px;
-                border: 1px solid rgba(15, 23, 42, 0.08);
-                background: linear-gradient(180deg, #FFFFFF 0%, #F4F6F2 140%);
-                box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06)">
+                border: 1px solid var(--color-border);
+                background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-gradient-stop) 140%);
+                box-shadow: var(--shadow-elevated)">
         <p style="font-size: 10px;
                   letter-spacing: 0.06em;
                   text-transform: uppercase;
-                  color: #64748B;
+                  color: var(--color-text-muted);
+                  font-weight: 600;
                   margin: 0 0 8px">Sof balans</p>
-        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-            <p class="amount"
-               aria-live="polite"
-               style="font-size: 36px;
-                      font-weight: 700;
-                      color: #0B1220;
-                      margin: 0;
-                      line-height: 1.1">{{ aggregated.cash_balance|smart_money:display_currency }}</p>
-            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">≈ {{ display_currency|currency_label }} bo'yicha</p>
-        {% else %}
-            <p class="amount"
-               aria-live="polite"
-               style="font-size: 36px;
-                      font-weight: 700;
-                      color: #0B1220;
-                      margin: 0;
-                      line-height: 1.1">{{ summary.cash_balance|smart_money:summary.currency }}</p>
-            <p style="font-size: 12px; color: #94A3B8; margin: 8px 0 0">Iyun 2026 · {{ summary.currency }}</p>
-        {% endif %}
-    </div>
-    {# Mixed-currency / breakdown row stays as a folded section below. #}
-    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported and aggregated.per_currency|length > 1 %}
-        <div class="mt-4">
-            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Manba valyutalar</p>
-            <ul class="space-y-2">
-                {% for row in aggregated.per_currency %}
-                    <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
-                        <span class="text-xs text-slate-500">{{ row.currency }}</span>
-                        <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% elif other_currency_summaries %}
-        <div class="mt-4">
-            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Boshqa valyutalar</p>
-            <ul class="space-y-2">
-                {% for row in other_currency_summaries %}
-                    <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
-                        <span class="text-xs text-slate-500">{{ row.currency }}</span>
-                        <span class="amount text-sm font-medium text-slate-900">{{ row.cash_balance|smart_money:row.currency }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% endif %}
-    {# Top categories. UX §3 — unchanged section. #}
-    {% if summary.top_categories %}
-        <div class="mt-6">
-            <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Eng ko'p sarflandi</p>
-            <ul class="space-y-2">
-                {% for cat in summary.top_categories %}
-                    <li class="flex items-center justify-between bg-white rounded-2xl px-4 py-3 border border-slate-200">
-                        <span class="flex items-center gap-2">
-                            <span aria-hidden="true">{{ cat.emoji }}</span>
-                            <span class="text-sm text-slate-700">{{ cat.name }}</span>
-                        </span>
-                        <span class="amount text-sm font-medium text-slate-900">{{ cat.total|smart_money:summary.currency }}</span>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    {% else %}
-        <p class="mt-6 text-center text-sm text-slate-500">
-            {% if summary.is_empty %}
-                Birinchi tranzaksiyangizni qo'shing.
+        <p class="amount"
+           aria-live="polite"
+           style="font-size: 36px;
+                  font-weight: 700;
+                  color: var(--color-text);
+                  margin: 0;
+                  line-height: 1.1">
+            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                {{ aggregated.cash_balance|smart_money:display_currency }}
             {% else %}
-                Kategoriya tanlangan tranzaksiya hali yo'q.
+                {{ summary.cash_balance|smart_money:summary.currency }}
             {% endif %}
         </p>
+        <p style="font-size: 12px;
+                  color: var(--color-text-muted);
+                  margin: 8px 0 0">
+            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                ≈ {{ display_currency|currency_label }} bo'yicha
+            {% else %}
+                Joriy oy · {{ summary.currency }}
+            {% endif %}
+        </p>
+        {% if mom_delta.has_previous %}
+            <p style="display: flex;
+                      align-items: center;
+                      gap: 4px;
+                      margin: 10px 0 0;
+                      font-size: 12px;
+                      color: {% if mom_delta.direction == 'up' %}var(--color-primary){% elif mom_delta.direction == 'down' %}var(--color-outflow-text){% else %}var(--color-text-muted){% endif %}">
+                {% if mom_delta.direction == 'up' %}
+                    <span aria-hidden="true">▴</span>
+                {% elif mom_delta.direction == 'down' %}
+                    <span aria-hidden="true">▾</span>
+                {% else %}
+                    <span aria-hidden="true">–</span>
+                {% endif %}
+                <span>Avvalgi oydan
+                    {% if mom_delta.direction != 'flat' %}
+                        {% if mom_delta.delta < 0 %}
+                            {{ mom_delta.delta|stringformat:'s'|cut:'-'|add:'0'|smart_money:summary.currency }} pastroq
+                        {% else %}
+                            {{ mom_delta.delta|smart_money:summary.currency }} yuqori
+                        {% endif %}
+                    {% else %}
+                        o'zgarmadi
+                    {% endif %}
+                </span>
+            </p>
+        {% endif %}
+    </div>
+    {# Mixed-currency / breakdown row (raw fallback when other currencies exist). #}
+    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported and aggregated.per_currency|length > 1 %}
+        <div style="margin-top: 16px">
+            <p style="font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600;
+                      margin: 0 0 8px">Manba valyutalar</p>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+                {% for row in aggregated.per_currency %}
+                    <div style="display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 12px 16px;
+                                background: var(--color-surface);
+                                border-radius: 14px;
+                                border: 1px solid var(--color-border)">
+                        <span style="font-size: 12px; color: var(--color-text-muted)">{{ row.currency }}</span>
+                        <span class="amount"
+                              style="font-size: 14px;
+                                     font-weight: 600;
+                                     color: var(--color-text)">{{ row.cash_balance|smart_money:row.currency }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% elif other_currency_summaries %}
+        <div style="margin-top: 16px">
+            <p style="font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600;
+                      margin: 0 0 8px">Boshqa valyutalar</p>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+                {% for row in other_currency_summaries %}
+                    <div style="display: flex;
+                                justify-content: space-between;
+                                align-items: center;
+                                padding: 12px 16px;
+                                background: var(--color-surface);
+                                border-radius: 14px;
+                                border: 1px solid var(--color-border)">
+                        <span style="font-size: 12px; color: var(--color-text-muted)">{{ row.currency }}</span>
+                        <span class="amount"
+                              style="font-size: 14px;
+                                     font-weight: 600;
+                                     color: var(--color-text)">{{ row.cash_balance|smart_money:row.currency }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
     {% endif %}
-    {# Voice CTA lives inside the Add transaction form now (Eric's spec). #}
+    {# Top expense categories with proportional bars. #}
+    {% if summary.top_categories %}
+        <div style="margin-top: 24px">
+            <p style="font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600;
+                      margin: 0 0 8px">Eng ko'p sarflandi</p>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+                {% for cat in summary.top_categories %}
+                    <div style="position: relative;
+                                padding: 12px 16px;
+                                background: var(--color-surface);
+                                border-radius: 14px;
+                                border: 1px solid var(--color-border);
+                                overflow: hidden">
+                        <div aria-hidden="true"
+                             style="position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    height: 100%;
+                                    width: {{ cat.share_pct|floatformat:0 }}%;
+                                    background: linear-gradient(90deg, var(--color-primary-light) 0%, rgba(209,250,229,0) 100%);
+                                    pointer-events: none"></div>
+                        <div style="position: relative;
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between">
+                            <span style="display: inline-flex; align-items: center; gap: 8px">
+                                <span aria-hidden="true">{{ cat.emoji }}</span>
+                                <span style="font-size: 14px; color: var(--color-text)">{{ cat.name }}</span>
+                            </span>
+                            <span class="amount"
+                                  style="font-size: 14px;
+                                         font-weight: 600;
+                                         color: var(--color-text)">{{ cat.total|smart_money:summary.currency }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% elif summary.is_empty %}
+        {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing — pastdagi yashil + tugmasini bosing.' %}
+    {% else %}
+        <p style="margin-top: 16px;
+                  text-align: center;
+                  font-size: 14px;
+                  color: var(--color-text-muted)">Kategoriya tanlangan tranzaksiya hali yo'q.</p>
+    {% endif %}
 </section>

@@ -22,6 +22,28 @@ THIN_SPACE = " "
 ONE_MILLION = Decimal("1000000")
 
 
+@register.simple_tag()
+def sparkline_path(series, width: int = 100, height: int = 32) -> str:
+    """Build an SVG <path d="..."> for an inline sparkline.
+
+    series: iterable of DailyAmount or any object with an `amount` attribute.
+    Returns the path command string ("M0,32 L7,18 …") — caller wraps in SVG.
+    Empty / all-zero series collapses to a flat baseline.
+    """
+    values = [float(getattr(item, "amount", 0) or 0) for item in (series or [])]
+    if not values:
+        return ""
+    peak = max(values) or 1.0
+    n = len(values)
+    step = width / max(n - 1, 1)
+    coords = []
+    for i, v in enumerate(values):
+        x = i * step
+        y = height - (v / peak) * (height - 2) - 1  # 1px top/bottom inset
+        coords.append(f"{x:.1f},{y:.1f}")
+    return "M" + " L".join(coords)
+
+
 @register.filter(name="smart_money")
 def smart_money(value, currency: str = "UZS") -> str:
     """Render an amount with thin-space groups + optional `mln` collapsing.

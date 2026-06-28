@@ -17,6 +17,23 @@ class TopCategory:
     name: str
     emoji: str
     total: Decimal
+    share_pct: float = 0.0  # 0..100, share of this month's total expense.
+
+
+@dataclass(frozen=True)
+class DailyAmount:
+    day: date
+    amount: Decimal
+
+
+@dataclass(frozen=True)
+class CashFlowDelta:
+    """Month-over-month cash position delta (Sprint v0.6 §2.4 Home delta line)."""
+
+    previous_balance: Decimal
+    delta: Decimal  # current_balance - previous_balance
+    direction: str  # "up" / "down" / "flat"
+    has_previous: bool  # False on the first month of activity → caller hides the row.
 
 
 @dataclass(frozen=True)
@@ -79,12 +96,16 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
         .annotate(total=Sum("amount"))
         .order_by("-total")[:3]
     )
+    # share_pct is each row's % of the month's full expense total — drives the
+    # proportional bar Sally specced for the Eng ko'p sarflandi list.
+    top_max = top_qs[0]["total"] if top_qs else Decimal("0")
     top = [
         TopCategory(
             slug=row["category__slug"],
             name=row["category__name"],
             emoji=row["category__emoji"],
             total=row["total"],
+            share_pct=float(row["total"]) / float(top_max) * 100 if top_max else 0.0,
         )
         for row in top_qs
     ]
@@ -100,6 +121,83 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
         currency=currency,
         top_categories=top,
         transaction_count=qs.count(),
+    )
+
+
+def daily_flow_series(
+    user: User,
+    currency: str,
+    *,
+    days: int = 14,
+    today: date | None = None,
+) -> tuple[list[DailyAmount], list[DailyAmount]]:
+    """Per-day inflow + outflow for the last `days` days, oldest first.
+
+    Drives the sparklines on the Home inflow/outflow cards (Sprint v0.6 §2.4).
+    Returns (inflow_series, outflow_series) — both length `days`, zero-filled
+    for days without activity so the SVG x-axis is uniform.
+    """
+    today = today or date.today()
+    start = today - timedelta(days=days - 1)
+    qs = (
+        Transaction.objects.for_user(user)
+        .in_period(start, today)
+        .filter(currency=currency)
+        .values("date", "type")
+        .annotate(total=Sum("amount"))
+    )
+    in_by_day: dict[date, Decimal] = {}
+    out_by_day: dict[date, Decimal] = {}
+    for row in qs:
+        d = row["date"]
+        amount = row["total"] or Decimal("0")
+        if row["type"] in {"income", "debt_borrowed"}:
+            in_by_day[d] = in_by_day.get(d, Decimal("0")) + amount
+        elif row["type"] in {"expense", "debt_lent"}:
+            out_by_day[d] = out_by_day.get(d, Decimal("0")) + amount
+
+    inflow_series: list[DailyAmount] = []
+    outflow_series: list[DailyAmount] = []
+    for offset in range(days):
+        d = start + timedelta(days=offset)
+        inflow_series.append(DailyAmount(day=d, amount=in_by_day.get(d, Decimal("0"))))
+        outflow_series.append(DailyAmount(day=d, amount=out_by_day.get(d, Decimal("0"))))
+    return inflow_series, outflow_series
+
+
+def month_over_month_delta(
+    user: User,
+    currency: str,
+    *,
+    today: date | None = None,
+) -> CashFlowDelta:
+    """Compare this month's cash position vs last month's same selector.
+
+    Used by the Home big-balance card's delta caption (Sprint v0.6 §2.4).
+    """
+    today = today or date.today()
+    last_month_anchor = (today.replace(day=1) - timedelta(days=1)).replace(day=15)
+    current = month_summary(user, currency, today=today)
+    previous = month_summary(user, currency, today=last_month_anchor)
+    delta = current.cash_balance - previous.cash_balance
+    if previous.is_empty:
+        return CashFlowDelta(
+            previous_balance=Decimal("0"),
+            delta=Decimal("0"),
+            direction="flat",
+            has_previous=False,
+        )
+    if delta > 0:
+        direction = "up"
+    elif delta < 0:
+        direction = "down"
+    else:
+        direction = "flat"
+    return CashFlowDelta(
+        previous_balance=previous.cash_balance,
+        delta=delta,
+        direction=direction,
+        has_previous=True,
     )
 
 

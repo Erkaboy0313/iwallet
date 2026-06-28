@@ -32,7 +32,7 @@ from debts.selectors import debt_status_summary
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
 from quotes.services import SESSION_HIDE_TODAY, dismiss_forever, reenable
-from transactions.selectors import month_summary
+from transactions.selectors import daily_flow_series, month_over_month_delta, month_summary
 
 logger = logging.getLogger(__name__)
 INIT_DATA_HEADER = "X-Telegram-InitData"
@@ -114,6 +114,12 @@ def home_content(request):
 
     quote = None if request.session.get(SESSION_HIDE_TODAY) else quote_of_the_day(user)
 
+    # Sprint v0.6 §2.4: sparklines + MoM delta. We compute these for the raw
+    # currency only; the converted-mode view shows aggregated amounts but
+    # still uses the user's default currency for the trend signals.
+    inflow_series, outflow_series = daily_flow_series(user, display_currency)
+    mom_delta = month_over_month_delta(user, display_currency)
+
     return render(
         request,
         "core/_balance_hero.html",
@@ -131,6 +137,9 @@ def home_content(request):
             "rates_stale_date": rates_stale_date,
             "forced_raw_no_rates": forced_raw_no_rates,
             "quote": quote,
+            "inflow_series": inflow_series,
+            "outflow_series": outflow_series,
+            "mom_delta": mom_delta,
         },
     )
 

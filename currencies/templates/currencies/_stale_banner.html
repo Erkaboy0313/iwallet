@@ -1,26 +1,55 @@
-{% if rates_stale_days > 1 %}
+{% comment %}
+Compact stale-rates banner (Sprint v0.6 §2.4). Single line, dismissible per
+session via Alpine; only renders when the latest rate is >1 day old.
+{% endcomment %}
+{% if rates_stale_days and rates_stale_days > 1 %}
     <div x-data="{ shown: true }"
          x-show="shown"
          x-cloak
-         class="px-5 pt-3"
          role="status"
-         aria-live="polite">
-        <div class="rounded-2xl border border-amber-200 bg-amber-50 text-amber-900 flex items-start gap-3"
-             style="padding: 10px 12px">
-            <span aria-hidden="true" style="font-size: 16px; line-height: 1;">💱</span>
-            <div class="flex-1 text-xs leading-relaxed">
-                Valyuta kursi {{ rates_stale_days }} kun eski.
-                Tranzaksiyalar normal saqlanmoqda.
-                {% if rates_stale_date %}
-                    <span class="opacity-70">(oxirgi kurs: {{ rates_stale_date|date:"Y-m-d" }})</span>
-                {% endif %}
-            </div>
-            <button type="button"
-                    @click="shown = false"
-                    class="text-amber-700 hover:text-amber-900"
-                    aria-label="Banner'ni yopish"
-                    style="line-height: 1;
-                           font-size: 16px">×</button>
-        </div>
+         aria-live="polite"
+         style="display: flex;
+                align-items: center;
+                gap: 8px;
+                margin: 0 20px 12px;
+                padding: 10px 12px;
+                border-radius: 12px;
+                background: #FEF3C7;
+                border: 1px solid #FDE68A;
+                color: #92400E;
+                font-size: 13px">
+        <svg width="16"
+             height="16"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="1.8"
+             viewBox="0 0 24 24"
+             aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+        </svg>
+        <span style="flex: 1">Valyuta kursi {{ rates_stale_days }} kun eski. Tranzaksiyalar normal saqlanmoqda.</span>
+        <button type="button"
+                @click="shown = false"
+                aria-label="Banner'ni yopish"
+                style="display: inline-flex;
+                       align-items: center;
+                       justify-content: center;
+                       width: 32px;
+                       height: 32px;
+                       background: transparent;
+                       border: 0;
+                       color: #92400E;
+                       cursor: pointer;
+                       border-radius: 9999px">
+            <svg width="14"
+                 height="14"
+                 fill="none"
+                 stroke="currentColor"
+                 stroke-width="2"
+                 viewBox="0 0 24 24"
+                 aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
     </div>
 {% endif %}
