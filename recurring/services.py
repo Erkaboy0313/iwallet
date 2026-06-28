@@ -393,9 +393,29 @@ def dispatch_one(
     )
     fired_on = locked.next_dispatch_at
     mark_dispatched(locked, fired_on=fired_on)
-    # TODO(Epic 9): enqueue a Notification log row + bot push call here so the
-    # user gets pinged about each fire. The Notification stub model is wired
-    # in notifications/models.py; the queue → bot pipeline lands in Epic 9.
+
+    # Drop a stub PushQueueItem row so the Epic 9 bot consumer can pick it up.
+    # Local import keeps notifications optional at module load and avoids a
+    # circular if notifications later imports from recurring.
+    # TODO(Epic 9): consumer in notifications/services.py will read this row,
+    # render Uzbek copy ("Ijara yozildi — 2 mln so'm"), call the bot send,
+    # then flip sent_at. Shape here intentionally minimal; Epic 9 may extend
+    # the payload without a fresh migration (JSONField).
+    from notifications.models import NotificationKind, PushQueueItem
+
+    PushQueueItem.objects.create(
+        user=locked.user,
+        kind=NotificationKind.RECURRING_FIRED.value,
+        payload_json={
+            "schedule_id": locked.id,
+            "schedule_name": locked.name,
+            "transaction_id": tx.id,
+            "amount": str(locked.amount),
+            "currency": locked.currency,
+            "fired_on": fired_on.isoformat(),
+        },
+    )
+
     logger.info(
         "recurring schedule %s fired tx=%s on %s",
         locked.id,
