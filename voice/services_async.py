@@ -42,9 +42,13 @@ async def transcribe_and_parse_async(
 
     try:
         default_currency = await sync_to_async(_get_default_currency)(user)
+        expense_categories = await sync_to_async(_categories_for_prompt)(user, "expense")
+        income_categories = await sync_to_async(_categories_for_prompt)(user, "income")
         raw = await client.transcribe_and_parse(
             audio_bytes,
             user_currency_default=default_currency,
+            expense_categories=expense_categories,
+            income_categories=income_categories,
         )
     finally:
         if owns_client:
@@ -59,3 +63,12 @@ async def transcribe_and_parse_async(
 def _get_default_currency(user: User) -> str:
     """Pull the user's preferred currency for the Gemini prompt context."""
     return getattr(user, "default_currency", "UZS") or "UZS"
+
+
+def _categories_for_prompt(user: User, type_: str) -> tuple[tuple[str, str], ...]:
+    """Return ((slug, display_name), …) for Gemini's slug vocabulary."""
+    # Local import — keeps the async surface independent of the categories app
+    # boot order and matches the pattern used in currencies/selectors.
+    from categories.selectors import categories_for
+
+    return tuple((c.slug, c.name) for c in categories_for(user, type_))

@@ -16,6 +16,8 @@ hands straight to `recurring.services.create_recurring`.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 VOICE_PARSE_PROMPT_TEMPLATE = """\
 You are a financial assistant that listens to a short voice note in Uzbek
 (possibly mixed with Russian or English) and extracts the financial
@@ -23,6 +25,32 @@ transaction(s) the speaker is recording.
 
 User's default currency: {default_currency}
 Today's date: {today_iso}
+
+CATEGORY VOCABULARY — pick `category_slug` ONLY from these exact slugs.
+You MUST choose the closest semantic match from the list below. Never invent
+a new slug. When nothing fits, return "boshqa" (Boshqa = "Other") rather than
+inventing a label.
+
+Expense categories (use when type=expense):
+{expense_categories}
+
+Income categories (use when type=income):
+{income_categories}
+
+Examples of mapping spoken phrases to these slugs (expense):
+- "non oldim" / "nonushta" / "ovqat" / "magazindan" → the oziq-ovqat slug
+  (food / groceries) if present, else the closest semantic match.
+- "taxi" / "yandex" / "uber" → taxi if present, else transport, else boshqa.
+- "qahva" / "kafe" / "restoran" → qahva-kafe if present, else oziq-ovqat,
+  else boshqa.
+- "do'xtir" / "dori" / "kasalxona" → sog'liq if present, else boshqa.
+- "kommunal" / "svet" / "gaz" / "internet" → kommunal if present, else boshqa.
+- "kiyim" / "ko'ylak" / "shim" → kiyim if present, else boshqa.
+- "kino" / "konsert" → ko'ngilochar if present, else boshqa.
+
+Pick the slug from the list that best fits the semantic meaning of the
+spoken item; do NOT echo back English defaults like "food" or "transport"
+unless they appear in the list above.
 
 IMPORTANT — one voice note may describe 1, 2, 3, 4, or up to 5 separate
 transactions. Examples:
@@ -117,9 +145,30 @@ Return ONLY valid JSON — no markdown fences, no commentary.
 """
 
 
-def build_voice_parse_prompt(*, default_currency: str, today_iso: str) -> str:
-    """Render the prompt with per-request context (currency, today)."""
+def _format_categories(cats: Sequence[tuple[str, str]]) -> str:
+    """Render '- slug: Display Name' lines, or a fallback marker when empty."""
+    if not cats:
+        return "- (no categories configured — fall back to 'boshqa')"
+    return "\n".join(f"- {slug}: {name}" for slug, name in cats)
+
+
+def build_voice_parse_prompt(
+    *,
+    default_currency: str,
+    today_iso: str,
+    expense_categories: Sequence[tuple[str, str]] = (),
+    income_categories: Sequence[tuple[str, str]] = (),
+) -> str:
+    """Render the prompt with per-request context (currency, today, categories).
+
+    ``expense_categories`` and ``income_categories`` are sequences of
+    ``(slug, display_name)`` tuples. Passing them lets Gemini pick a real
+    matching slug (e.g. ``oziq-ovqat``) instead of echoing a generic English
+    label (``food``) the parser can't resolve.
+    """
     return VOICE_PARSE_PROMPT_TEMPLATE.format(
         default_currency=default_currency,
         today_iso=today_iso,
+        expense_categories=_format_categories(expense_categories),
+        income_categories=_format_categories(income_categories),
     )

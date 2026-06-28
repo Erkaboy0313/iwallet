@@ -76,16 +76,24 @@ class GeminiClient:
         today: _date_type | None = None,
         audio_mime: str = "audio/webm",
         sleep: Any = None,
+        expense_categories: tuple[tuple[str, str], ...] = (),
+        income_categories: tuple[tuple[str, str], ...] = (),
     ) -> dict[str, Any]:
         """Call Gemini and return the parsed JSON payload (a plain dict).
 
         Retries up to `max_attempts` on transient HTTP errors with the configured
         backoff. Raises :class:`GeminiUnavailableError` on terminal failure.
+
+        ``expense_categories`` and ``income_categories`` are (slug, name) tuples
+        for the active user — they're spliced into the prompt so Gemini picks a
+        real slug from the live category list instead of inventing one.
         """
         today = today or _date_type.today()
         prompt = build_voice_parse_prompt(
             default_currency=user_currency_default,
             today_iso=today.isoformat(),
+            expense_categories=expense_categories,
+            income_categories=income_categories,
         )
         request_body = _build_request_body(prompt, audio_bytes, audio_mime)
         sleep_fn = sleep or asyncio.sleep

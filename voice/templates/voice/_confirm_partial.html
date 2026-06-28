@@ -96,6 +96,7 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         class="btn-primary"
                         aria-label="Hammasini saqlash"
                         :disabled="!canSave || saving"
+                        :style="(!canSave || saving) ? 'opacity: 0.4; cursor: not-allowed' : ''"
                         @click="saveAll()">
                     <span x-show="!saving" x-text="saveLabel"></span>
                     <span x-show="saving">Saqlanmoqda…</span>
