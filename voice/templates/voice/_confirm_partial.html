@@ -270,7 +270,6 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                 draft: Object.assign({}, initial),
                 ambiguousFields: (initial.ambiguous_fields || []).slice(),
                 init() {
-                    this.recalcDisplay();
                     if (this.$root && Array.isArray(this.$root.drafts)) {
                         this.$root.drafts[idx] = this.draft;
                     }
@@ -292,19 +291,23 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                         } catch (e) { /* noop */ }
                     }
                 },
+                // Compute display fresh on every read instead of caching into a
+                // dynamic `this._display`. Alpine's reactive proxy doesn't track
+                // properties that don't exist at component-init time, so the
+                // cached _display escaped reactivity and could end up referring
+                // to a sibling card's data when the runtime re-bound the
+                // expression (this is what was producing 'card 2 shows idx=0
+                // category + idx=1 note' in production).
                 get display() {
-                    return this._display;
-                },
-                get ambiguousLabels() {
-                    return this.ambiguousFields.map((f) => FIELD_LABELS[f] || f).join(", ");
-                },
-                recalcDisplay() {
-                    this._display = {
+                    return {
                         emoji: this.draft.emoji || "📁",
                         categoryName: this.draft.category_name || this.draft.category_slug || "Kategoriya",
                         typeLabel: TYPE_LABELS[this.draft.type] || this.draft.type,
                         amountFormatted: formatAmount(this.draft.amount),
                     };
+                },
+                get ambiguousLabels() {
+                    return this.ambiguousFields.map((f) => FIELD_LABELS[f] || f).join(", ");
                 },
                 editField(field) {
                     if (this.$root && typeof this.$root.touch === "function") {
@@ -324,7 +327,6 @@ createRecurring=true so the batch save also creates a RecurringSchedule.
                     } else {
                         this.draft[field] = prompt;
                     }
-                    this.recalcDisplay();
                     if (this.$root && Array.isArray(this.$root.drafts)) {
                         this.$root.drafts[idx] = this.draft;
                     }
