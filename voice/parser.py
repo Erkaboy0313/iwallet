@@ -325,6 +325,7 @@ def normalize(
     raw = raw or {}
     raw_txs = raw.get("transactions") or []
     drafts: list[VoiceDraft] = []
+    seen_fingerprints: set[tuple] = set()
     for item in raw_txs:
         if not isinstance(item, dict):
             continue
@@ -335,8 +336,25 @@ def normalize(
             )
             break
         draft = _normalize_draft(item, user, today)
-        if draft is not None:
-            drafts.append(draft)
+        if draft is None:
+            continue
+        # Safety net: Gemini occasionally echoes the last transaction multiple
+        # times. If a normalized draft is byte-identical to one we already
+        # kept, drop the duplicate instead of forcing the user to delete it.
+        fp = (
+            draft.type,
+            draft.amount,
+            draft.currency,
+            draft.category_slug,
+            draft.counterparty or "",
+            draft.date,
+            draft.note or "",
+        )
+        if fp in seen_fingerprints:
+            logger.info("voice.parser: drop duplicate draft (fingerprint=%s)", fp)
+            continue
+        seen_fingerprints.add(fp)
+        drafts.append(draft)
 
     recurring = None
     recurring_raw = raw.get("recurring_intent")

@@ -64,6 +64,14 @@ Never collapse multiple events into one, and never split one event into many.
 Cap your response at 5 transactions — if the speaker rattles off more, keep
 the first 5.
 
+NEVER return the same transaction multiple times. Each entry in the
+`transactions` array MUST correspond to a distinct event the speaker
+described. If you are unsure whether the speaker meant 1 or 2 events,
+prefer 1 (the user can split it later). Only emit duplicates when the
+speaker explicitly says a count ("2 marta 30 ming", "uch piyola qahva",
+"twice", "ikkita"). Duplicating the last item N times is a common parsing
+mistake — guard against it.
+
 Listen carefully and return JSON matching this exact schema:
 
 {{
