@@ -22,6 +22,13 @@ CURRENCY_CODES: tuple[str, ...] = tuple(code for code, _ in CURRENCY_CHOICES)
 # Mapping consumed by the `currency_label` template filter.
 CURRENCY_LABELS: dict[str, str] = dict(CURRENCY_CHOICES)
 
+# Compact glyphs used by `smart_money` so amounts read with less ink.
+CURRENCY_SYMBOLS: dict[str, str] = {
+    CURRENCY_UZS: "so'm",
+    CURRENCY_USD: "$",
+    CURRENCY_RUB: "₽",
+}
+
 
 def currency_label(code: str) -> str:
     """Return the human-friendly Uzbek label for a currency code.
@@ -30,3 +37,8 @@ def currency_label(code: str) -> str:
     when a legacy row sneaks through.
     """
     return CURRENCY_LABELS.get(code, code)
+
+
+def currency_symbol(code: str) -> str:
+    """Return the compact glyph (so'm / $ / ₽) for a currency code."""
+    return CURRENCY_SYMBOLS.get(code, code)

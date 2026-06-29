@@ -86,7 +86,7 @@ def test_home_content_renders_balance_hero_when_onboarded() -> None:
     assert "Sof balans" in body
     assert "Kirim" in body
     assert "Chiqim" in body
-    assert "0 UZS" in body  # empty user — zero balance
+    assert "0 so&#x27;m" in body or "0 so'm" in body  # empty user — zero balance
     assert "Birinchi tranzaksiyangizni qo'shing" in body
 
 
@@ -116,6 +116,6 @@ def test_home_content_shows_real_balance_for_onboarded_user() -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    # smart_money: 750000 stays under 1M → "750 000 UZS" (thin space)
+    # smart_money: 750000 → "750 000 so'm" (thin space + symbol).
     assert "750" in body
-    assert "UZS" in body
+    assert "so&#x27;m" in body or "so'm" in body

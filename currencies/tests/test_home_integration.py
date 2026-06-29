@@ -19,6 +19,11 @@ from currencies.models import ExchangeRate
 from currencies.views import SESSION_DISPLAY_CURRENCY
 from transactions.tests.factories import TransactionFactory
 
+# smart_money joins digit groups with U+2009 (THIN SPACE) and the apostrophe
+# in "so'm" gets HTML-escaped to &#x27; when rendered into a template.
+THIN = chr(0x2009)
+SOM = "so&#x27;m"
+
 
 def _seed_user_with_mixed_currencies() -> User:
     user = User.objects.create(
@@ -50,7 +55,7 @@ def test_home_content_shows_aggregated_balance_in_default_currency() -> None:
     )
     body = response.content.decode("utf-8")
     # 1_000_000 + 100*12500 = 2_250_000 UZS aggregated into the hero amount.
-    assert "2.25 mln UZS" in body
+    assert f"2{THIN}250{THIN}000 {SOM}" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
@@ -78,10 +83,8 @@ def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
     )
     body = response.content.decode("utf-8")
     assert "Sof balans" in body
-    # User only has USD transactions and no UZS rate, so the hero falls back
-    # to source-currency total. The per-currency strip is hidden with a single
-    # source currency — UZS shows up in the headline directly.
-    assert "0 UZS" in body
+    # Hero falls back to UZS total (0). smart_money renders with "so'm" symbol.
+    assert f"0 {SOM}" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
@@ -99,9 +102,8 @@ def test_home_content_session_currency_drives_hero_aggregation() -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    # 1_000_000 UZS / 12500 + 100 USD = 80 + 100 = 180 USD
-    assert "180" in body
-    assert "USD" in body
+    # 1_000_000 UZS / 12500 + 100 USD = 80 + 100 = 180 USD → "180 $"
+    assert "180 $" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)

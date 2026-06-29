@@ -1,13 +1,17 @@
-"""Template filters for the IWALLET frontend (Story 1.5+).
+"""Template filters for the IWALLET frontend.
 
-Smart money formatting per project-context.md / UX-DR22.
+Smart money formatting — full digits, thin-space groups, compact currency
+symbol. Eric's call (v0.7 follow-up): "1000 som ham muhim" — never round.
 """
 
 from decimal import Decimal
 
 from django import template
 
-from currencies.constants import currency_label as _currency_label
+from currencies.constants import (
+    currency_label as _currency_label,
+    currency_symbol as _currency_symbol,
+)
 
 register = template.Library()
 
@@ -18,8 +22,13 @@ def currency_label(code: str) -> str:
     return _currency_label(code or "")
 
 
+@register.filter(name="currency_symbol")
+def currency_symbol(code: str) -> str:
+    """Render the compact glyph for a currency code (so'm / $ / ₽)."""
+    return _currency_symbol(code or "")
+
+
 THIN_SPACE = " "
-ONE_MILLION = Decimal("1000000")
 
 
 @register.simple_tag()
@@ -46,12 +55,13 @@ def sparkline_path(series, width: int = 100, height: int = 32) -> str:
 
 @register.filter(name="smart_money")
 def smart_money(value, currency: str = "UZS") -> str:
-    """Render an amount with thin-space groups + optional `mln` collapsing.
+    """Render an amount with thin-space digit groups + compact currency symbol.
 
-    Examples:
-      25000 UZS  -> "25 000 UZS"
-      1250000 UZS -> "1.25 mln UZS"
-      0 UZS -> "0 UZS"
+    Never rounds — every som matters. Examples:
+      25000 UZS    -> "25 000 so'm"
+      1250000 UZS  -> "1 250 000 so'm"
+      0 UZS        -> "0 so'm"
+      1500.50 USD  -> "1 500.50 $"
     """
     if value is None:
         return ""
@@ -60,15 +70,11 @@ def smart_money(value, currency: str = "UZS") -> str:
     except (TypeError, ValueError):
         return str(value)
 
-    if abs(amount) >= ONE_MILLION:
-        mln = amount / ONE_MILLION
-        formatted = f"{mln:.2f}".rstrip("0").rstrip(".")
-        return f"{formatted} mln {currency}"
+    symbol = _currency_symbol(currency)
 
-    # Drop trailing .00 then group thousands with a thin space.
     whole_part = int(amount) if amount == int(amount) else None
     if whole_part is not None:
-        return f"{whole_part:,}".replace(",", THIN_SPACE) + f" {currency}"
+        return f"{whole_part:,}".replace(",", THIN_SPACE) + f" {symbol}"
     # Has cents — render with comma + 2 decimals, swap commas for thin space.
     formatted = f"{amount:,.2f}".replace(",", THIN_SPACE)
-    return f"{formatted} {currency}"
+    return f"{formatted} {symbol}"
