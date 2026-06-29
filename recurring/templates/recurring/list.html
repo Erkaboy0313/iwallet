@@ -41,14 +41,22 @@
             internet, oyliq.
         </p>
         <button type="button"
-                class="btn-primary"
                 hx-get="{% url 'recurring:create' %}"
                 hx-target="#recurring-sheet"
                 hx-swap="innerHTML"
                 @click="sheet = 'form'"
                 aria-label="Yangi takrorlanuvchi qo'shish"
                 style="width: 100%;
-                       margin-bottom: 20px">+ Yangi takrorlanuvchi</button>
+                       margin-bottom: 20px;
+                       padding: 12px 20px;
+                       border: 0;
+                       border-radius: 14px;
+                       background: var(--gradient-cta);
+                       color: var(--color-primary-on);
+                       font-size: 14px;
+                       font-weight: 700;
+                       box-shadow: var(--shadow-cta);
+                       cursor: pointer">+ Yangi takrorlanuvchi</button>
         <div id="recurring-list">{% include 'recurring/_list_partial.html' %}</div>
         {# Bottom sheet host — filled by htmx swaps from forms / confirmations. #}
         <div x-show="sheet"
@@ -65,8 +73,11 @@
                  x-transition:leave="transition ease-in duration-200"
                  x-transition:leave-start="translate-y-0"
                  x-transition:leave-end="translate-y-full"
-                 class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg"
-                 style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 2rem)"
+                 class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] rounded-t-3xl px-5 pt-5 pb-8"
+                 style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 2rem);
+                        background: var(--color-surface);
+                        border-top: 1px solid var(--color-border-strong);
+                        box-shadow: var(--shadow-elevated)"
                  role="dialog"
                  aria-modal="true">
                 <div id="recurring-sheet"></div>
