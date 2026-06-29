@@ -1,53 +1,69 @@
-/* IWALLET design tokens — Sprint v0.5 premium refresh.
+/* IWALLET design tokens — Sprint v0.7 dark neon redesign.
  * Source of truth for color, motion, spacing, typography.
  * Don't inline hex codes anywhere else.
  */
 
 :root {
-  /* ===== Surface + ink ===== */
-  --color-bg: #F4F6F2;
-  --color-bg-gradient-stop: #E9EFE5;
-  --color-surface: #FFFFFF;
-  --color-text: #0B1220;
-  --color-text-secondary: #475569;
-  --color-text-muted: #94A3B8;
-  --color-border: rgba(15, 23, 42, 0.08);
+  /* ===== Surface + ink (dark neon scheme) ===== */
+  --color-bg: #0A0F0C;
+  --color-bg-gradient-stop: #0E1411;
+  --color-bg-elevated: #10171A;
+  --color-surface: #161E1A;
+  --color-surface-hi: #1F2A24;
+  --color-text: #F0F4EF;
+  --color-text-secondary: #A8B0A6;
+  --color-text-muted: #6E7A6E;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
 
-  /* ===== Primary (CTA, balance, brand) ===== */
-  --color-primary: #059669;          /* emerald-600 */
-  --color-primary-hover: #047857;    /* emerald-700 */
-  --color-primary-light: #D1FAE5;
-  --color-primary-gradient-start: #10B981;
-  --color-primary-gradient-end: #047857;
+  /* ===== Primary (CTA, balance, brand) — neon emerald ===== */
+  --color-primary: #9FF87C;
+  --color-primary-hover: #7CE357;
+  --color-primary-pressed: #5DBF38;
+  --color-primary-light: rgba(159, 248, 124, 0.14);
+  --color-primary-on: #052E10;        /* ink colour on top of neon CTAs */
+  --color-primary-gradient-start: #C7FFA0;
+  --color-primary-gradient-end: #5DBF38;
 
-  /* ===== Inflow / outflow (Home cards) ===== */
-  --color-inflow-surface: #ECFDF5;
-  --color-inflow-text: #047857;
-  --color-inflow-icon: #10B981;
-  --color-outflow-surface: #FEF2F2;
-  --color-outflow-text: #BE123C;
-  --color-outflow-icon: #E11D48;
+  /* ===== Inflow / outflow (Home cards + chips) ===== */
+  --color-inflow-surface: rgba(159, 248, 124, 0.12);
+  --color-inflow-text: #9FF87C;
+  --color-inflow-icon: #C7FFA0;
+  --color-outflow-surface: rgba(255, 107, 107, 0.14);
+  --color-outflow-text: #FF8B8B;
+  --color-outflow-icon: #FF6B6B;
 
   /* ===== Secondary roles ===== */
-  --color-income: #10B981;
-  --color-expense: #0B1220;
-  --color-debt: #D97706;              /* amber-600 — deeper than F59E0B */
-  --color-danger: #DC2626;
-  --color-warning-bg: #FEF3C7;
-  --color-success-bg: #D1FAE5;
-  --color-error-bg: #FEE2E2;
+  --color-income: #9FF87C;
+  --color-expense: #FF6B6B;
+  --color-debt: #FFB547;
+  --color-danger: #FF6B6B;
+  --color-warning: #FFB547;
+  --color-warning-bg: rgba(255, 181, 71, 0.14);
+  --color-success: #9FF87C;
+  --color-success-bg: rgba(159, 248, 124, 0.14);
+  --color-error-bg: rgba(255, 107, 107, 0.14);
 
-  /* ===== Shadows ===== */
-  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 6px rgba(15, 23, 42, 0.04);
-  --shadow-elevated: 0 4px 10px rgba(15, 23, 42, 0.08), 0 8px 24px rgba(15, 23, 42, 0.06);
-  --shadow-cta: 0 6px 20px rgba(5, 150, 105, 0.35);
+  /* ===== Shadows + glows ===== */
+  --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-elevated: 0 6px 24px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 6px 24px rgba(0, 0, 0, 0.45);
+  --shadow-cta: 0 8px 32px rgba(159, 248, 124, 0.32), 0 0 0 1px rgba(159, 248, 124, 0.18);
+  --glow-primary: 0 0 24px rgba(159, 248, 124, 0.35);
+  --glow-soft: 0 6px 20px rgba(0, 0, 0, 0.5);
+
+  /* Hero balance gradient — radial neon glow fading to deep emerald-black. */
+  --gradient-hero: radial-gradient(135% 110% at 50% 0%, #C7FFA0 0%, #9FF87C 18%, #5DBF38 50%, #1F4A20 78%, #0A1F0A 100%);
+  --gradient-cta: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+  --gradient-page-bg: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-gradient-stop) 100%);
 
   /* ===== Motion ===== */
   --motion-micro: 120ms;
   --motion-standard: 220ms;
-  --motion-page: 180ms;
+  --motion-page: 280ms;
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* ===== Spacing (4px base) ===== */
   --space-1: 4px;
@@ -64,8 +80,6 @@
   --font-numeric: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-  /* Typographic scale tokens (Sprint v0.6). One name per intent so the
-   * pages don't reach for raw sizes anymore. */
   --text-display-size: 36px;
   --text-display-weight: 700;
   --text-display-lh: 1.1;
@@ -95,7 +109,8 @@
 
   /* ===== Layout ===== */
   --container-max: 430px;
-  --radius-card: 16px;
+  --radius-card: 18px;
+  --radius-card-sm: 14px;
   --radius-pill: 9999px;
   --tap-target-min: 44px;
 }
@@ -104,12 +119,13 @@
 html, body {
   margin: 0;
   padding: 0;
-  background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-bg-gradient-stop) 100%);
+  background: var(--gradient-page-bg);
   background-attachment: fixed;
   color: var(--color-text);
   font-family: var(--font-display);
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  color-scheme: dark;
 }
 
 body {
@@ -119,44 +135,81 @@ body {
   padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom));
 }
 
+::selection {
+  background: var(--color-primary-light);
+  color: var(--color-text);
+}
+
+/* Native form controls inherit dark scheme + readable colours. */
+input, textarea, select {
+  color: var(--color-text);
+  background: var(--color-surface);
+  color-scheme: dark;
+  caret-color: var(--color-primary);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--color-text-muted);
+  opacity: 1;
+}
+input:focus, textarea:focus, select:focus, button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
 /* Tabular numerals globally for amounts */
 .amount, .num {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
 }
 
-/* ===== Universal interaction polish (UX §7) ===== */
+/* ===== Universal interaction polish ===== */
 
-/* Press scales for tappable cards. Skip on text inputs / form controls. */
 a, button, [role="button"] {
   transition: transform var(--motion-micro) var(--ease-out),
               opacity var(--motion-micro) var(--ease-out),
-              box-shadow var(--motion-standard) var(--ease-out);
+              box-shadow var(--motion-standard) var(--ease-out),
+              background-color var(--motion-micro) var(--ease-out);
 }
 
 a:active, button:active:not(:disabled), [role="button"]:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
-/* Section enter — applied by Home + Settings when htmx swaps content in.
- * Pure opacity + tiny translateY: the cheapest 'premium' feel that survives
- * Telegram Desktop's older WebKit without thrashing layout.
- */
+/* Section enter — fade-up keyframe, slightly more lift in v0.7. */
 @keyframes iw-fade-up {
-  from { opacity: 0; transform: translateY(6px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
 .iw-enter {
-  animation: iw-fade-up var(--motion-standard) var(--ease-out-soft) both;
+  animation: iw-fade-up var(--motion-page) var(--ease-out-soft) both;
 }
 
-/* Stagger for grouped cards — child indices add 40ms each. */
 .iw-enter-1 { animation-delay: 40ms; }
 .iw-enter-2 { animation-delay: 80ms; }
 .iw-enter-3 { animation-delay: 120ms; }
+.iw-enter-4 { animation-delay: 160ms; }
 
-/* Reduced motion respect — collapses all token-driven durations to nothing. */
+/* CTA glow loop on the primary +Qo'shish nav button. */
+@keyframes iw-cta-pulse {
+  0%, 100% { box-shadow: var(--shadow-cta), 0 0 0 0 rgba(159, 248, 124, 0.35); }
+  50%      { box-shadow: var(--shadow-cta), 0 0 0 10px rgba(159, 248, 124, 0); }
+}
+
+.iw-cta-pulse {
+  animation: iw-cta-pulse 2.8s ease-in-out infinite;
+}
+
+/* List row + card hover/active ripple — used on tappable surfaces. */
+.iw-tap {
+  transition: background-color var(--motion-micro) var(--ease-out),
+              transform var(--motion-micro) var(--ease-out);
+}
+.iw-tap:active {
+  background-color: var(--color-surface-hi);
+}
+
+/* Reduced motion respect — collapses all token-driven durations. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
