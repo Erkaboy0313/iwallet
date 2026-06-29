@@ -51,68 +51,66 @@
                                font-weight: 600;
                                padding: 0;
                                margin-bottom: 8px">Turi</legend>
-                <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                <input type="hidden" name="type" :value="type">
+                <div role="radiogroup" style="display: flex; flex-wrap: wrap; gap: 8px">
                     {% for value, label in form.type.field.choices %}
-                        <label style="cursor: pointer">
-                            <input type="radio"
-                                   name="type"
-                                   value="{{ value }}"
-                                   x-model="type"
-                                   class="sr-only"
-                                   {% if form.type.value == value or not form.type.value and tx.type == value %}checked{% endif %}>
-                            <div :style="type === '{{ value }}' ? 'background: var(--color-primary); color: var(--color-primary-on); box-shadow: 0 0 20px rgba(159, 248, 124, 0.35); border-color: transparent;' : 'background: var(--color-surface-hi); color: var(--color-text-secondary); border-color: var(--color-border);'"
-                                 style="display: inline-flex;
-                                        align-items: center;
-                                        gap: 10px;
-                                        padding: 10px 16px;
-                                        border-radius: 9999px;
-                                        border: 1px solid;
-                                        font-size: 14px;
-                                        font-weight: 600;
-                                        transition: background var(--motion-micro) var(--ease-out), color var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
-                                        min-height: 44px">
-                                <span aria-hidden="true" style="display: inline-flex">
-                                    {% if value == 'income' %}
-                                        <svg width="18"
-                                             height="18"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             stroke-width="2"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
-                                        </svg>
-                                    {% elif value == 'expense' %}
-                                        <svg width="18"
-                                             height="18"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             stroke-width="2"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
-                                        </svg>
-                                    {% elif value == 'debt_lent' %}
-                                        <svg width="18"
-                                             height="18"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             stroke-width="2"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
-                                        </svg>
-                                    {% else %}
-                                        <svg width="18"
-                                             height="18"
-                                             fill="none"
-                                             stroke="currentColor"
-                                             stroke-width="2"
-                                             viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
-                                        </svg>
-                                    {% endif %}
-                                </span>
-                                <span>{{ label }}</span>
-                            </div>
-                        </label>
+                        <button type="button"
+                                role="radio"
+                                @click="type = '{{ value }}'"
+                                :aria-checked="type === '{{ value }}' ? 'true' : 'false'"
+                                :style="type === '{{ value }}' ? 'background: var(--color-primary); color: var(--color-primary-on); box-shadow: 0 0 20px rgba(159, 248, 124, 0.35); border-color: transparent;' : 'background: var(--color-surface-hi); color: var(--color-text-secondary); border-color: var(--color-border);'"
+                                style="display: inline-flex;
+                                       align-items: center;
+                                       gap: 10px;
+                                       padding: 10px 16px;
+                                       border-radius: 9999px;
+                                       border: 1px solid;
+                                       font-size: 14px;
+                                       font-weight: 600;
+                                       cursor: pointer;
+                                       transition: background var(--motion-micro) var(--ease-out), color var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
+                                       min-height: 44px">
+                            <span aria-hidden="true" style="display: inline-flex">
+                                {% if value == 'income' %}
+                                    <svg width="18"
+                                         height="18"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
+                                    </svg>
+                                {% elif value == 'expense' %}
+                                    <svg width="18"
+                                         height="18"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
+                                    </svg>
+                                {% elif value == 'debt_lent' %}
+                                    <svg width="18"
+                                         height="18"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+                                    </svg>
+                                {% else %}
+                                    <svg width="18"
+                                         height="18"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="2"
+                                         viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+                                    </svg>
+                                {% endif %}
+                            </span>
+                            <span>{{ label }}</span>
+                        </button>
                     {% endfor %}
                 </div>
             </fieldset>
