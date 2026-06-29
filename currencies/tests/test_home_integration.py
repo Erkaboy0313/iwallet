@@ -80,8 +80,10 @@ def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
     )
     body = response.content.decode("utf-8")
     assert "Sof balans" in body
-    # The USD income still surfaces via the per-source-currency strip.
-    assert "100 USD" in body
+    # User only has USD transactions and no UZS rate, so the hero falls back
+    # to source-currency total. The per-currency strip is hidden with a single
+    # source currency — UZS shows up in the headline directly.
+    assert "0 UZS" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
@@ -137,8 +139,8 @@ def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_shows_switcher_pills() -> None:
-    """All 3 currencies are rendered as switcher pills with their aria-pressed state."""
+def test_home_content_shows_switcher_dropdown_options() -> None:
+    """All 3 currencies are rendered as options in the switcher dropdown."""
     user = User.objects.create(
         telegram_id=903,
         first_name="Eric",
@@ -151,7 +153,10 @@ def test_home_content_shows_switcher_pills() -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    assert 'name="display_currency"' in body
-    assert 'value="UZS"' in body
-    assert 'value="USD"' in body
-    assert 'value="RUB"' in body
+    assert 'data-iw-currency="UZS"' in body
+    assert 'data-iw-currency="USD"' in body
+    assert 'data-iw-currency="RUB"' in body
+    # Pre-computed totals are embedded for the JS-driven instant swap.
+    assert "data-balance-uzs" in body
+    assert "data-balance-usd" in body
+    assert "data-balance-rub" in body

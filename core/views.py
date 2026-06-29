@@ -71,13 +71,29 @@ def home_content(request):
     if current_rates_stale_days() != 0:
         update_rates_if_stale()
 
-    aggregated = aggregated_month_summary(user, display_currency)
-    rates_stale_days = current_rates_stale_days()
-    rates_stale_date = aggregated.rate_date if aggregated else None
-    forced_raw_no_rates = not aggregated.is_fully_supported
+    # Pre-compute the aggregated balance in every currency so the switcher
+    # can flip the displayed amount client-side without a page reload.
+    balance_by_currency = {}
+    aggregated = None
+    fully_supported = True
+    rate_date = None
+    for ccy in CURRENCY_CODES:
+        agg = aggregated_month_summary(user, ccy)
+        balance_by_currency[ccy] = agg.cash_balance
+        if ccy == display_currency:
+            aggregated = agg
+        if not agg.is_fully_supported:
+            fully_supported = False
+        if agg.rate_date is not None and (rate_date is None or agg.rate_date < rate_date):
+            rate_date = agg.rate_date
 
-    # Per-source-currency balance breakdown — always shown beneath the hero
-    # so the user sees how much they hold in each native currency at a glance.
+    rates_stale_days = current_rates_stale_days()
+    rates_stale_date = rate_date
+    forced_raw_no_rates = not fully_supported
+
+    # Per-source-currency balance breakdown — shown beneath the hero when the
+    # user actually holds more than one source currency, so the strip never
+    # repeats what's already in the headline.
     per_currency_balances = []
     for ccy in CURRENCY_CODES:
         per = month_summary(user, currency=ccy)
@@ -106,6 +122,7 @@ def home_content(request):
             "display_currency": display_currency,
             "source_currency": source_currency,
             "currency_choices": CURRENCY_CHOICES,
+            "balance_by_currency": balance_by_currency,
             "per_currency_balances": per_currency_balances,
             "rates_stale_days": rates_stale_days,
             "rates_stale_date": rates_stale_date,

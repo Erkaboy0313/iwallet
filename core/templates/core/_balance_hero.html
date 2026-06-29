@@ -50,7 +50,10 @@ converted in lists — only the headline balance is.
         </div>
     </header>
     {# Neon hero — Sof balans (aggregated to display_currency) + per-source-currency strip. #}
-    <div class="iw-enter iw-enter-1"
+    <div id="iw-balance-hero"
+         class="iw-enter iw-enter-1"
+         data-active-currency="{{ display_currency }}"
+         {% for ccy, total in balance_by_currency.items %}data-balance-{{ ccy|lower }}="{{ total|smart_money:ccy }}" {% endfor %}
          style="position: relative;
                 padding: 20px;
                 border-radius: var(--radius-card);
@@ -64,7 +67,8 @@ converted in lists — only the headline balance is.
                   color: rgba(10, 31, 10, 0.7);
                   font-weight: 700;
                   margin: 0 0 6px">Sof balans</p>
-        <p class="amount"
+        <p id="iw-balance-amount"
+           class="amount"
            aria-live="polite"
            style="font-size: 36px;
                   font-weight: 800;
@@ -81,7 +85,7 @@ converted in lists — only the headline balance is.
                   color: rgba(10, 31, 10, 0.65);
                   margin: 6px 0 18px;
                   font-weight: 500">
-            ≈ {{ display_currency|currency_label }} bo'yicha
+            <span id="iw-balance-caption">≈ {{ display_currency|currency_label }} bo'yicha</span>
             {% if mom_delta.has_previous %}
                 ·
                 {% if mom_delta.direction == 'up' %}
@@ -183,8 +187,8 @@ converted in lists — only the headline balance is.
     </div>
     {# Quote card. #}
     {% include 'quotes/_quote_card.html' with quote=quote %}
-    {# Per-source-currency strip — always visible if user has any transactions. #}
-    {% if per_currency_balances %}
+    {# Per-source-currency strip — only when user actually holds more than one currency. #}
+    {% if per_currency_balances|length > 1 %}
         <div class="iw-enter iw-enter-2" style="margin-top: 16px">
             <p style="font-size: 10px;
                       letter-spacing: 0.06em;
@@ -267,3 +271,60 @@ converted in lists — only the headline balance is.
         {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing — pastdagi yashil + tugmasini bosing.' %}
     {% endif %}
 </section>
+<script>
+(function () {
+    // Currency swap — instant. Reads the pre-computed totals from data-* attrs
+    // on the hero, updates the headline + caption + dropdown label, then
+    // persists the choice to session in the background so it sticks across
+    // navigations.
+    var hero = document.getElementById("iw-balance-hero");
+    var amountEl = document.getElementById("iw-balance-amount");
+    var captionEl = document.getElementById("iw-balance-caption");
+    var labelEl = document.getElementById("iw-switcher-label");
+    if (!hero || !amountEl || !labelEl) return;
+
+    var CURRENCY_LABELS = { UZS: "so'm", USD: "dollar", RUB: "rubl" };
+
+    function persist(ccy) {
+        try {
+            var fd = new FormData();
+            fd.append("display_currency", ccy);
+            fd.append("csrfmiddlewaretoken", "{{ csrf_token }}");
+            var headers = {};
+            try {
+                var initData = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || "";
+                if (initData) headers["X-Telegram-InitData"] = initData;
+            } catch (e) { /* noop */ }
+            fetch("{% url 'currencies:switch_display' %}", {
+                method: "POST",
+                body: fd,
+                headers: headers,
+                credentials: "same-origin",
+            });
+        } catch (e) { /* noop — UX already updated, persistence is best-effort */ }
+    }
+
+    function selectCurrency(ccy) {
+        if (!ccy) return;
+        var amount = hero.dataset["balance" + ccy.charAt(0) + ccy.slice(1).toLowerCase()];
+        if (!amount) return;
+        hero.dataset.activeCurrency = ccy;
+        amountEl.textContent = amount;
+        labelEl.textContent = ccy;
+        if (captionEl) {
+            captionEl.textContent = "≈ " + (CURRENCY_LABELS[ccy] || ccy) + " bo'yicha";
+        }
+        // Sync aria-selected on the dropdown options.
+        document.querySelectorAll(".iw-switcher-opt").forEach(function (opt) {
+            opt.setAttribute("aria-selected", opt.dataset.iwCurrency === ccy ? "true" : "false");
+        });
+        persist(ccy);
+    }
+
+    document.querySelectorAll(".iw-switcher-opt").forEach(function (opt) {
+        opt.addEventListener("click", function () {
+            selectCurrency(opt.dataset.iwCurrency);
+        });
+    });
+})();
+</script>

@@ -1,37 +1,93 @@
 {% load core_extras %}
 {% comment %}
-Balance-display currency picker — 3 pills, neon active. v0.7 simplified.
-Switching only affects how the Home balance hero is shown.
-Transactions, history, reports stay in source currency.
+Balance-display currency picker — compact dropdown. v0.7 follow-up.
+
+Tapping the trigger opens a small popover with 3 currency options.
+On select, JS reads the pre-computed amount from the hero's data-* attrs
+and updates the headline without a page reload; a background fetch
+persists the choice to session so it sticks across navigations.
 {% endcomment %}
-<form hx-post="{% url 'currencies:switch_display' %}"
-      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-      hx-swap="none"
-      style="display: inline-flex;
-             align-items: center;
-             gap: 4px;
-             padding: 3px;
-             border-radius: 9999px;
-             background: var(--color-surface);
-             border: 1px solid var(--color-border)">
-    {% for code, _label in currency_choices %}
-        <button type="submit"
-                name="display_currency"
-                value="{{ code }}"
-                aria-label="Balansni {{ code }} da ko'rsatish"
-                aria-pressed="{% if display_currency == code %}true{% else %}false{% endif %}"
-                style="padding: 6px 12px;
-                       border: 0;
-                       border-radius: 9999px;
-                       font-size: 12px;
-                       font-weight: 700;
-                       cursor: pointer;
-                       transition: background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
-                       {% if display_currency == code %}background: var(--color-primary);
-                       color: var(--color-primary-on);
-                       box-shadow: 0 0 12px rgba(159, 248, 124, 0.32);
-                       {% else %}background: transparent;
-                       color: var(--color-text-secondary);
-                       {% endif %}">{{ code }}</button>
-    {% endfor %}
-</form>
+<div x-data="{ open: false }"
+     style="position: relative;
+            display: inline-flex">
+    <button type="button"
+            @click="open = !open"
+            aria-haspopup="listbox"
+            :aria-expanded="open"
+            aria-label="Balans valyutasini tanlash"
+            style="display: inline-flex;
+                   align-items: center;
+                   gap: 4px;
+                   padding: 8px 12px;
+                   font-size: 13px;
+                   font-weight: 700;
+                   border-radius: 9999px;
+                   background: var(--color-surface);
+                   border: 1px solid var(--color-border);
+                   color: var(--color-text);
+                   cursor: pointer">
+        <span id="iw-switcher-label">{{ display_currency }}</span>
+        <svg width="12"
+             height="12"
+             fill="none"
+             stroke="currentColor"
+             stroke-width="2.4"
+             viewBox="0 0 24 24"
+             aria-hidden="true"
+             :style="open ? 'transform: rotate(180deg); transition: transform var(--motion-micro) var(--ease-out)' : 'transition: transform var(--motion-micro) var(--ease-out)'">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+        </svg>
+    </button>
+    <div x-show="open"
+         x-cloak
+         @click.outside="open = false"
+         role="listbox"
+         aria-label="Valyuta tanlovi"
+         style="display: none;
+                position: absolute;
+                top: 100%;
+                right: 0;
+                margin-top: 6px;
+                z-index: 30;
+                min-width: 140px;
+                padding: 6px;
+                border-radius: 14px;
+                background: var(--color-surface);
+                border: 1px solid var(--color-border-strong);
+                box-shadow: var(--shadow-elevated)">
+        {% for code, _label in currency_choices %}
+            <button type="button"
+                    data-iw-currency="{{ code }}"
+                    @click="open = false"
+                    role="option"
+                    :aria-selected="$root.querySelector('#iw-switcher-label').textContent === '{{ code }}'"
+                    class="iw-switcher-opt"
+                    style="display: flex;
+                           width: 100%;
+                           align-items: center;
+                           justify-content: space-between;
+                           padding: 8px 12px;
+                           border: 0;
+                           border-radius: 10px;
+                           background: transparent;
+                           color: var(--color-text);
+                           font-size: 13px;
+                           font-weight: 600;
+                           cursor: pointer">
+                <span>{{ code }}</span>
+                <span style="font-size: 11px;
+                             color: var(--color-text-muted);
+                             font-weight: 500">{{ code|currency_label }}</span>
+            </button>
+        {% endfor %}
+    </div>
+</div>
+<style>
+.iw-switcher-opt:hover {
+    background: var(--color-surface-hi);
+}
+.iw-switcher-opt[aria-selected="true"] {
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+}
+</style>
