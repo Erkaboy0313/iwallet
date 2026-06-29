@@ -1,4 +1,9 @@
-"""Story 5.5 — home_content end-to-end with display preference."""
+"""home_content end-to-end with the simplified v0.7 currency model.
+
+- Balance hero ALWAYS aggregates into the selected display currency.
+- Transactions, top-categories, history, reports stay in source currency.
+- Switcher is a session-only preference; it never mutates user.default_currency.
+"""
 
 from datetime import date
 from decimal import Decimal
@@ -11,7 +16,7 @@ from django.utils import timezone
 from accounts.models import User
 from accounts.tests.test_services import BOT_TOKEN, _make_init_data
 from currencies.models import ExchangeRate
-from currencies.views import SESSION_DISPLAY_CURRENCY, SESSION_DISPLAY_MODE
+from currencies.views import SESSION_DISPLAY_CURRENCY
 from transactions.tests.factories import TransactionFactory
 
 
@@ -21,7 +26,6 @@ def _seed_user_with_mixed_currencies() -> User:
         first_name="Eric",
         onboarded_at=timezone.now(),
         default_currency="UZS",
-        show_converted=True,
     )
     today = date.today()
     ExchangeRate.objects.create(currency="USD", rate_to_uzs=Decimal("12500"), date=today)
@@ -35,7 +39,8 @@ def _seed_user_with_mixed_currencies() -> User:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_shows_converted_aggregate_when_user_prefers() -> None:
+def test_home_content_shows_aggregated_balance_in_default_currency() -> None:
+    """Default currency UZS → hero aggregates everything into UZS."""
     user = _seed_user_with_mixed_currencies()
     client = Client()
     init_data = _make_init_data(user_id=user.telegram_id, first_name="Eric")
@@ -46,16 +51,14 @@ def test_home_content_shows_converted_aggregate_when_user_prefers() -> None:
     body = response.content.decode("utf-8")
     # 1_000_000 + 100*12500 = 2_250_000 UZS
     assert "2.25 mln UZS" in body
-    assert "Manba valyutalar" in body
+    # Per-source-currency strip shows the two native totals.
+    assert "Valyutalar bo'yicha" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
 def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
-    # The view self-heals an empty rates table by calling update_rates_if_stale.
-    # Stub it so the test doesn't hit live CBU.uz and stays hermetic — we still
-    # exercise the fallback path that triggers when the fetch can't populate
-    # rates (CBU outage, no network, etc.).
+    """No exchange rates → hero shows the user's default-currency total only."""
     import core.views as _core_views
 
     monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
@@ -65,7 +68,6 @@ def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
         first_name="Eric",
         onboarded_at=timezone.now(),
         default_currency="UZS",
-        show_converted=True,
     )
     TransactionFactory(
         user=user, type="income", amount=Decimal("100"), currency="USD", date=date.today()
@@ -77,20 +79,19 @@ def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    # No rates → falls back to raw UZS display (zero) + per-currency USD row.
     assert "Sof balans" in body
-    assert "Boshqa valyutalar" in body
+    # The USD income still surfaces via the per-source-currency strip.
     assert "100 USD" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_session_override_picks_display_currency() -> None:
+def test_home_content_session_currency_drives_hero_aggregation() -> None:
+    """Picking USD in the switcher converts the headline into USD."""
     user = _seed_user_with_mixed_currencies()
     client = Client()
     session = client.session
     session[SESSION_DISPLAY_CURRENCY] = "USD"
-    session[SESSION_DISPLAY_MODE] = "converted"
     session.save()
     init_data = _make_init_data(user_id=user.telegram_id, first_name="Eric")
     response = client.get(
@@ -106,20 +107,17 @@ def test_home_content_session_override_picks_display_currency() -> None:
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
 def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
-    # Home view now auto-refreshes when today's rate is missing. Stub the
-    # fetch so the test stays hermetic — we still want to verify the banner
-    # renders when the refresh attempt fails / no-ops.
     import core.views as _core_views
 
     monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
 
     user = _seed_user_with_mixed_currencies()
-    # Wipe today's rates → only stale (yesterday's) ones remain.
+    # Wipe today's rates → only stale (very old) ones remain.
     ExchangeRate.objects.all().delete()
     ExchangeRate.objects.create(
         currency="USD",
         rate_to_uzs=Decimal("12500"),
-        date=date.today().replace(day=1),  # very old
+        date=date.today().replace(day=1),
     )
     ExchangeRate.objects.create(
         currency="RUB",
@@ -139,7 +137,8 @@ def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_shows_switcher_pill() -> None:
+def test_home_content_shows_switcher_pills() -> None:
+    """All 3 currencies are rendered as switcher pills with their aria-pressed state."""
     user = User.objects.create(
         telegram_id=903,
         first_name="Eric",
@@ -152,6 +151,7 @@ def test_home_content_shows_switcher_pill() -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    assert "Valyutani almashtirish" in body
-    assert "Mahalliy valyutalarda ko'rsatish" in body
-    assert "Default valyutaga aylantirish" in body
+    assert 'name="display_currency"' in body
+    assert 'value="UZS"' in body
+    assert 'value="USD"' in body
+    assert 'value="RUB"' in body

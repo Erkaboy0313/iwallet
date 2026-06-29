@@ -22,12 +22,7 @@ from accounts.services import get_or_create_user_from_init_data, validate_init_d
 from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
 from currencies.selectors import aggregated_month_summary, current_rates_stale_days
 from currencies.services import update_rates_if_stale
-from currencies.views import (
-    DISPLAY_MODE_CONVERTED,
-    DISPLAY_MODE_RAW,
-    SESSION_DISPLAY_CURRENCY,
-    SESSION_DISPLAY_MODE,
-)
+from currencies.views import SESSION_DISPLAY_CURRENCY
 from debts.selectors import debt_status_summary
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
@@ -64,63 +59,41 @@ def home_content(request):
         response.headers["HX-Redirect"] = reverse("accounts:onboarding")
         return response
 
-    display_currency, display_mode = _resolve_display_preference(request, user)
-    summary = month_summary(user, currency=display_currency)
+    # Display currency is purely for the balance hero's aggregated total.
+    # Transactions, top-categories, history, reports all stay in source
+    # currency (user.default_currency drives the per-source summary below).
+    display_currency = _resolve_display_currency(request, user)
+    source_currency = user.default_currency or "UZS"
+    summary = month_summary(user, currency=source_currency)
     debts = debt_status_summary(user)
 
-    # Sof balans (Epic 4 Story 4.4): cash − borrowed + lent for the active
-    # display currency. Cross-currency debts are intentionally excluded —
-    # full multi-currency math via the aggregated_month_summary path below.
-    lent_same_ccy = debts.lent_remaining_by_currency.get(display_currency, 0)
-    borrowed_same_ccy = debts.borrowed_remaining_by_currency.get(display_currency, 0)
-    net_balance = summary.cash_balance - borrowed_same_ccy + lent_same_ccy
+    # On-demand refresh of CBU.uz rates if today's row is missing.
+    if current_rates_stale_days() != 0:
+        update_rates_if_stale()
 
-    aggregated = None
-    rates_stale_days = None
-    rates_stale_date = None
-    forced_raw_no_rates = False
-    if display_mode == DISPLAY_MODE_CONVERTED:
-        # On-demand refresh of CBU.uz rates. Trigger when today's row is not
-        # yet in the DB — i.e., the table is empty (-1) OR the most recent
-        # rate is older than today (>0). `update_rates_if_stale` is itself
-        # idempotent (short-circuits via an EXISTS query) and best-effort, so
-        # this is safe to call from a sync view; network is only hit when the
-        # day actually rolled over.
-        if current_rates_stale_days() != 0:
-            update_rates_if_stale()
-        aggregated = aggregated_month_summary(user, display_currency)
-        rates_stale_days = current_rates_stale_days()
-        if aggregated.rate_date is not None:
-            rates_stale_date = aggregated.rate_date
-        # Only fall back when aggregation actually failed (we couldn't convert
-        # some non-display currency). A UZS-only user picking 'Converted UZS'
-        # doesn't need any rate at all — is_fully_supported stays True.
-        if not aggregated.is_fully_supported:
-            display_mode = DISPLAY_MODE_RAW
-            aggregated = None
-            forced_raw_no_rates = True
+    aggregated = aggregated_month_summary(user, display_currency)
+    rates_stale_days = current_rates_stale_days()
+    rates_stale_date = aggregated.rate_date if aggregated else None
+    forced_raw_no_rates = not aggregated.is_fully_supported
 
-    other_currency_summaries = []
-    if display_mode == DISPLAY_MODE_RAW:
-        for ccy in CURRENCY_CODES:
-            if ccy == display_currency:
-                continue
-            other = month_summary(user, currency=ccy)
-            if other.transaction_count:
-                other_currency_summaries.append(
-                    {
-                        "currency": ccy,
-                        "cash_balance": other.cash_balance,
-                    },
-                )
+    # Per-source-currency balance breakdown — always shown beneath the hero
+    # so the user sees how much they hold in each native currency at a glance.
+    per_currency_balances = []
+    for ccy in CURRENCY_CODES:
+        per = month_summary(user, currency=ccy)
+        if per.transaction_count:
+            per_currency_balances.append(
+                {
+                    "currency": ccy,
+                    "cash_balance": per.cash_balance,
+                    "is_display": ccy == display_currency,
+                },
+            )
 
     quote = None if request.session.get(SESSION_HIDE_TODAY) else quote_of_the_day(user)
 
-    # Sprint v0.6 §2.4: sparklines + MoM delta. We compute these for the raw
-    # currency only; the converted-mode view shows aggregated amounts but
-    # still uses the user's default currency for the trend signals.
-    inflow_series, outflow_series = daily_flow_series(user, display_currency)
-    mom_delta = month_over_month_delta(user, display_currency)
+    inflow_series, outflow_series = daily_flow_series(user, source_currency)
+    mom_delta = month_over_month_delta(user, source_currency)
 
     return render(
         request,
@@ -129,12 +102,11 @@ def home_content(request):
             "summary": summary,
             "user": user,
             "debts": debts,
-            "net_balance": net_balance,
             "aggregated": aggregated,
             "display_currency": display_currency,
-            "display_mode": display_mode,
+            "source_currency": source_currency,
             "currency_choices": CURRENCY_CHOICES,
-            "other_currency_summaries": other_currency_summaries,
+            "per_currency_balances": per_currency_balances,
             "rates_stale_days": rates_stale_days,
             "rates_stale_date": rates_stale_date,
             "forced_raw_no_rates": forced_raw_no_rates,
@@ -146,15 +118,12 @@ def home_content(request):
     )
 
 
-def _resolve_display_preference(request, user: User) -> tuple[str, str]:
-    """Pick (display_currency, display_mode) from session > user > defaults."""
+def _resolve_display_currency(request, user: User) -> str:
+    """Pick the balance-display currency from session > user default > UZS."""
     currency = request.session.get(SESSION_DISPLAY_CURRENCY) or user.default_currency
     if currency not in CURRENCY_CODES:
         currency = "UZS"
-    mode = request.session.get(SESSION_DISPLAY_MODE)
-    if mode not in (DISPLAY_MODE_RAW, DISPLAY_MODE_CONVERTED):
-        mode = DISPLAY_MODE_CONVERTED if user.show_converted else DISPLAY_MODE_RAW
-    return currency, mode
+    return currency
 
 
 def _try_authenticate(init_data: str):

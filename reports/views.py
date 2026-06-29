@@ -62,7 +62,7 @@ def weekly_view(request):
     today = timezone.localdate()
     anchor = parse_week(request, today=today)
     include_debts = parse_include_debts(request)
-    display_currency, _display_mode = resolve_display_currency(request, request.user)
+    display_currency = resolve_display_currency(request, request.user)
 
     summary = weekly_summary(
         request.user,
@@ -106,7 +106,7 @@ def monthly_view(request):
     today = timezone.localdate()
     year, month = parse_month(request, today=today)
     include_debts = parse_include_debts(request)
-    display_currency, _display_mode = resolve_display_currency(request, request.user)
+    display_currency = resolve_display_currency(request, request.user)
 
     summary = monthly_summary(
         request.user,
@@ -160,7 +160,7 @@ def yearly_view(request):
     today = timezone.localdate()
     year = parse_year(request, today=today)
     include_debts = parse_include_debts(request)
-    display_currency, _display_mode = resolve_display_currency(request, request.user)
+    display_currency = resolve_display_currency(request, request.user)
 
     summary = yearly_summary(
         request.user,

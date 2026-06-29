@@ -1,9 +1,11 @@
 {% load core_extras %}
 {% comment %}
-Home BalanceHero — Sprint v0.7 dark neon redesign.
-Spendly-style hero card with the Sof balans glowing in neon, Kirim and
-Chiqim as pills nested inside the card. Quote, source-currency rows, and
-top-category bars live below the hero.
+Home BalanceHero — Sprint v0.7 simplified currency logic.
+
+Switcher controls only the hero's display currency. Everything below the hero
+(quote, per-currency strip, top categories) reflects source-currency truth
+based on the user's default_currency. Transactions are never silently
+converted in lists — only the headline balance is.
 {% endcomment %}
 {% include 'currencies/_stale_banner.html' %}
 <section style="padding: 16px 20px 0">
@@ -47,7 +49,7 @@ top-category bars live below the hero.
             </a>
         </div>
     </header>
-    {# Neon hero — Sof balans + Kirim/Chiqim pills nested inside. #}
+    {# Neon hero — Sof balans (aggregated to display_currency) + per-source-currency strip. #}
     <div class="iw-enter iw-enter-1"
          style="position: relative;
                 padding: 20px;
@@ -69,21 +71,17 @@ top-category bars live below the hero.
                   color: #052E10;
                   margin: 0;
                   line-height: 1.05">
-            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+            {% if aggregated and aggregated.is_fully_supported %}
                 {{ aggregated.cash_balance|smart_money:display_currency }}
             {% else %}
-                {{ summary.cash_balance|smart_money:summary.currency }}
+                {{ summary.cash_balance|smart_money:source_currency }}
             {% endif %}
         </p>
         <p style="font-size: 12px;
                   color: rgba(10, 31, 10, 0.65);
                   margin: 6px 0 18px;
                   font-weight: 500">
-            {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                ≈ {{ display_currency|currency_label }} bo'yicha
-            {% else %}
-                Joriy oy · {{ summary.currency }}
-            {% endif %}
+            ≈ {{ display_currency|currency_label }} bo'yicha
             {% if mom_delta.has_previous %}
                 ·
                 {% if mom_delta.direction == 'up' %}
@@ -95,7 +93,7 @@ top-category bars live below the hero.
                 {% endif %}
             {% endif %}
         </p>
-        {# Inflow / Outflow pills inside the hero. #}
+        {# Inflow / Outflow pills (source-currency totals, not converted). #}
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
             <a href="{% url 'transactions:history' %}?type=income"
                aria-label="Kirimlar tarixini ko'rish"
@@ -136,13 +134,7 @@ top-category bars live below the hero.
                     <span class="amount"
                           style="font-size: 14px;
                                  font-weight: 700;
-                                 color: var(--color-text)">
-                        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                            {{ aggregated.total_income|smart_money:display_currency }}
-                        {% else %}
-                            {{ summary.inflow_total|smart_money:summary.currency }}
-                        {% endif %}
-                    </span>
+                                 color: var(--color-text)">{{ summary.inflow_total|smart_money:source_currency }}</span>
                 </span>
             </a>
             <a href="{% url 'transactions:history' %}?type=expense"
@@ -184,30 +176,24 @@ top-category bars live below the hero.
                     <span class="amount"
                           style="font-size: 14px;
                                  font-weight: 700;
-                                 color: var(--color-text)">
-                        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                            {{ aggregated.total_expense|smart_money:display_currency }}
-                        {% else %}
-                            {{ summary.outflow_total|smart_money:summary.currency }}
-                        {% endif %}
-                    </span>
+                                 color: var(--color-text)">{{ summary.outflow_total|smart_money:source_currency }}</span>
                 </span>
             </a>
         </div>
     </div>
-    {# Quote card lives below the hero. #}
+    {# Quote card. #}
     {% include 'quotes/_quote_card.html' with quote=quote %}
-    {# Mixed-currency / breakdown row (raw fallback when other currencies exist). #}
-    {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported and aggregated.per_currency|length > 1 %}
+    {# Per-source-currency strip — always visible if user has any transactions. #}
+    {% if per_currency_balances %}
         <div class="iw-enter iw-enter-2" style="margin-top: 16px">
             <p style="font-size: 10px;
                       letter-spacing: 0.06em;
                       text-transform: uppercase;
                       color: var(--color-text-muted);
                       font-weight: 600;
-                      margin: 0 0 8px">Manba valyutalar</p>
+                      margin: 0 0 8px">Valyutalar bo'yicha</p>
             <div style="display: flex; flex-direction: column; gap: 8px">
-                {% for row in aggregated.per_currency %}
+                {% for row in per_currency_balances %}
                     <div style="display: flex;
                                 justify-content: space-between;
                                 align-items: center;
@@ -215,33 +201,9 @@ top-category bars live below the hero.
                                 background: var(--color-surface);
                                 border-radius: 14px;
                                 border: 1px solid var(--color-border)">
-                        <span style="font-size: 12px; color: var(--color-text-muted)">{{ row.currency }}</span>
-                        <span class="amount"
-                              style="font-size: 14px;
-                                     font-weight: 600;
-                                     color: var(--color-text)">{{ row.cash_balance|smart_money:row.currency }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% elif other_currency_summaries %}
-        <div class="iw-enter iw-enter-2" style="margin-top: 16px">
-            <p style="font-size: 10px;
-                      letter-spacing: 0.06em;
-                      text-transform: uppercase;
-                      color: var(--color-text-muted);
-                      font-weight: 600;
-                      margin: 0 0 8px">Boshqa valyutalar</p>
-            <div style="display: flex; flex-direction: column; gap: 8px">
-                {% for row in other_currency_summaries %}
-                    <div style="display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                padding: 12px 16px;
-                                background: var(--color-surface);
-                                border-radius: 14px;
-                                border: 1px solid var(--color-border)">
-                        <span style="font-size: 12px; color: var(--color-text-muted)">{{ row.currency }}</span>
+                        <span style="font-size: 12px;
+                                     color: var(--color-text-muted);
+                                     font-weight: 600">{{ row.currency }}</span>
                         <span class="amount"
                               style="font-size: 14px;
                                      font-weight: 600;
@@ -251,7 +213,7 @@ top-category bars live below the hero.
             </div>
         </div>
     {% endif %}
-    {# Top expense categories with proportional bars. #}
+    {# Top expense categories (source currency only, never converted). #}
     {% if summary.top_categories %}
         <div class="iw-enter iw-enter-3" style="margin-top: 24px">
             <p style="font-size: 10px;
@@ -259,7 +221,7 @@ top-category bars live below the hero.
                       text-transform: uppercase;
                       color: var(--color-text-muted);
                       font-weight: 600;
-                      margin: 0 0 8px">Eng ko'p sarflandi</p>
+                      margin: 0 0 8px">Eng ko'p sarflandi · {{ source_currency }}</p>
             <div style="display: flex; flex-direction: column; gap: 8px">
                 {% for cat in summary.top_categories %}
                     <div style="position: relative;
@@ -295,18 +257,13 @@ top-category bars live below the hero.
                             <span class="amount"
                                   style="font-size: 14px;
                                          font-weight: 600;
-                                         color: var(--color-text)">{{ cat.total|smart_money:summary.currency }}</span>
+                                         color: var(--color-text)">{{ cat.total|smart_money:source_currency }}</span>
                         </div>
                     </div>
                 {% endfor %}
             </div>
         </div>
-    {% elif summary.is_empty %}
+    {% elif summary.is_empty and not per_currency_balances %}
         {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing — pastdagi yashil + tugmasini bosing.' %}
-    {% else %}
-        <p style="margin-top: 16px;
-                  text-align: center;
-                  font-size: 14px;
-                  color: var(--color-text-muted)">Kategoriya tanlangan tranzaksiya hali yo'q.</p>
     {% endif %}
 </section>

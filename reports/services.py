@@ -22,30 +22,24 @@ from django.utils import timezone
 
 from accounts.models import User
 from currencies.constants import CURRENCY_CODES
-from currencies.views import (
-    DISPLAY_MODE_CONVERTED,
-    DISPLAY_MODE_RAW,
-    SESSION_DISPLAY_CURRENCY,
-    SESSION_DISPLAY_MODE,
-)
+from currencies.views import SESSION_DISPLAY_CURRENCY
 from reports.charts import BarPoint, PieSlice, svg_bar, svg_pie
 
 # ---------- display preference helpers ----------
 
 
-def resolve_display_currency(request: HttpRequest, user: User) -> tuple[str, str]:
-    """Pick (display_currency, display_mode) from session > user > defaults.
+def resolve_display_currency(request: HttpRequest, user: User) -> str:
+    """Pick the reports' source currency — always the user's default.
 
-    Mirrors core.views._resolve_display_preference so the reports tab shows the
-    same currency choice the user picked on Home.
+    Reports show transactions in their source currency; the home balance
+    switcher does NOT propagate here. If the user wants to look at RUB
+    transactions specifically they'll change their default currency in
+    Settings (or future Sprint v0.8 will add a per-report ccy filter).
     """
     currency = request.session.get(SESSION_DISPLAY_CURRENCY) or user.default_currency
     if currency not in CURRENCY_CODES:
         currency = "UZS"
-    mode = request.session.get(SESSION_DISPLAY_MODE)
-    if mode not in (DISPLAY_MODE_RAW, DISPLAY_MODE_CONVERTED):
-        mode = DISPLAY_MODE_CONVERTED if user.show_converted else DISPLAY_MODE_RAW
-    return currency, mode
+    return currency
 
 
 # ---------- query-string parsers ----------

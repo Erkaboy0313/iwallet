@@ -1,101 +1,37 @@
 {% load core_extras %}
-<div x-data="{ open: false }"
-     style="position: relative;
-            display: inline-flex;
-            align-items: center">
-    <button type="button"
-            @click="open = !open"
-            aria-haspopup="listbox"
-            :aria-expanded="open"
-            aria-label="Valyutani almashtirish"
-            style="display: inline-flex;
-                   align-items: center;
-                   gap: 4px;
-                   font-size: 12px;
-                   font-weight: 600;
-                   padding: 7px 12px;
-                   border-radius: 9999px;
-                   background: var(--color-surface);
-                   color: var(--color-text);
-                   border: 1px solid var(--color-border);
-                   cursor: pointer">
-        <span>{{ display_currency }}</span>
-        <span aria-hidden="true" style="font-size: 10px; opacity: 0.6">▾</span>
-    </button>
-    <div x-cloak
-         x-show="open"
-         @click.outside="open = false"
-         role="listbox"
-         aria-label="Valyuta tanlovi"
-         style="position: absolute;
-                right: 0;
-                top: 100%;
-                margin-top: 8px;
-                z-index: 30;
-                width: 240px;
-                padding: 8px;
-                border-radius: 16px;
-                background: var(--color-surface);
-                border: 1px solid var(--color-border-strong);
-                box-shadow: var(--shadow-elevated)">
-        <p style="font-size: 10px;
-                  letter-spacing: 0.06em;
-                  text-transform: uppercase;
-                  color: var(--color-text-muted);
-                  font-weight: 600;
-                  padding: 4px 8px 4px">Ko'rinish</p>
-        <form hx-post="{% url 'currencies:switch_display' %}"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-swap="none">
-            <input type="hidden" name="display_mode" value="raw">
-            <button type="submit"
-                    role="option"
-                    aria-selected="{% if display_mode == 'raw' %}true{% else %}false{% endif %}"
-                    style="display: block;
-                           width: 100%;
-                           text-align: left;
-                           padding: 8px 10px;
-                           border: 0;
-                           border-radius: 10px;
-                           background: transparent;
-                           cursor: pointer;
-                           font-size: 13px;
-                           color: {% if display_mode == 'raw' %}var(--color-primary){% else %}var(--color-text-secondary){% endif %};
-                           font-weight: {% if display_mode == 'raw' %}600{% else %}500{% endif %}">
-                Mahalliy valyutalarda ko'rsatish
-            </button>
-        </form>
-        <form hx-post="{% url 'currencies:switch_display' %}"
-              hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
-              hx-swap="none"
-              style="margin-top: 4px">
-            <input type="hidden" name="display_mode" value="converted">
-            <p style="font-size: 10px;
-                      letter-spacing: 0.06em;
-                      text-transform: uppercase;
-                      color: var(--color-text-muted);
-                      font-weight: 600;
-                      padding: 8px 8px 4px">Default valyutaga aylantirish</p>
-            {% for code, _label in currency_choices %}
-                <button type="submit"
-                        name="display_currency"
-                        value="{{ code }}"
-                        role="option"
-                        aria-selected="{% if display_mode == 'converted' and display_currency == code %}true{% else %}false{% endif %}"
-                        style="display: block;
-                               width: 100%;
-                               text-align: left;
-                               padding: 8px 10px;
-                               border: 0;
-                               border-radius: 10px;
-                               background: transparent;
-                               cursor: pointer;
-                               font-size: 13px;
-                               color: {% if display_mode == 'converted' and display_currency == code %}var(--color-primary){% else %}var(--color-text-secondary){% endif %};
-                               font-weight: {% if display_mode == 'converted' and display_currency == code %}600{% else %}500{% endif %}">
-                    {{ code }} — {{ code|currency_label }}
-                </button>
-            {% endfor %}
-        </form>
-    </div>
-</div>
+{% comment %}
+Balance-display currency picker — 3 pills, neon active. v0.7 simplified.
+Switching only affects how the Home balance hero is shown.
+Transactions, history, reports stay in source currency.
+{% endcomment %}
+<form hx-post="{% url 'currencies:switch_display' %}"
+      hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      hx-swap="none"
+      style="display: inline-flex;
+             align-items: center;
+             gap: 4px;
+             padding: 3px;
+             border-radius: 9999px;
+             background: var(--color-surface);
+             border: 1px solid var(--color-border)">
+    {% for code, _label in currency_choices %}
+        <button type="submit"
+                name="display_currency"
+                value="{{ code }}"
+                aria-label="Balansni {{ code }} da ko'rsatish"
+                aria-pressed="{% if display_currency == code %}true{% else %}false{% endif %}"
+                style="padding: 6px 12px;
+                       border: 0;
+                       border-radius: 9999px;
+                       font-size: 12px;
+                       font-weight: 700;
+                       cursor: pointer;
+                       transition: background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
+                       {% if display_currency == code %}background: var(--color-primary);
+                       color: var(--color-primary-on);
+                       box-shadow: 0 0 12px rgba(159, 248, 124, 0.32);
+                       {% else %}background: transparent;
+                       color: var(--color-text-secondary);
+                       {% endif %}">{{ code }}</button>
+    {% endfor %}
+</form>
