@@ -49,10 +49,8 @@ def test_home_content_shows_aggregated_balance_in_default_currency() -> None:
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    # 1_000_000 + 100*12500 = 2_250_000 UZS
+    # 1_000_000 + 100*12500 = 2_250_000 UZS aggregated into the hero amount.
     assert "2.25 mln UZS" in body
-    # Per-source-currency strip shows the two native totals.
-    assert "Valyutalar bo'yicha" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)

@@ -187,36 +187,6 @@ converted in lists — only the headline balance is.
     </div>
     {# Quote card. #}
     {% include 'quotes/_quote_card.html' with quote=quote %}
-    {# Per-source-currency strip — only when user actually holds more than one currency. #}
-    {% if per_currency_balances|length > 1 %}
-        <div class="iw-enter iw-enter-2" style="margin-top: 16px">
-            <p style="font-size: 10px;
-                      letter-spacing: 0.06em;
-                      text-transform: uppercase;
-                      color: var(--color-text-muted);
-                      font-weight: 600;
-                      margin: 0 0 8px">Valyutalar bo'yicha</p>
-            <div style="display: flex; flex-direction: column; gap: 8px">
-                {% for row in per_currency_balances %}
-                    <div style="display: flex;
-                                justify-content: space-between;
-                                align-items: center;
-                                padding: 12px 16px;
-                                background: var(--color-surface);
-                                border-radius: 14px;
-                                border: 1px solid var(--color-border)">
-                        <span style="font-size: 12px;
-                                     color: var(--color-text-muted);
-                                     font-weight: 600">{{ row.currency }}</span>
-                        <span class="amount"
-                              style="font-size: 14px;
-                                     font-weight: 600;
-                                     color: var(--color-text)">{{ row.cash_balance|smart_money:row.currency }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endif %}
     {# Top expense categories (source currency only, never converted). #}
     {% if summary.top_categories %}
         <div class="iw-enter iw-enter-3" style="margin-top: 24px">
@@ -267,7 +237,7 @@ converted in lists — only the headline balance is.
                 {% endfor %}
             </div>
         </div>
-    {% elif summary.is_empty and not per_currency_balances %}
+    {% elif summary.is_empty %}
         {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing — pastdagi yashil + tugmasini bosing.' %}
     {% endif %}
 </section>

@@ -91,21 +91,6 @@ def home_content(request):
     rates_stale_date = rate_date
     forced_raw_no_rates = not fully_supported
 
-    # Per-source-currency balance breakdown — shown beneath the hero when the
-    # user actually holds more than one source currency, so the strip never
-    # repeats what's already in the headline.
-    per_currency_balances = []
-    for ccy in CURRENCY_CODES:
-        per = month_summary(user, currency=ccy)
-        if per.transaction_count:
-            per_currency_balances.append(
-                {
-                    "currency": ccy,
-                    "cash_balance": per.cash_balance,
-                    "is_display": ccy == display_currency,
-                },
-            )
-
     quote = None if request.session.get(SESSION_HIDE_TODAY) else quote_of_the_day(user)
 
     inflow_series, outflow_series = daily_flow_series(user, source_currency)
@@ -123,7 +108,6 @@ def home_content(request):
             "source_currency": source_currency,
             "currency_choices": CURRENCY_CHOICES,
             "balance_by_currency": balance_by_currency,
-            "per_currency_balances": per_currency_balances,
             "rates_stale_days": rates_stale_days,
             "rates_stale_date": rates_stale_date,
             "forced_raw_no_rates": forced_raw_no_rates,
