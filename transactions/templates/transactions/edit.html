@@ -59,11 +59,11 @@
                                    x-model="type"
                                    class="sr-only"
                                    {% if form.type.value == value or not form.type.value and tx.type == value %}checked{% endif %}>
-                            <div :style="type === '{{ value }}' ? 'border: 2px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary-hover);' : 'border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);'"
+                            <div :style="type === '{{ value }}' ? 'border: 1.5px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary); box-shadow: 0 0 18px rgba(159, 248, 124, 0.22);' : 'border: 1px solid var(--color-border); background: var(--color-surface-hi); color: var(--color-text-secondary);'"
                                  style="padding: 14px 12px;
                                         border-radius: 14px;
                                         text-align: left;
-                                        transition: border-color 120ms ease, background 120ms ease;
+                                        transition: border-color var(--motion-micro) var(--ease-out), background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
                                         min-height: 76px;
                                         display: flex;
                                         flex-direction: column;
@@ -75,7 +75,7 @@
                                              width: 28px;
                                              height: 28px;
                                              border-radius: 8px;
-                                             background: rgba(0,0,0,0.04)">{{ label|slice:":1" }}</span>
+                                             background: rgba(255, 255, 255, 0.05)">{{ label|slice:":1" }}</span>
                                 <span style="font-size: 14px; font-weight: 600">{{ label }}</span>
                             </div>
                         </label>
@@ -99,13 +99,18 @@
                        required
                        class="amount"
                        style="width: 100%;
-                              font-size: 30px;
-                              font-weight: 600;
-                              padding: 14px 16px;
+                              font-size: 32px;
+                              font-weight: 700;
+                              padding: 18px 20px;
                               border: 1.5px solid var(--color-border);
-                              border-radius: 14px;
+                              border-radius: var(--radius-card);
                               background: var(--color-surface);
-                              outline: none">
+                              color: var(--color-text);
+                              outline: none;
+                              box-shadow: var(--shadow-soft);
+                              transition: border-color var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)"
+                       onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='var(--glow-primary)'"
+                       onblur="this.style.borderColor='var(--color-border)'; this.style.boxShadow='var(--shadow-soft)'">
                 {% if form.amount.errors %}
                     <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.amount.errors|join:" " }}</p>
                 {% endif %}
@@ -246,10 +251,10 @@
                     aria-label="Tranzaksiyani o'chirish"
                     style="width: 100%;
                            padding: 14px 16px;
-                           border: 0;
+                           border: 1px solid rgba(255, 107, 107, 0.3);
                            border-radius: 14px;
-                           background: #FEE2E2;
-                           color: #B91C1C;
+                           background: var(--color-error-bg);
+                           color: var(--color-danger);
                            font-size: 14px;
                            font-weight: 600;
                            cursor: pointer;
@@ -269,28 +274,28 @@
                 Tranzaksiyani o'chirish
             </button>
         </form>
-        {# Sticky Save — gradient. #}
+        {# Sticky Save — butts against the nav. #}
         <div style="position: fixed;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 100%;
                     max-width: 430px;
-                    bottom: 72px;
+                    bottom: calc(64px + env(safe-area-inset-bottom, 0));
                     z-index: 30;
                     background: var(--color-surface);
                     border-top: 1px solid var(--color-border);
-                    padding: 12px 20px">
+                    padding: 8px 16px">
             <button type="submit"
                     form="edit-form"
                     aria-label="O'zgarishlarni saqlash"
                     style="width: 100%;
-                           padding: 14px 20px;
+                           padding: 12px 20px;
                            border: 0;
                            border-radius: 14px;
-                           font-size: 16px;
-                           font-weight: 600;
-                           color: #FFFFFF;
-                           background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                           font-size: 15px;
+                           font-weight: 700;
+                           color: var(--color-primary-on);
+                           background: var(--gradient-cta);
                            box-shadow: var(--shadow-cta);
                            cursor: pointer">Saqlash</button>
         </div>
