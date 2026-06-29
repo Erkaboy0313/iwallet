@@ -103,9 +103,9 @@ def svg_pie(
             f"<title>{escape(title)}</title>"
             f"<desc>{escape(desc)}</desc>"
             f'<circle cx="{PIE_CENTER}" cy="{PIE_CENTER}" r="{PIE_RADIUS}" '
-            'fill="none" stroke="#e2e8f0" stroke-width="2"/>'
+            'fill="none" stroke="rgba(255, 255, 255, 0.14)" stroke-width="2"/>'
             f'<text x="{PIE_CENTER}" y="{PIE_CENTER + 5}" text-anchor="middle" '
-            'font-size="14" fill="#64748b">Ma\'lumot yo\'q</text>'
+            'font-size="14" fill="#A8B0A6">Ma\'lumot yo\'q</text>'
             "</svg>"
         )
 
@@ -142,11 +142,11 @@ def svg_pie(
     # Centre label — total in the middle of the donut.
     parts.append(
         f'<text x="{PIE_CENTER}" y="{PIE_CENTER - 4}" text-anchor="middle" '
-        'font-size="11" fill="#64748b">Jami</text>'
+        'font-size="11" fill="#A8B0A6">Jami</text>'
     )
     parts.append(
         f'<text x="{PIE_CENTER}" y="{PIE_CENTER + 14}" text-anchor="middle" '
-        f'font-size="16" font-weight="600" fill="#0f172a">{_short_number(total)}</text>'
+        f'font-size="16" font-weight="600" fill="#F0F4EF">{_short_number(total)}</text>'
     )
 
     return (
@@ -196,7 +196,7 @@ def svg_bar(
             'style="width:100%;height:auto;display:block">'
             f"<title>{escape(title)}</title>"
             f'<text x="{BAR_WIDTH / 2}" y="{BAR_HEIGHT / 2}" text-anchor="middle" '
-            'font-size="12" fill="#94a3b8">Ma\'lumot yo\'q</text>'
+            'font-size="12" fill="#A8B0A6">Ma\'lumot yo\'q</text>'
             "</svg>"
         )
 
@@ -241,7 +241,7 @@ def svg_bar(
         # Day/month label under each bar.
         parts.append(
             f'<text x="{slot_x + bar_slot / 2:.2f}" y="{BAR_HEIGHT - 10}" '
-            'text-anchor="middle" font-size="10" fill="#64748b">'
+            'text-anchor="middle" font-size="10" fill="#A8B0A6">'
             f"{escape(point.label)}</text>"
         )
 

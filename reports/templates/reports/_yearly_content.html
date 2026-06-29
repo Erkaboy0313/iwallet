@@ -1,11 +1,12 @@
 {% load core_extras %}
 {% include 'reports/_period_header.html' %}
 {% if summary.is_partial %}
-    <div style="background:#fef3c7;
-                border-radius:12px;
-                padding:12px 14px;
-                margin-bottom:12px">
-        <p class="text-xs text-amber-800">
+    <div style="background: var(--color-warning-bg);
+                border: 1px solid rgba(255, 181, 71, 0.35);
+                border-radius: 12px;
+                padding: 12px 14px;
+                margin-bottom: 12px">
+        <p style="margin: 0; font-size: 12px; color: var(--color-warning)">
             {% if summary.is_empty %}
                 Ma'lumot to'planmoqda. Hafta-2 dan keyin qayting.
             {% else %}
@@ -14,71 +15,114 @@
         </p>
     </div>
 {% endif %}
-<div style="background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            padding: 12px;
+<div style="background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-card);
+            padding: 14px;
             margin-bottom: 12px">
-    <p class="text-xs uppercase tracking-wider text-slate-500"
-       style="margin-bottom: 8px">Oylik xarajatlar</p>
+    <p style="margin: 0 0 10px;
+              font-size: 10px;
+              letter-spacing: 0.06em;
+              text-transform: uppercase;
+              color: var(--color-text-muted);
+              font-weight: 600">Oylik xarajatlar</p>
     {{ bars_svg|safe }}
     {% if summary.most_expensive_month %}
-        <p class="text-xs text-slate-500" style="margin-top: 8px">
+        <p style="margin: 10px 0 0;
+                  font-size: 12px;
+                  color: var(--color-text-muted)">
             Eng katta xarajatli oy:
-            <span class="font-medium text-amber-700">{{ summary.most_expensive_month.label }}</span>
+            <span style="font-weight: 600; color: var(--color-warning)">{{ summary.most_expensive_month.label }}</span>
             ·
-            <span class="amount font-medium text-slate-900">{{ summary.most_expensive_month.expense|smart_money:display_currency }}</span>
+            <span class="amount" style="font-weight: 600; color: var(--color-text)">{{ summary.most_expensive_month.expense|smart_money:display_currency }}</span>
         </p>
     {% endif %}
 </div>
 {% if not summary.is_empty %}
     <div style="display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 8px;
+                gap: 10px;
                 margin-bottom: 12px">
-        <div style="background:#ecfdf5; border-radius:12px; padding:10px 12px">
-            <p class="text-[10px] uppercase tracking-wider text-emerald-700">Jami kirim</p>
-            <p class="amount text-sm font-semibold text-emerald-700">{{ summary.total_income|smart_money:display_currency }}</p>
+        <div style="background: var(--color-primary-light);
+                    border: 1px solid rgba(159, 248, 124, 0.25);
+                    border-radius: 14px;
+                    padding: 12px 14px">
+            <p style="margin: 0 0 4px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-primary);
+                      font-weight: 600">Jami kirim</p>
+            <p class="amount"
+               style="margin: 0;
+                      font-size: 16px;
+                      font-weight: 700;
+                      color: var(--color-primary)">{{ summary.total_income|smart_money:display_currency }}</p>
         </div>
-        <div style="background:#f1f5f9; border-radius:12px; padding:10px 12px">
-            <p class="text-[10px] uppercase tracking-wider text-slate-600">Jami chiqim</p>
-            <p class="amount text-sm font-semibold text-slate-900">{{ summary.total_expense|smart_money:display_currency }}</p>
+        <div style="background: var(--color-error-bg);
+                    border: 1px solid rgba(255, 107, 107, 0.25);
+                    border-radius: 14px;
+                    padding: 12px 14px">
+            <p style="margin: 0 0 4px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-danger);
+                      font-weight: 600">Jami chiqim</p>
+            <p class="amount"
+               style="margin: 0;
+                      font-size: 16px;
+                      font-weight: 700;
+                      color: var(--color-danger)">{{ summary.total_expense|smart_money:display_currency }}</p>
         </div>
     </div>
     {% if summary.previous_year_total_expense is not None %}
-        <p class="text-xs text-slate-500" style="margin-bottom: 12px">
+        <p style="margin: 0 0 12px;
+                  font-size: 12px;
+                  color: var(--color-text-muted)">
             O'tgan yilga nisbatan:
             <span class="amount">{{ summary.previous_year_total_expense|smart_money:display_currency }}</span>
             {% if yoy_pct is not None %}
-                <span class="yoy-delta {% if yoy_pct > 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">· {{ yoy_pct }}%</span>
+                <span class="yoy-delta"
+                      style="color: {% if yoy_pct > 0 %}var(--color-warning){% else %}var(--color-primary){% endif %};
+                             font-weight: 600">· {{ yoy_pct }}%</span>
             {% endif %}
         </p>
     {% endif %}
 {% endif %}
 {% if summary.top_categories %}
-    <div style="background: #ffffff;
-                border-radius: 16px;
-                border: 1px solid #e2e8f0;
-                padding: 12px;
+    <div style="background: var(--color-surface);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-card);
+                padding: 14px;
                 margin-bottom: 12px">
-        <p class="text-xs uppercase tracking-wider text-slate-500"
-           style="margin-bottom: 8px">Yil bo'yicha eng katta kategoriyalar</p>
-        <ul style="display: flex; flex-direction: column; gap: 6px">
+        <p style="margin: 0 0 10px;
+                  font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted);
+                  font-weight: 600">Yil bo'yicha eng katta kategoriyalar</p>
+        <ul style="margin: 0;
+                   padding: 0;
+                   list-style: none;
+                   display: flex;
+                   flex-direction: column;
+                   gap: 6px">
             {% for cat in summary.top_categories %}
                 <li style="display: flex;
                            align-items: center;
                            justify-content: space-between;
-                           gap: 8px"
-                    class="text-xs">
-                    <span class="text-slate-700"
-                          style="display: inline-flex;
+                           gap: 8px;
+                           font-size: 12px">
+                    <span style="display: inline-flex;
                                  align-items: center;
-                                 gap: 6px">
+                                 gap: 8px;
+                                 color: var(--color-text)">
                         <span aria-hidden="true">{{ cat.emoji }}</span>
                         <span>{{ cat.name }}</span>
                     </span>
-                    <span class="text-slate-500">
-                        {{ cat.percent }}% · <span class="amount">{{ cat.total|smart_money:display_currency }}</span>
+                    <span style="color: var(--color-text-muted)">
+                        {{ cat.percent }}% · <span class="amount" style="color: var(--color-text)">{{ cat.total|smart_money:display_currency }}</span>
                     </span>
                 </li>
             {% endfor %}

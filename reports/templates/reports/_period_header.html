@@ -37,7 +37,8 @@ subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
             gap: 4px;
             padding: 4px;
             border-radius: 9999px;
-            background: #F1F5F9;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
             margin-bottom: 14px">
     {% for tab in tabs %}
         <a href="{{ tab.url }}"
@@ -50,9 +51,9 @@ subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
                   font-size: 13px;
                   font-weight: 600;
                   text-decoration: none;
-                  {% if tab.is_active %}background: var(--color-surface);
-                  color: var(--color-text);
-                  box-shadow: var(--shadow-soft);
+                  {% if tab.is_active %}background: var(--color-primary);
+                  color: var(--color-primary-on);
+                  box-shadow: 0 0 16px rgba(159, 248, 124, 0.32);
                   {% else %}background: transparent;
                   color: var(--color-text-secondary);
                   {% endif %}">{{ tab.label }}</a>
@@ -146,9 +147,11 @@ subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
               padding: 6px 12px;
               border-radius: 9999px;
               text-decoration: none;
-              {% if include_debts %}background: #FEF3C7;
-              color: #92400E;
-              {% else %}background: #F1F5F9;
+              {% if include_debts %}background: var(--color-warning-bg);
+              color: var(--color-warning);
+              border: 1px solid rgba(255, 181, 71, 0.35);
+              {% else %}background: var(--color-surface-hi);
+              border: 1px solid var(--color-border);
               color: var(--color-text-secondary);
               {% endif %}">
         {% if include_debts %}
@@ -160,10 +163,11 @@ subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
     <span style="font-size: 12px; color: var(--color-text-muted)">{{ display_currency }}</span>
 </div>
 {% if not summary.is_fully_supported %}
-    <p style="background: #FEF3C7;
+    <p style="background: var(--color-warning-bg);
+              border: 1px solid rgba(255, 181, 71, 0.35);
               border-radius: 10px;
               padding: 10px 12px;
               margin: 0 0 12px;
               font-size: 12px;
-              color: #92400E">Ba'zi valyutalar uchun kurs topilmadi — qisman ko'rsatildi.</p>
+              color: var(--color-warning)">Ba'zi valyutalar uchun kurs topilmadi — qisman ko'rsatildi.</p>
 {% endif %}

@@ -1,67 +1,97 @@
 {% load core_extras %}
 {% include 'reports/_period_header.html' %}
 {% if summary.is_empty %}
-    <div style="text-align: center; padding: 48px 16px">
-        <p class="text-sm text-slate-500">Bu oyda tranzaksiya yo'q.</p>
-        <a href="{% url 'transactions:add' %}"
-           class="btn-primary"
-           style="display: inline-block;
-                  margin-top: 16px">+ Tranzaksiya qo'shish</a>
-    </div>
+    {% include 'core/components/_empty_state.html' with emoji='📊' title="Bu oyda tranzaksiya yo'q" caption="Birinchi tranzaksiyangizni qo'shing — keyin shu yerda grafik chiqadi." cta_url='/app/transactions/add/' cta_label='+ Tranzaksiya qo\'shish' %}
 {% else %}
     <div style="display: grid;
                 grid-template-columns: 1fr 1fr;
-                gap: 8px;
+                gap: 10px;
                 margin-bottom: 16px">
-        <div style="background:#ecfdf5; border-radius:12px; padding:10px 12px">
-            <p class="text-[10px] uppercase tracking-wider text-emerald-700">Kirim</p>
-            <p class="amount text-sm font-semibold text-emerald-700">{{ summary.total_income|smart_money:display_currency }}</p>
+        <div style="background: var(--color-primary-light);
+                    border: 1px solid rgba(159, 248, 124, 0.25);
+                    border-radius: 14px;
+                    padding: 12px 14px">
+            <p style="margin: 0 0 4px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-primary);
+                      font-weight: 600">Kirim</p>
+            <p class="amount"
+               style="margin: 0;
+                      font-size: 16px;
+                      font-weight: 700;
+                      color: var(--color-primary)">{{ summary.total_income|smart_money:display_currency }}</p>
         </div>
-        <div style="background:#f1f5f9; border-radius:12px; padding:10px 12px">
-            <p class="text-[10px] uppercase tracking-wider text-slate-600">Chiqim</p>
-            <p class="amount text-sm font-semibold text-slate-900">{{ summary.total_expense|smart_money:display_currency }}</p>
+        <div style="background: var(--color-error-bg);
+                    border: 1px solid rgba(255, 107, 107, 0.25);
+                    border-radius: 14px;
+                    padding: 12px 14px">
+            <p style="margin: 0 0 4px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-danger);
+                      font-weight: 600">Chiqim</p>
+            <p class="amount"
+               style="margin: 0;
+                      font-size: 16px;
+                      font-weight: 700;
+                      color: var(--color-danger)">{{ summary.total_expense|smart_money:display_currency }}</p>
         </div>
     </div>
-    <p class="text-xs text-slate-500" style="margin-bottom: 8px">
-        Sof: <span class="amount font-medium text-slate-900">{{ summary.delta|smart_money:display_currency }}</span>
+    <p style="margin: 0 0 12px;
+              font-size: 12px;
+              color: var(--color-text-muted)">
+        Sof: <span class="amount" style="font-weight: 600; color: var(--color-text)">{{ summary.delta|smart_money:display_currency }}</span>
     </p>
-    <div style="background: #ffffff;
-                border-radius: 16px;
-                border: 1px solid #e2e8f0;
-                padding: 12px;
+    <div style="background: var(--color-surface);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-card);
+                padding: 14px;
                 margin-bottom: 12px">
-        <p class="text-xs uppercase tracking-wider text-slate-500"
-           style="margin-bottom:8px">Kirim va chiqim</p>
+        <p style="margin: 0 0 10px;
+                  font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted);
+                  font-weight: 600">Kirim va chiqim</p>
         {{ io_bars_svg|safe }}
     </div>
-    <div style="background: #ffffff;
-                border-radius: 16px;
-                border: 1px solid #e2e8f0;
-                padding: 12px;
+    <div style="background: var(--color-surface);
+                border: 1px solid var(--color-border);
+                border-radius: var(--radius-card);
+                padding: 14px;
                 margin-bottom: 12px">
-        <p class="text-xs uppercase tracking-wider text-slate-500"
-           style="margin-bottom:8px">Kategoriya taqsimoti</p>
+        <p style="margin: 0 0 10px;
+                  font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted);
+                  font-weight: 600">Kategoriya taqsimoti</p>
         {{ pie_svg|safe }}
         {% if summary.by_category %}
-            <ul style="margin-top: 12px;
+            <ul style="margin: 14px 0 0;
+                       padding: 0;
+                       list-style: none;
                        display: flex;
                        flex-direction: column;
-                       gap: 4px">
+                       gap: 6px">
                 {% for cat in summary.by_category %}
                     <li style="display: flex;
                                align-items: center;
                                justify-content: space-between;
-                               gap: 8px"
-                        class="text-xs">
-                        <span class="text-slate-700"
-                              style="display: inline-flex;
+                               gap: 8px;
+                               font-size: 12px">
+                        <span style="display: inline-flex;
                                      align-items: center;
-                                     gap: 6px">
+                                     gap: 8px;
+                                     color: var(--color-text)">
                             <span aria-hidden="true">{{ cat.emoji }}</span>
                             <span>{{ cat.name }}</span>
                         </span>
-                        <span class="text-slate-500">
-                            {{ cat.percent }}% · <span class="amount">{{ cat.total|smart_money:display_currency }}</span>
+                        <span style="color: var(--color-text-muted)">
+                            {{ cat.percent }}% · <span class="amount" style="color: var(--color-text)">{{ cat.total|smart_money:display_currency }}</span>
                         </span>
                     </li>
                 {% endfor %}
@@ -69,50 +99,73 @@
         {% endif %}
     </div>
     {% if summary.top_5_expenses %}
-        <div style="background: #ffffff;
-                    border-radius: 16px;
-                    border: 1px solid #e2e8f0;
-                    padding: 12px;
+        <div style="background: var(--color-surface);
+                    border: 1px solid var(--color-border);
+                    border-radius: var(--radius-card);
+                    padding: 14px;
                     margin-bottom: 12px">
-            <p class="text-xs uppercase tracking-wider text-slate-500"
-               style="margin-bottom:8px">Eng katta 5 ta xarajat</p>
-            <ol style="display: flex;
+            <p style="margin: 0 0 10px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600">Eng katta 5 ta xarajat</p>
+            <ol style="margin: 0;
+                       padding: 0;
+                       list-style: none;
+                       display: flex;
                        flex-direction: column;
-                       gap: 8px;
-                       counter-reset: rank">
+                       gap: 8px">
                 {% for item in summary.top_5_expenses %}
                     <li style="display: flex;
                                align-items: center;
                                justify-content: space-between;
-                               gap: 8px"
-                        class="text-sm">
-                        <span style="display: inline-flex; align-items: center; gap: 8px">
-                            <span aria-hidden="true">{{ item.emoji }}</span>
-                            <span class="text-slate-700">{{ item.name }}</span>
+                               gap: 8px;
+                               font-size: 14px">
+                        <span style="display: inline-flex; align-items: center; gap: 10px">
+                            <span aria-hidden="true"
+                                  style="display: inline-flex;
+                                         align-items: center;
+                                         justify-content: center;
+                                         width: 28px;
+                                         height: 28px;
+                                         border-radius: 9999px;
+                                         background: var(--color-surface-hi);
+                                         font-size: 14px">{{ item.emoji }}</span>
+                            <span style="color: var(--color-text)">{{ item.name }}</span>
                         </span>
-                        <span class="amount font-medium text-slate-900">{{ item.amount|smart_money:display_currency }}</span>
+                        <span class="amount" style="font-weight: 600; color: var(--color-danger)">{{ item.amount|smart_money:display_currency }}</span>
                     </li>
                 {% endfor %}
             </ol>
         </div>
     {% endif %}
     {% if other_currencies %}
-        <div style="background: #ffffff;
-                    border-radius: 16px;
-                    border: 1px solid #e2e8f0;
-                    padding: 12px;
+        <div style="background: var(--color-surface);
+                    border: 1px solid var(--color-border);
+                    border-radius: var(--radius-card);
+                    padding: 14px;
                     margin-bottom: 12px">
-            <p class="text-xs uppercase tracking-wider text-slate-500"
-               style="margin-bottom:8px">Valyuta bo'yicha taqsimot</p>
-            <ul style="display: flex; flex-direction: column; gap: 6px">
+            <p style="margin: 0 0 10px;
+                      font-size: 10px;
+                      letter-spacing: 0.06em;
+                      text-transform: uppercase;
+                      color: var(--color-text-muted);
+                      font-weight: 600">Valyuta bo'yicha taqsimot</p>
+            <ul style="margin: 0;
+                       padding: 0;
+                       list-style: none;
+                       display: flex;
+                       flex-direction: column;
+                       gap: 6px">
                 {% for row in other_currencies %}
                     <li style="display: flex;
                                align-items: center;
                                justify-content: space-between;
-                               gap: 8px"
-                        class="text-xs">
-                        <span class="text-slate-500">{{ row.currency }}</span>
-                        <span class="text-slate-700">
+                               gap: 8px;
+                               font-size: 12px">
+                        <span style="color: var(--color-text-muted)">{{ row.currency }}</span>
+                        <span style="color: var(--color-text-secondary)">
                             Kirim: <span class="amount">{{ row.income|smart_money:row.currency }}</span> ·
                             Chiqim: <span class="amount">{{ row.expense|smart_money:row.currency }}</span>
                         </span>
