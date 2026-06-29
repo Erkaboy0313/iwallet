@@ -139,19 +139,22 @@ def aggregated_month_summary(
         )
         transaction_count += per.transaction_count
 
+        # Cash math mirrors month_summary: inflow = income + debt_borrowed,
+        # outflow = expense + debt_lent. Anything else made the hero's
+        # Sof balans drift from the Kirim/Chiqim pills it sits next to.
         if ccy == display_currency:
-            total_income += per.total_income
-            total_expense += per.total_expense
+            total_income += per.inflow_total
+            total_expense += per.outflow_total
             continue
 
         income_conv = safe_convert_for_display(
-            per.total_income,
+            per.inflow_total,
             ccy,
             display_currency,
             as_of_date=today,
         )
         expense_conv = safe_convert_for_display(
-            per.total_expense,
+            per.outflow_total,
             ccy,
             display_currency,
             as_of_date=today,
