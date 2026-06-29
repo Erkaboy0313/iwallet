@@ -5,7 +5,7 @@
         <meta charset="UTF-8">
         <meta name="viewport"
               content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-        <meta name="theme-color" content="#FAFAF7">
+        <meta name="theme-color" content="#0A0F0C">
         <meta name="robots" content="noindex,nofollow">
         <title>{% block title %}IWALLET{% endblock %}</title>
         <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v={% now 'U' %}">
@@ -30,14 +30,14 @@
                        bottom:8px;
                        right:8px;
                        z-index:99999;
-                       background:#dc2626;
-                       color:#fff;
+                       background:#FF6B6B;
+                       color:#0A0F0C;
                        border:0;
                        padding:4px 8px;
-                       border-radius:6px;
+                       border-radius:8px;
                        font:11px ui-monospace,Menlo,Consolas,monospace;
                        cursor:pointer;
-                       opacity:.85">🔍 log</button>
+                       opacity:.9">🔍 log</button>
         <div id="iw-debug-panel"
              style="display:none;
                     position:fixed;
@@ -46,15 +46,15 @@
                     right:8px;
                     max-height:55vh;
                     overflow-y:auto;
-                    background:rgba(15,23,42,.96);
-                    color:#e2e8f0;
+                    background:rgba(10,15,12,.96);
+                    color:#F0F4EF;
                     font:11px ui-monospace,Menlo,Consolas,monospace;
                     padding:8px;
-                    border-radius:8px;
+                    border-radius:10px;
                     z-index:99998;
                     white-space:pre-wrap;
                     word-break:break-word;
-                    border:1px solid #334155">
+                    border:1px solid rgba(255,255,255,0.14)">
             <div style="opacity:.5; margin-bottom:4px">[xato bo'lsa shu yer ochiladi avtomatik]</div>
         </div>
         <script>
@@ -68,11 +68,11 @@
                 var line = document.createElement("div");
                 line.textContent = "[" + t + "] " + tag + " " + msg;
                 if (tag.indexOf("ERR") !== -1) {
-                    line.style.color = "#fca5a5";
+                    line.style.color = "#FFB8B8";
                     panel.style.display = "block";
                     errCount += 1;
                     toggle.textContent = "🔍 log (" + errCount + " xato)";
-                    toggle.style.background = "#ef4444";
+                    toggle.style.background = "#FF6B6B";
                 }
                 panel.appendChild(line);
                 panel.scrollTop = panel.scrollHeight;

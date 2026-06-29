@@ -1,4 +1,4 @@
-{# Toast — server triggers via HX-Trigger header: {"toast": {"type": "success", "message": "..."}}. UX-DR15, UX-DR23. #}
+{# Toast — server triggers via HX-Trigger header. v0.7 dark surface + neon/red text. #}
 <div x-show="toast"
      x-transition:enter="transition ease-out duration-200"
      x-transition:enter-start="opacity-0 -translate-y-2"
@@ -6,10 +6,23 @@
      x-transition:leave="transition ease-in duration-150"
      x-transition:leave-start="opacity-100"
      x-transition:leave-end="opacity-0"
-     class="fixed top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-2xl shadow-md text-sm font-medium max-w-[400px]"
-     :class="{ 'bg-emerald-100 text-emerald-800': toast && toast.type === 'success', 'bg-red-100 text-red-800': toast && toast.type === 'error', 'bg-slate-100 text-slate-800': toast && toast.type === 'info', }"
      role="alert"
      aria-live="polite"
-     style="display: none">
+     style="display: none;
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            max-width: 400px;
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 500;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border-strong);
+            box-shadow: var(--shadow-elevated);
+            color: var(--color-text)"
+     :style="toast && toast.type === 'success' ? 'border-color: rgba(159, 248, 124, 0.4); color: var(--color-primary)' : (toast && toast.type === 'error' ? 'border-color: rgba(255, 107, 107, 0.4); color: var(--color-danger)' : '')">
     <span x-text="toast && toast.message"></span>
 </div>
