@@ -22,9 +22,9 @@
                    list-style: none">
             {% for tx in month.list %}
                 <li>
-                    <a href="{% url 'transactions:edit' tx.id %}"
+                    <a href="{% url 'transactions:detail' tx.id %}"
                        class="iw-tap"
-                       aria-label="Tranzaksiyani ko'rish va tahrirlash"
+                       aria-label="Tranzaksiya tafsilotlari"
                        style="display: flex;
                               align-items: center;
                               justify-content: space-between;

@@ -124,6 +124,39 @@ def test_edit_get_pre_fills_form() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
+def test_detail_view_shows_transaction_for_owner() -> None:
+    user = _user(19)
+    tx = TransactionFactory(user=user, amount=Decimal("12345"), note="Sinov tranzaksiyasi")
+    response = Client().get(
+        reverse("transactions:detail", args=[tx.id]),
+        headers={"X-Telegram-InitData": _make_init_data(user_id=19)},
+    )
+    assert response.status_code == 200
+    body = response.content.decode("utf-8")
+    # Amount + note both surface in the detail body, and the action buttons
+    # (Tahrirlash / O'chirish) are visible so the user can take next steps.
+    # smart_money uses U+2009 thin spaces in digit groups.
+    assert f"12{chr(0x2009)}345" in body
+    assert "Sinov tranzaksiyasi" in body
+    assert "Tahrirlash" in body
+    assert "O&#x27;chirish" in body or "O'chirish" in body
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_detail_view_404s_for_other_users_transaction() -> None:
+    me = _user(20)
+    other = _user(99)
+    tx = TransactionFactory(user=other, amount=Decimal("1000"))
+    response = Client().get(
+        reverse("transactions:detail", args=[tx.id]),
+        headers={"X-Telegram-InitData": _make_init_data(user_id=me.telegram_id)},
+    )
+    assert response.status_code == 404
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
 def test_edit_post_valid_updates_and_redirects() -> None:
     user = _user(21)
     tx = TransactionFactory(user=user, amount=Decimal("10000"), note="")
@@ -144,7 +177,8 @@ def test_edit_post_valid_updates_and_redirects() -> None:
         headers={"X-Telegram-InitData": init},
     )
     assert response.status_code == 200
-    assert response.headers.get("HX-Redirect") == reverse("transactions:history")
+    # Edit redirects back to the detail page now (Sprint v0.7 follow-up).
+    assert response.headers.get("HX-Redirect") == reverse("transactions:detail", args=[tx.id])
     tx.refresh_from_db()
     assert tx.amount == Decimal("15000")
     assert tx.note == "edited"

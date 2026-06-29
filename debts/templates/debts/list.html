@@ -92,10 +92,14 @@
                                border-radius: 14px;
                                padding: 12px 14px;
                                {% if tx.settled_at %}opacity: 0.55;{% endif %}">
-                        <div style="display: flex;
-                                    align-items: center;
-                                    justify-content: space-between;
-                                    gap: 12px">
+                        <a href="{% url 'transactions:detail' tx.id %}"
+                           aria-label="Qarz tafsilotlari"
+                           style="display: flex;
+                                  align-items: center;
+                                  justify-content: space-between;
+                                  gap: 12px;
+                                  text-decoration: none;
+                                  color: inherit">
                             <span style="display: flex;
                                          align-items: center;
                                          gap: 12px;
@@ -161,7 +165,7 @@
                                          font-weight: 700;
                                          white-space: nowrap;
                                          color: var(--color-debt)">{{ tx.amount|smart_money:tx.currency }}</span>
-                        </div>
+                        </a>
                         {% if not tx.settled_at %}
                             <div style="display: flex; gap: 8px; margin-top: 10px">
                                 <form action="{% url 'debts:settle' tx.id %}"
@@ -189,8 +193,8 @@
                                         {% endif %}
                                     </button>
                                 </form>
-                                <a href="{% url 'transactions:edit' tx.id %}"
-                                   aria-label="Tahrirlash"
+                                <a href="{% url 'transactions:detail' tx.id %}"
+                                   aria-label="Tafsilotlar"
                                    style="display: inline-flex;
                                           align-items: center;
                                           justify-content: center;

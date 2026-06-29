@@ -108,6 +108,16 @@ def history_view(request):
     return render(request, template, context)
 
 
+@require_GET
+def transaction_detail_view(request, tx_id: int):
+    """Read-only detail view. Edit / O'chirish actions live on this page."""
+    tx = get_object_or_404(
+        Transaction.objects.for_user(request.user).select_related("category"),
+        pk=tx_id,
+    )
+    return render(request, "transactions/detail.html", {"tx": tx})
+
+
 @require_http_methods(["GET", "POST"])
 def edit_transaction_view(request, tx_id: int):
     """Edit an existing live transaction (not soft-deleted)."""
@@ -130,7 +140,7 @@ def edit_transaction_view(request, tx_id: int):
                 note=form.cleaned_data.get("note", ""),
             )
             response = HttpResponse(status=200)
-            response.headers["HX-Redirect"] = reverse("transactions:history")
+            response.headers["HX-Redirect"] = reverse("transactions:detail", args=[tx.id])
             response.headers["HX-Trigger"] = json.dumps(
                 {"toast": {"type": "success", "message": "Tranzaksiya yangilandi"}}
             )
