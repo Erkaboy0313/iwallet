@@ -40,9 +40,15 @@ def create_transaction(
     counterparty: str = "",
     note: str = "",
 ) -> Transaction:
-    """Create a transaction with positive-amount enforcement (project-context)."""
+    """Create a transaction with positive-amount enforcement.
+
+    Debt-type entries (debt_lent / debt_borrowed) with a non-empty counterparty
+    also spawn a matching Debt row so the Qarzlar screen aggregates the
+    counterparty's running balance. The cash-flow row remains in History so
+    the user still sees the event in their timeline.
+    """
     _validate_amount(amount)
-    return Transaction.objects.create(
+    tx = Transaction.objects.create(
         user=user,
         type=type,
         amount=amount,
@@ -52,6 +58,24 @@ def create_transaction(
         counterparty=counterparty,
         note=note,
     )
+    if type in ("debt_lent", "debt_borrowed") and (counterparty or "").strip():
+        # Local import — debts is a sibling app; importing at module load would
+        # create a circular dep via debts.selectors -> transactions.selectors.
+        from debts.models import DebtDirection
+        from debts.services import create_debt
+
+        direction = (
+            DebtDirection.LENT.value if type == "debt_lent" else DebtDirection.BORROWED.value
+        )
+        create_debt(
+            user=user,
+            direction=direction,
+            counterparty=counterparty,
+            amount=amount,
+            currency=currency,
+            note=note,
+        )
+    return tx
 
 
 @db_transaction.atomic
