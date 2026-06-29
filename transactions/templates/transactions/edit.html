@@ -107,57 +107,84 @@
                               font-weight: 600;
                               margin-bottom: 8px">Summa</label>
                 <input type="hidden" id="id_amount" name="amount" :value="amount" required>
-                <div style="display: flex;
-                            align-items: baseline;
-                            justify-content: center;
-                            gap: 8px;
-                            padding: 24px 20px;
-                            border: 1.5px solid var(--color-border);
-                            border-radius: var(--radius-card);
-                            background: var(--color-surface);
-                            box-shadow: var(--shadow-soft);
-                            min-height: 76px"
-                     :style="amount ? 'border-color: var(--color-primary); box-shadow: var(--glow-primary)' : ''">
-                    <span class="amount"
-                          aria-live="polite"
-                          style="font-size: 36px;
-                                 font-weight: 700;
-                                 line-height: 1.05;
-                                 letter-spacing: -0.01em;
-                                 color: var(--color-text)"
-                          x-text="formattedAmount()"></span>
-                    <span aria-hidden="true"
-                          style="font-size: 14px;
-                                 font-weight: 600;
-                                 color: var(--color-text-muted);
-                                 letter-spacing: 0.04em"
-                          x-text="document.getElementById('id_currency') ? document.getElementById('id_currency').value : 'UZS'"></span>
-                </div>
                 <style>
-                .iw-keypad button:active {
-                    background: var(--color-primary-light) !important;
-                    border-color: var(--color-primary) !important;
-                    color: var(--color-primary) !important;
+                .iw-amount-card {
+                    display: flex;
+                    align-items: baseline;
+                    justify-content: center;
+                    gap: 8px;
+                    padding: 24px 20px;
+                    border: 1.5px solid rgba(255, 255, 255, 0.18);
+                    border-radius: 18px;
+                    background: #161E1A;
+                    min-height: 80px;
+                }
+                .iw-amount-card.is-filled {
+                    border-color: #9FF87C;
+                    box-shadow: 0 0 24px rgba(159, 248, 124, 0.25);
+                }
+                .iw-amount-number {
+                    font-size: 36px;
+                    font-weight: 700;
+                    line-height: 1.05;
+                    letter-spacing: -0.01em;
+                    color: #F0F4EF;
+                }
+                .iw-amount-symbol {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #A8B0A6;
+                    letter-spacing: 0.04em;
+                }
+                .iw-keypad {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr 1fr;
+                    gap: 8px;
+                    margin-top: 12px;
+                }
+                .iw-keypad-btn {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 16px 0;
+                    font-size: 22px;
+                    font-weight: 600;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    border-radius: 14px;
+                    background: #1F2A24;
+                    color: #F0F4EF;
+                    cursor: pointer;
+                    outline: none;
+                    transition: transform 80ms ease, background 120ms ease;
+                }
+                .iw-keypad-btn:active {
+                    background: #9FF87C;
+                    color: #052E10;
+                    border-color: #9FF87C;
+                    transform: scale(0.94);
+                }
+                .iw-keypad-btn:focus,
+                .iw-keypad-btn:focus-visible {
+                    outline: none;
+                    box-shadow: none;
                 }
                 </style>
-                <div class="iw-keypad"
-                     style="display: grid;
-                            grid-template-columns: 1fr 1fr 1fr;
-                            gap: 8px;
-                            margin-top: 12px">
+                <div class="iw-amount-card" :class="{ 'is-filled': amount }">
+                    <span class="iw-amount-number amount"
+                          aria-live="polite"
+                          x-text="formattedAmount()"></span>
+                    <span class="iw-amount-symbol"
+                          aria-hidden="true"
+                          x-text="document.getElementById('id_currency') ? document.getElementById('id_currency').value : 'UZS'"></span>
+                </div>
+                <div class="iw-keypad">
                     <template x-for="key in keypadKeys" :key="key">
                         <button type="button"
+                                class="iw-keypad-btn"
                                 @click="pressKey(key)"
-                                :aria-label="key === 'BACK' ? 'O\'chirish' : 'Raqam ' + key"
-                                style="padding: 14px 0;
-                                       font-size: 22px;
-                                       font-weight: 600;
-                                       border: 1px solid var(--color-border);
-                                       border-radius: 14px;
-                                       background: var(--color-surface-hi);
-                                       color: var(--color-text);
-                                       cursor: pointer;
-                                       transition: transform var(--motion-micro) var(--ease-out), background var(--motion-micro) var(--ease-out)">
+                                :aria-label="key === 'BACK' ? 'O\'chirish' : 'Raqam ' + key">
                             <template x-if="key !== 'BACK'">
                                 <span x-text="key"></span>
                             </template>
