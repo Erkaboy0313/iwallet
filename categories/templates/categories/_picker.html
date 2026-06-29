@@ -1,8 +1,7 @@
 {% comment %}
-Category picker — bottom sheet, 4-column grid of chips (UX-DR16, Story 3.2).
+Category picker — bottom sheet, 3-column grid of chips. v0.7 dark.
 Tapping a chip writes its slug + label into the parent form's category input
-then closes the sheet. The parent template provides x-data with `sheet` and
-`pickerLabel`/`pickerEmoji` slots so the trigger chip can show the choice.
+then closes the sheet.
 {% endcomment %}
 <div x-data="{ openPicker: true }"
      x-show="openPicker"
@@ -12,28 +11,71 @@ then closes the sheet. The parent template provides x-data with `sheet` and
      x-transition:leave="transition ease-in duration-200"
      x-transition:leave-start="translate-y-0 opacity-100"
      x-transition:leave-end="translate-y-full opacity-0"
-     class="fixed inset-0 z-40"
-     style="display: none"
+     style="display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 40"
      @keydown.escape.window="picker = null">
-    <div class="absolute inset-0 bg-black/40"
+    <div style="position: absolute;
+                inset: 0;
+                background: rgba(0, 0, 0, 0.6)"
          @click="picker = null"
          aria-hidden="true"></div>
-    <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-white rounded-t-3xl px-5 pt-5 pb-8 shadow-lg"
-         style="padding-bottom: calc(env(safe-area-inset-bottom, 0) + 2rem)"
-         role="dialog"
+    <div role="dialog"
          aria-modal="true"
-         aria-label="Kategoriyani tanlash">
-        <header class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-slate-900">Kategoriyani tanlang</h2>
+         aria-label="Kategoriyani tanlash"
+         style="position: absolute;
+                bottom: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 100%;
+                max-width: 430px;
+                background: var(--color-surface);
+                border-top: 1px solid var(--color-border-strong);
+                border-radius: 24px 24px 0 0;
+                box-shadow: var(--shadow-elevated);
+                padding: 20px 20px calc(28px + env(safe-area-inset-bottom, 0))">
+        <header style="display: flex;
+                       align-items: center;
+                       justify-content: space-between;
+                       margin-bottom: 16px">
+            <h2 style="margin: 0;
+                       font-size: 17px;
+                       font-weight: 600;
+                       color: var(--color-text)">Kategoriyani tanlang</h2>
             <button type="button"
                     @click="picker = null"
-                    class="text-slate-500 hover:text-slate-900 px-2 py-1"
-                    aria-label="Bekor qilish">×</button>
+                    aria-label="Bekor qilish"
+                    style="display: inline-flex;
+                           align-items: center;
+                           justify-content: center;
+                           width: 36px;
+                           height: 36px;
+                           border-radius: 9999px;
+                           border: 0;
+                           background: var(--color-surface-hi);
+                           color: var(--color-text-secondary);
+                           cursor: pointer">
+                <svg width="16"
+                     height="16"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="2"
+                     viewBox="0 0 24 24"
+                     aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </header>
         {% if categories %}
-            <div class="grid grid-cols-3 gap-3 max-h-[55vh] overflow-y-auto pb-2"
-                 role="listbox"
-                 aria-label="Kategoriyalar ro'yxati">
+            <div role="listbox"
+                 aria-label="Kategoriyalar ro'yxati"
+                 style="display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        gap: 10px;
+                        max-height: 55vh;
+                        overflow-y: auto;
+                        padding-bottom: 4px">
                 {% for cat in categories %}
                     <button type="button"
                             data-slug="{{ cat.slug }}"
@@ -41,26 +83,46 @@ then closes the sheet. The parent template provides x-data with `sheet` and
                             data-emoji="{{ cat.emoji }}"
                             data-target="{{ target_field }}"
                             @click="document.getElementById($el.dataset.target).value = $el.dataset.slug; pickerLabel = $el.dataset.name; pickerEmoji = $el.dataset.emoji; picker = null"
-                            style="min-height: 88px"
-                            class="flex flex-col items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white px-2 py-3 hover:bg-emerald-50 hover:border-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                             role="option"
-                            aria-label="{{ cat.name }}">
-                        <span class="text-2xl" aria-hidden="true">{{ cat.emoji }}</span>
+                            aria-label="{{ cat.name }}"
+                            style="display: flex;
+                                   flex-direction: column;
+                                   align-items: center;
+                                   justify-content: center;
+                                   gap: 4px;
+                                   min-height: 88px;
+                                   padding: 10px 8px;
+                                   border-radius: 16px;
+                                   border: 1px solid var(--color-border);
+                                   background: var(--color-surface-hi);
+                                   color: var(--color-text);
+                                   cursor: pointer">
+                        <span aria-hidden="true" style="font-size: 22px">{{ cat.emoji }}</span>
                         <span style="font-size: 12px;
                                      line-height: 1.2;
+                                     text-align: center;
                                      word-break: break-word;
-                                     hyphens: auto"
-                              class="text-slate-700 text-center">{{ cat.name }}</span>
+                                     color: var(--color-text-secondary)">{{ cat.name }}</span>
                     </button>
                 {% endfor %}
             </div>
         {% else %}
-            <p class="text-sm text-slate-500 py-6 text-center">Hozircha bu turda kategoriya yo'q.</p>
+            <p style="text-align: center;
+                      padding: 24px 0;
+                      font-size: 13px;
+                      color: var(--color-text-muted)">Hozircha bu turda kategoriya yo'q.</p>
         {% endif %}
         <button type="button"
                 @click="picker = null"
-                class="mt-4 w-full rounded-2xl border border-slate-200 py-3 text-sm font-medium text-slate-700">
-            Bekor qilish
-        </button>
+                style="margin-top: 16px;
+                       width: 100%;
+                       padding: 12px;
+                       border: 1px solid var(--color-border);
+                       border-radius: 14px;
+                       background: transparent;
+                       color: var(--color-text-secondary);
+                       font-size: 14px;
+                       font-weight: 500;
+                       cursor: pointer">Bekor qilish</button>
     </div>
 </div>

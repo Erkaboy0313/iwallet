@@ -66,11 +66,11 @@
                                    x-model="type"
                                    class="sr-only"
                                    {% if form.type.value == value %}checked{% endif %}>
-                            <div :style="type === '{{ value }}' ? 'border: 2px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary-hover);' : 'border: 1.5px solid var(--color-border); background: var(--color-surface); color: var(--color-text-secondary);'"
+                            <div :style="type === '{{ value }}' ? 'border: 1.5px solid var(--color-primary); background: var(--color-primary-light); color: var(--color-primary); box-shadow: 0 0 18px rgba(159, 248, 124, 0.22);' : 'border: 1px solid var(--color-border); background: var(--color-surface-hi); color: var(--color-text-secondary);'"
                                  style="padding: 14px 12px;
                                         border-radius: 14px;
                                         text-align: left;
-                                        transition: border-color 120ms ease, background 120ms ease;
+                                        transition: border-color var(--motion-micro) var(--ease-out), background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out);
                                         min-height: 76px;
                                         display: flex;
                                         flex-direction: column;
@@ -82,7 +82,7 @@
                                              width: 28px;
                                              height: 28px;
                                              border-radius: 8px;
-                                             background: rgba(0,0,0,0.04)">
+                                             background: rgba(255, 255, 255, 0.05)">
                                     {% if value == 'income' %}
                                         <svg width="16"
                                              height="16"
@@ -149,14 +149,18 @@
                        required
                        class="amount"
                        style="width: 100%;
-                              font-size: 30px;
-                              font-weight: 600;
-                              padding: 14px 16px;
+                              font-size: 32px;
+                              font-weight: 700;
+                              padding: 18px 20px;
                               border: 1.5px solid var(--color-border);
-                              border-radius: 14px;
+                              border-radius: var(--radius-card);
                               background: var(--color-surface);
+                              color: var(--color-text);
                               outline: none;
-                              transition: border-color 120ms ease">
+                              box-shadow: var(--shadow-soft);
+                              transition: border-color var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)"
+                       onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='var(--glow-primary)'"
+                       onblur="this.style.borderColor='var(--color-border)'; this.style.boxShadow='var(--shadow-soft)'">
                 <div style="display: flex; gap: 8px; margin-top: 10px">
                     <button type="button"
                             @click="amount = (parseFloat(amount || 0) * 1000).toString()"
@@ -165,10 +169,10 @@
                                    padding: 9px 0;
                                    font-size: 13px;
                                    font-weight: 600;
-                                   border: 0;
+                                   border: 1px solid var(--color-border);
                                    border-radius: 12px;
                                    background: var(--color-primary-light);
-                                   color: var(--color-primary-hover);
+                                   color: var(--color-primary);
                                    cursor: pointer">× ming</button>
                     <button type="button"
                             @click="amount = (parseFloat(amount || 0) * 1000000).toString()"
@@ -177,10 +181,10 @@
                                    padding: 9px 0;
                                    font-size: 13px;
                                    font-weight: 600;
-                                   border: 0;
+                                   border: 1px solid var(--color-border);
                                    border-radius: 12px;
                                    background: var(--color-primary-light);
-                                   color: var(--color-primary-hover);
+                                   color: var(--color-primary);
                                    cursor: pointer">× mln</button>
                     <button type="button"
                             @click="amount = ''"
@@ -188,9 +192,9 @@
                             style="padding: 9px 14px;
                                    font-size: 13px;
                                    font-weight: 600;
-                                   border: 0;
+                                   border: 1px solid var(--color-border);
                                    border-radius: 12px;
-                                   background: #F1F5F9;
+                                   background: var(--color-surface-hi);
                                    color: var(--color-text-secondary);
                                    cursor: pointer">⌫</button>
                 </div>
@@ -215,12 +219,13 @@
                                font-size: 15px;
                                border: 1.5px solid var(--color-border);
                                border-radius: 14px;
-                               background: var(--color-surface);
+                               background-color: var(--color-surface);
+                               color: var(--color-text);
                                appearance: none;
                                background-image: url(&quot;
                                data:image/svg+xml;
                                utf8,&lt;
-                               svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2394A3B8' stroke-width='2' viewBox='0 0 24 24'&gt;
+                               svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23A8B0A6' stroke-width='2' viewBox='0 0 24 24'&gt;
                                &lt;
                                path stroke-linecap='round' stroke-linejoin='round' d='M19.5 8.25l-7.5 7.5-7.5-7.5'/&gt;
                                &lt;
@@ -252,6 +257,7 @@
                 <button type="button"
                         @click="picker = true; htmx.ajax('GET', '{% url 'categories:picker' %}?type=' + type + '&target=id_category_slug', '#category-picker-host')"
                         aria-label="Kategoriyani tanlash"
+                        class="iw-tap"
                         style="width: 100%;
                                padding: 14px 16px;
                                border: 1.5px solid var(--color-border);
@@ -364,13 +370,13 @@
                     form="add-form"
                     aria-label="Tranzaksiyani saqlash"
                     style="width: 100%;
-                           padding: 11px 20px;
+                           padding: 12px 20px;
                            border: 0;
-                           border-radius: 12px;
+                           border-radius: 14px;
                            font-size: 15px;
-                           font-weight: 600;
-                           color: #FFFFFF;
-                           background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
+                           font-weight: 700;
+                           color: var(--color-primary-on);
+                           background: var(--gradient-cta);
                            box-shadow: var(--shadow-cta);
                            cursor: pointer">Saqlash</button>
         </div>

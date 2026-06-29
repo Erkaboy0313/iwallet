@@ -29,8 +29,8 @@ def test_picker_renders_grid_of_chips() -> None:
     assert response.status_code == 200
     body = response.content.decode("utf-8")
     # 3-col grid so long Uzbek category names (Ko'ngilochar, Kommunal) wrap
-    # to two lines instead of being truncated.
-    assert "grid-cols-3" in body
+    # to two lines instead of being truncated. Inline style in v0.7.
+    assert "grid-template-columns: 1fr 1fr 1fr" in body
     # A preset chip is rendered with its emoji.
     assert "Taxi" in body
     assert "🚕" in body
