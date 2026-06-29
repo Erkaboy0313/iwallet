@@ -1,181 +1,74 @@
 {% load core_extras %}
 {% comment %}
-Home BalanceHero — Sprint v0.6 §2 redesign. One scope, one purpose: the
-month at a glance. Top categories carry proportional bars, inflow/outflow
-have sparklines + month-over-month delta, the big balance card shows
-MoM direction. Voice CTA moved off Home into the Add page entirely.
+Home BalanceHero — Sprint v0.7 dark neon redesign.
+Spendly-style hero card with the Sof balans glowing in neon, Kirim and
+Chiqim as pills nested inside the card. Quote, source-currency rows, and
+top-category bars live below the hero.
 {% endcomment %}
 {% include 'currencies/_stale_banner.html' %}
 <section style="padding: 16px 20px 0">
-    {# Header: settings (adjustments) icon + currency switcher. #}
+    {# Greeting strip + settings entry point. #}
     <header style="display: flex;
                    align-items: center;
                    justify-content: space-between;
                    min-height: 44px;
                    margin-bottom: 16px">
-        <a href="{% url 'core:settings_hub' %}"
-           aria-label="Sozlamalar"
-           style="display: inline-flex;
-                  align-items: center;
-                  justify-content: center;
-                  width: 44px;
-                  height: 44px;
-                  color: var(--color-text-secondary);
-                  text-decoration: none">
-            <svg width="22"
-                 height="22"
-                 fill="none"
-                 stroke="currentColor"
-                 stroke-width="1.8"
-                 viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
-            </svg>
-        </a>
-        {% include 'currencies/_switcher.html' %}
+        <div style="display: flex; flex-direction: column">
+            <span style="font-size: 12px;
+                         color: var(--color-text-muted);
+                         font-weight: 500">Salom 👋</span>
+            <span style="font-size: 17px;
+                         font-weight: 600;
+                         color: var(--color-text);
+                         line-height: 1.2">{{ user.first_name|default:'Foydalanuvchi' }}</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+            {% include 'currencies/_switcher.html' %}
+            <a href="{% url 'core:settings_hub' %}"
+               aria-label="Sozlamalar"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      border-radius: 9999px;
+                      background: var(--color-surface);
+                      border: 1px solid var(--color-border);
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="20"
+                     height="20"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+                </svg>
+            </a>
+        </div>
     </header>
-    {# Quote card — UX §3.1 treatment lives in quotes/_quote_card.html. #}
-    {% include 'quotes/_quote_card.html' with quote=quote %}
-    {# Inflow / Outflow side-by-side cards with sparkline + MoM delta. #}
+    {# Neon hero — Sof balans + Kirim/Chiqim pills nested inside. #}
     <div class="iw-enter iw-enter-1"
-         style="display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-bottom: 12px">
-        {# Inflow #}
-        <a href="{% url 'transactions:history' %}?type=income"
-           aria-label="Kirimlar tarixini ko'rish"
-           style="display: block;
-                  padding: 14px;
-                  border-radius: 14px;
-                  background: var(--color-inflow-surface);
-                  text-decoration: none">
-            <div style="display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin-bottom: 8px">
-                <span style="display: inline-flex;
-                             align-items: center;
-                             gap: 6px;
-                             font-size: 10px;
-                             font-weight: 600;
-                             letter-spacing: 0.06em;
-                             text-transform: uppercase;
-                             color: var(--color-inflow-text);
-                             opacity: 0.75">
-                    <svg width="14"
-                         height="14"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         viewBox="0 0 24 24"
-                         aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
-                    </svg>
-                    Kirim
-                </span>
-            </div>
-            {% sparkline_path inflow_series as inflow_path %}
-            {% if inflow_path %}
-                <svg width="100%"
-                     height="32"
-                     viewBox="0 0 100 32"
-                     preserveAspectRatio="none"
-                     style="margin-bottom: 6px;
-                            display: block"
-                     aria-hidden="true">
-                    <path d="{{ inflow_path }}" fill="none" stroke="var(--color-inflow-icon)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-            {% endif %}
-            <p class="amount"
-               style="font-size: 18px;
-                      font-weight: 600;
-                      color: var(--color-inflow-text);
-                      margin: 0">
-                {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                    {{ aggregated.total_income|smart_money:display_currency }}
-                {% else %}
-                    {{ summary.inflow_total|smart_money:summary.currency }}
-                {% endif %}
-            </p>
-        </a>
-        {# Outflow #}
-        <a href="{% url 'transactions:history' %}?type=expense"
-           aria-label="Chiqimlar tarixini ko'rish"
-           style="display: block;
-                  padding: 14px;
-                  border-radius: 14px;
-                  background: var(--color-outflow-surface);
-                  text-decoration: none">
-            <div style="display: flex;
-                        align-items: center;
-                        justify-content: space-between;
-                        margin-bottom: 8px">
-                <span style="display: inline-flex;
-                             align-items: center;
-                             gap: 6px;
-                             font-size: 10px;
-                             font-weight: 600;
-                             letter-spacing: 0.06em;
-                             text-transform: uppercase;
-                             color: var(--color-outflow-text);
-                             opacity: 0.75">
-                    <svg width="14"
-                         height="14"
-                         fill="none"
-                         stroke="currentColor"
-                         stroke-width="2"
-                         viewBox="0 0 24 24"
-                         aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
-                    </svg>
-                    Chiqim
-                </span>
-            </div>
-            {% sparkline_path outflow_series as outflow_path %}
-            {% if outflow_path %}
-                <svg width="100%"
-                     height="32"
-                     viewBox="0 0 100 32"
-                     preserveAspectRatio="none"
-                     style="margin-bottom: 6px;
-                            display: block"
-                     aria-hidden="true">
-                    <path d="{{ outflow_path }}" fill="none" stroke="var(--color-outflow-icon)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-            {% endif %}
-            <p class="amount"
-               style="font-size: 18px;
-                      font-weight: 600;
-                      color: var(--color-outflow-text);
-                      margin: 0">
-                {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
-                    {{ aggregated.total_expense|smart_money:display_currency }}
-                {% else %}
-                    {{ summary.outflow_total|smart_money:summary.currency }}
-                {% endif %}
-            </p>
-        </a>
-    </div>
-    {# Big balance card. Subtle gradient + elevated shadow + MoM delta line. #}
-    <div class="iw-enter iw-enter-2"
-         style="padding: 20px;
-                border-radius: 18px;
-                border: 1px solid var(--color-border);
-                background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-gradient-stop) 140%);
-                box-shadow: var(--shadow-elevated)">
-        <p style="font-size: 10px;
-                  letter-spacing: 0.06em;
+         style="position: relative;
+                padding: 20px;
+                border-radius: var(--radius-card);
+                background: var(--gradient-hero);
+                box-shadow: var(--shadow-cta);
+                overflow: hidden;
+                margin-bottom: 16px">
+        <p style="font-size: 11px;
+                  letter-spacing: 0.08em;
                   text-transform: uppercase;
-                  color: var(--color-text-muted);
-                  font-weight: 600;
-                  margin: 0 0 8px">Sof balans</p>
+                  color: rgba(10, 31, 10, 0.7);
+                  font-weight: 700;
+                  margin: 0 0 6px">Sof balans</p>
         <p class="amount"
            aria-live="polite"
            style="font-size: 36px;
-                  font-weight: 700;
-                  color: var(--color-text);
+                  font-weight: 800;
+                  color: #052E10;
                   margin: 0;
-                  line-height: 1.1">
+                  line-height: 1.05">
             {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
                 {{ aggregated.cash_balance|smart_money:display_currency }}
             {% else %}
@@ -183,45 +76,130 @@ MoM direction. Voice CTA moved off Home into the Add page entirely.
             {% endif %}
         </p>
         <p style="font-size: 12px;
-                  color: var(--color-text-muted);
-                  margin: 8px 0 0">
+                  color: rgba(10, 31, 10, 0.65);
+                  margin: 6px 0 18px;
+                  font-weight: 500">
             {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
                 ≈ {{ display_currency|currency_label }} bo'yicha
             {% else %}
                 Joriy oy · {{ summary.currency }}
             {% endif %}
-        </p>
-        {% if mom_delta.has_previous %}
-            <p style="display: flex;
-                      align-items: center;
-                      gap: 4px;
-                      margin: 10px 0 0;
-                      font-size: 12px;
-                      color: {% if mom_delta.direction == 'up' %}var(--color-primary){% elif mom_delta.direction == 'down' %}var(--color-outflow-text){% else %}var(--color-text-muted){% endif %}">
+            {% if mom_delta.has_previous %}
+                ·
                 {% if mom_delta.direction == 'up' %}
-                    <span aria-hidden="true">▴</span>
+                    ▴ Avvalgi oydan yuqori
                 {% elif mom_delta.direction == 'down' %}
-                    <span aria-hidden="true">▾</span>
+                    ▾ Avvalgi oydan pastroq
                 {% else %}
-                    <span aria-hidden="true">–</span>
+                    – o'zgarmadi
                 {% endif %}
-                <span>Avvalgi oydan
-                    {% if mom_delta.direction != 'flat' %}
-                        {% if mom_delta.delta < 0 %}
-                            {{ mom_delta.delta|stringformat:'s'|cut:'-'|add:'0'|smart_money:summary.currency }} pastroq
-                        {% else %}
-                            {{ mom_delta.delta|smart_money:summary.currency }} yuqori
-                        {% endif %}
-                    {% else %}
-                        o'zgarmadi
-                    {% endif %}
+            {% endif %}
+        </p>
+        {# Inflow / Outflow pills inside the hero. #}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+            <a href="{% url 'transactions:history' %}?type=income"
+               aria-label="Kirimlar tarixini ko'rish"
+               style="display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      padding: 12px 14px;
+                      border-radius: 14px;
+                      background: rgba(10, 31, 10, 0.55);
+                      backdrop-filter: blur(8px);
+                      -webkit-backdrop-filter: blur(8px);
+                      color: var(--color-text);
+                      text-decoration: none">
+                <span aria-hidden="true"
+                      style="display: inline-flex;
+                             align-items: center;
+                             justify-content: center;
+                             width: 32px;
+                             height: 32px;
+                             border-radius: 9999px;
+                             background: rgba(159, 248, 124, 0.18);
+                             color: var(--color-primary)">
+                    <svg width="16"
+                         height="16"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5L18 6m0 0H8.25M18 6v9.75" />
+                    </svg>
                 </span>
-            </p>
-        {% endif %}
+                <span style="display: flex; flex-direction: column">
+                    <span style="font-size: 10px;
+                                 letter-spacing: 0.06em;
+                                 text-transform: uppercase;
+                                 color: rgba(240, 244, 239, 0.6);
+                                 font-weight: 600">Kirim</span>
+                    <span class="amount"
+                          style="font-size: 14px;
+                                 font-weight: 700;
+                                 color: var(--color-text)">
+                        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                            {{ aggregated.total_income|smart_money:display_currency }}
+                        {% else %}
+                            {{ summary.inflow_total|smart_money:summary.currency }}
+                        {% endif %}
+                    </span>
+                </span>
+            </a>
+            <a href="{% url 'transactions:history' %}?type=expense"
+               aria-label="Chiqimlar tarixini ko'rish"
+               style="display: flex;
+                      align-items: center;
+                      gap: 10px;
+                      padding: 12px 14px;
+                      border-radius: 14px;
+                      background: rgba(10, 31, 10, 0.55);
+                      backdrop-filter: blur(8px);
+                      -webkit-backdrop-filter: blur(8px);
+                      color: var(--color-text);
+                      text-decoration: none">
+                <span aria-hidden="true"
+                      style="display: inline-flex;
+                             align-items: center;
+                             justify-content: center;
+                             width: 32px;
+                             height: 32px;
+                             border-radius: 9999px;
+                             background: rgba(255, 107, 107, 0.2);
+                             color: var(--color-danger)">
+                    <svg width="16"
+                         height="16"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-13.5 13.5m0 0H15.75M6 18V8.25" />
+                    </svg>
+                </span>
+                <span style="display: flex; flex-direction: column">
+                    <span style="font-size: 10px;
+                                 letter-spacing: 0.06em;
+                                 text-transform: uppercase;
+                                 color: rgba(240, 244, 239, 0.6);
+                                 font-weight: 600">Chiqim</span>
+                    <span class="amount"
+                          style="font-size: 14px;
+                                 font-weight: 700;
+                                 color: var(--color-text)">
+                        {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported %}
+                            {{ aggregated.total_expense|smart_money:display_currency }}
+                        {% else %}
+                            {{ summary.outflow_total|smart_money:summary.currency }}
+                        {% endif %}
+                    </span>
+                </span>
+            </a>
+        </div>
     </div>
+    {# Quote card lives below the hero. #}
+    {% include 'quotes/_quote_card.html' with quote=quote %}
     {# Mixed-currency / breakdown row (raw fallback when other currencies exist). #}
     {% if display_mode == 'converted' and aggregated and aggregated.is_fully_supported and aggregated.per_currency|length > 1 %}
-        <div style="margin-top: 16px">
+        <div class="iw-enter iw-enter-2" style="margin-top: 16px">
             <p style="font-size: 10px;
                       letter-spacing: 0.06em;
                       text-transform: uppercase;
@@ -247,7 +225,7 @@ MoM direction. Voice CTA moved off Home into the Add page entirely.
             </div>
         </div>
     {% elif other_currency_summaries %}
-        <div style="margin-top: 16px">
+        <div class="iw-enter iw-enter-2" style="margin-top: 16px">
             <p style="font-size: 10px;
                       letter-spacing: 0.06em;
                       text-transform: uppercase;
@@ -275,7 +253,7 @@ MoM direction. Voice CTA moved off Home into the Add page entirely.
     {% endif %}
     {# Top expense categories with proportional bars. #}
     {% if summary.top_categories %}
-        <div style="margin-top: 24px">
+        <div class="iw-enter iw-enter-3" style="margin-top: 24px">
             <p style="font-size: 10px;
                       letter-spacing: 0.06em;
                       text-transform: uppercase;
@@ -296,14 +274,22 @@ MoM direction. Voice CTA moved off Home into the Add page entirely.
                                     left: 0;
                                     height: 100%;
                                     width: {{ cat.share_pct|floatformat:0 }}%;
-                                    background: linear-gradient(90deg, var(--color-primary-light) 0%, rgba(209,250,229,0) 100%);
+                                    background: linear-gradient(90deg, rgba(159, 248, 124, 0.22) 0%, rgba(159, 248, 124, 0) 100%);
                                     pointer-events: none"></div>
                         <div style="position: relative;
                                     display: flex;
                                     align-items: center;
                                     justify-content: space-between">
-                            <span style="display: inline-flex; align-items: center; gap: 8px">
-                                <span aria-hidden="true">{{ cat.emoji }}</span>
+                            <span style="display: inline-flex; align-items: center; gap: 10px">
+                                <span aria-hidden="true"
+                                      style="display: inline-flex;
+                                             align-items: center;
+                                             justify-content: center;
+                                             width: 32px;
+                                             height: 32px;
+                                             border-radius: 9999px;
+                                             background: var(--color-surface-hi);
+                                             font-size: 16px">{{ cat.emoji }}</span>
                                 <span style="font-size: 14px; color: var(--color-text)">{{ cat.name }}</span>
                             </span>
                             <span class="amount"

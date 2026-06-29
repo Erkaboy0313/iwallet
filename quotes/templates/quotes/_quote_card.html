@@ -4,12 +4,15 @@ actually tappable; visible hit area on hover/focus via slate-100 background.
 {% endcomment %}
 {% if quote %}
     <div id="quote-card"
+         class="iw-enter iw-enter-2"
          style="position: relative;
                 margin-bottom: 16px;
                 padding: 14px 50px 16px 16px;
-                background-color: #F1F5F9;
+                background: var(--color-surface);
                 border: 1px solid var(--color-border);
-                border-radius: 14px;
+                border-left: 2px solid var(--color-primary);
+                border-radius: var(--radius-card-sm);
+                box-shadow: var(--shadow-soft);
                 transition: opacity var(--motion-standard) var(--ease-out)">
         <p style="margin: 0;
                   font-size: 14px;
@@ -40,7 +43,7 @@ actually tappable; visible hit area on hover/focus via slate-100 background.
                        align-items: center;
                        justify-content: center;
                        transition: background var(--motion-micro) var(--ease-out)"
-                onmouseover="this.style.background='#E2E8F0'"
+                onmouseover="this.style.background='var(--color-surface-hi)'"
                 onmouseout="this.style.background='transparent'">
             <svg width="16"
                  height="16"
