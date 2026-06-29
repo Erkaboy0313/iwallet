@@ -1,20 +1,25 @@
 {% comment %}
 Story 6.3 — recurring intent prompt card. Sits above the transaction stack.
-Two actions: "Ha — har oy [date]" sets createRecurring=true so the batch save
-also creates a RecurringSchedule via /app/voice/save-multi/. "Yoq — faqat bu
-safar" leaves it false so only the Transaction is created. If the parser
-couldnt infer a cadence the "Ha" button becomes a deep-link to manual create.
+v0.7 dark — amber accent on dark surface.
 {% endcomment %}
 {% load voice_extras %}
-<div class="card-default mt-4"
-     style="border: 2px solid #f59e0b;
-            border-radius: 24px;
-            background-color: #fffbeb">
-    <div class="flex items-start gap-3">
-        <span aria-hidden="true" style="font-size: 24px">⏰</span>
-        <div class="flex-1">
-            <h3 class="text-sm font-semibold text-amber-900">Bu xarajat takrorlanadimi?</h3>
-            <p class="mt-1 text-xs text-amber-800">
+<div style="margin-top: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255, 181, 71, 0.35);
+            border-radius: 16px;
+            background: var(--color-warning-bg);
+            box-shadow: var(--shadow-soft)">
+    <div style="display: flex; align-items: flex-start; gap: 12px">
+        <span aria-hidden="true" style="font-size: 22px">⏰</span>
+        <div style="flex: 1">
+            <h3 style="margin: 0;
+                       font-size: 13px;
+                       font-weight: 600;
+                       color: var(--color-warning)">Bu xarajat takrorlanadimi?</h3>
+            <p style="margin: 4px 0 0;
+                      font-size: 12px;
+                      color: var(--color-text-secondary);
+                      line-height: 1.5">
                 {% if recurring.note %}
                     "{{ recurring.note }}" — {% hint_label recurring %}.
                 {% else %}
@@ -23,30 +28,50 @@ couldnt infer a cadence the "Ha" button becomes a deep-link to manual create.
             </p>
         </div>
     </div>
-    <div class="mt-4 grid grid-cols-2 gap-3">
+    <div style="display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin-top: 14px">
         {% if recurring.recurring_hint %}
             <button type="button"
-                    class="btn-primary text-sm"
                     aria-label="Takrorlanuvchi sifatida qo'shish"
-                    style="background-color: #d97706;
-                           color: white"
-                    :class="createRecurring ? 'ring-2 ring-amber-500' : ''"
-                    @click="createRecurring = !createRecurring">
+                    @click="createRecurring = !createRecurring"
+                    :style="createRecurring ? 'box-shadow: 0 0 0 2px var(--color-warning), 0 0 16px rgba(255, 181, 71, 0.35)' : ''"
+                    style="padding: 10px 12px;
+                           font-size: 13px;
+                           font-weight: 600;
+                           border: 0;
+                           border-radius: 12px;
+                           background: var(--color-warning);
+                           color: #1A0F02;
+                           cursor: pointer">
                 <span x-show="!createRecurring">Ha — {% hint_label recurring %}</span>
                 <span x-show="createRecurring">✓ Takror sifatida tanlandi</span>
             </button>
         {% else %}
             <a href="{% url 'recurring:create' %}?type={{ recurring.type }}&amount={{ recurring.amount|stringformat:'s' }}&currency={{ recurring.currency }}&category_slug={{ recurring.category_slug }}"
-               class="btn-primary text-sm text-center"
-               style="background-color: #d97706;
-                      color: white;
-                      display: inline-flex;
+               aria-label="Takrorlanuvchi sifatida qo'lda sozlash"
+               style="display: inline-flex;
                       align-items: center;
-                      justify-content: center">Ha — qo'lda sozlash</a>
+                      justify-content: center;
+                      padding: 10px 12px;
+                      font-size: 13px;
+                      font-weight: 600;
+                      border-radius: 12px;
+                      background: var(--color-warning);
+                      color: #1A0F02;
+                      text-decoration: none">Ha — qo'lda sozlash</a>
         {% endif %}
         <button type="button"
-                class="btn-secondary text-sm"
                 aria-label="Faqat bu safargi tranzaksiya"
-                @click="createRecurring = false">Yo'q — faqat bu safar</button>
+                @click="createRecurring = false"
+                style="padding: 10px 12px;
+                       font-size: 13px;
+                       font-weight: 600;
+                       border: 1px solid var(--color-border);
+                       border-radius: 12px;
+                       background: var(--color-surface-hi);
+                       color: var(--color-text-secondary);
+                       cursor: pointer">Yo'q — faqat bu safar</button>
     </div>
 </div>

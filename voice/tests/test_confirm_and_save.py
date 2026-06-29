@@ -72,7 +72,8 @@ def test_partial_flags_ambiguous_card_with_amber_border() -> None:
     drafts = [_draft(ambiguous_fields=["amount"])]
     html = _render_partial(user, drafts)
     # Sprint v0.6 §7.3 — softer dashed border for 'please review'.
-    assert "1.5px dashed #FCD34D" in html
+    # Sprint v0.7 — amber on dark uses rgba so the rail reads on dark surfaces.
+    assert "1.5px dashed rgba(255, 181, 71, 0.7)" in html
     assert "noaniq" in html or "tekshiring" in html
 
 
