@@ -1,13 +1,11 @@
 {% comment %}
-White surface card with soft shadow.
+Surface card — dark v0.7. Token-driven so themes auto-propagate.
 Usage:
     {% include 'core/components/_card.html' with body=card_body padding=20 %}
-or include directly with content as a block - use _card_open / _card_close instead
-when wrapping inline children.
 {% endcomment %}
 <div style="background: var(--color-surface);
             border: 1px solid var(--color-border);
-            border-radius: 14px;
-            box-shadow: var(--shadow-soft);
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-card);
             padding: {{ padding|default:16 }}px;
             overflow: hidden">{{ body|safe }}</div>

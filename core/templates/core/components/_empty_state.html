@@ -7,9 +7,10 @@ Usage:
             padding: 48px 24px;
             color: var(--color-text-secondary)">
     {% if emoji %}
-        <div style="font-size: 56px;
+        <div style="font-size: 64px;
                     line-height: 1;
-                    margin-bottom: 16px"
+                    margin-bottom: 18px;
+                    filter: drop-shadow(0 4px 12px rgba(159, 248, 124, 0.15))"
              aria-hidden="true">{{ emoji }}</div>
     {% endif %}
     {% if title %}
@@ -27,10 +28,10 @@ Usage:
     {% if cta_url and cta_label %}
         <a href="{{ cta_url }}"
            style="display: inline-block;
-                  padding: 12px 20px;
-                  border-radius: 12px;
-                  background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-                  color: #FFFFFF;
+                  padding: 12px 22px;
+                  border-radius: 14px;
+                  background: var(--gradient-cta);
+                  color: var(--color-primary-on);
                   font-size: 14px;
                   font-weight: 600;
                   text-decoration: none;

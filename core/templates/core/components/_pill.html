@@ -15,8 +15,9 @@ Usage:
           white-space: nowrap;
           scroll-snap-align: start;
           {% if active %}background: var(--color-primary);
-          color: #FFFFFF;
-          box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
-          {% else %}background: #F1F5F9;
+          color: var(--color-primary-on);
+          box-shadow: 0 0 16px rgba(159, 248, 124, 0.35);
+          {% else %}background: var(--color-surface-hi);
           color: var(--color-text-secondary);
-          {% endif %} transition: background var(--motion-micro) var(--ease-out)">{{ label }}</a>
+          border: 1px solid var(--color-border);
+          {% endif %} transition: background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)">{{ label }}</a>

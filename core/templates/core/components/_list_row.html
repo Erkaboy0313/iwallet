@@ -1,5 +1,5 @@
 {% comment %}
-56px-tall row used inside list cards.
+56px-tall row used inside list cards. Token-driven; tap feedback via iw-tap.
 Usage:
     {% include 'core/components/_list_row.html' with label='Asosiy valyuta' value='UZS' chevron=True %}
     {% include 'core/components/_list_row.html' with label='Kunlik ibora' slot=toggle_html %}
@@ -12,6 +12,7 @@ Optional kwargs:
 {% endcomment %}
 {% if href %}
     <a href="{{ href }}"
+       class="iw-tap"
        style="display: flex;
               align-items: center;
               justify-content: space-between;
