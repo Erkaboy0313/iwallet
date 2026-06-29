@@ -107,112 +107,35 @@
                     <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.type.errors|join:" " }}</p>
                 {% endif %}
             </fieldset>
-            {# Amount — custom keypad replaces the native input. Hidden field submits the digits. #}
+            {# Amount — plain native input with the phone's numeric keypad. #}
             <div>
-                <label style="display: block;
+                <label for="id_amount"
+                       style="display: block;
                               font-size: 10px;
                               letter-spacing: 0.06em;
                               text-transform: uppercase;
                               color: var(--color-text-muted);
                               font-weight: 600;
                               margin-bottom: 8px">Summa</label>
-                <input type="hidden" id="id_amount" name="amount" :value="amount" required>
-                {# Amount display card + custom keypad. Class-based so no Tailwind / native button styling leaks in. #}
-                <style>
-                .iw-amount-card {
-                    display: flex;
-                    align-items: baseline;
-                    justify-content: center;
-                    gap: 8px;
-                    padding: 24px 20px;
-                    border: 1.5px solid rgba(255, 255, 255, 0.18);
-                    border-radius: 18px;
-                    background: #161E1A;
-                    min-height: 80px;
-                }
-                .iw-amount-card.is-filled {
-                    border-color: #9FF87C;
-                    box-shadow: 0 0 24px rgba(159, 248, 124, 0.25);
-                }
-                .iw-amount-number {
-                    font-size: 36px;
-                    font-weight: 700;
-                    line-height: 1.05;
-                    letter-spacing: -0.01em;
-                    color: #F0F4EF;
-                }
-                .iw-amount-symbol {
-                    font-size: 14px;
-                    font-weight: 600;
-                    color: #A8B0A6;
-                    letter-spacing: 0.04em;
-                }
-                .iw-keypad {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr 1fr;
-                    gap: 8px;
-                    margin-top: 12px;
-                }
-                .iw-keypad-btn {
-                    -webkit-appearance: none;
-                    appearance: none;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    padding: 16px 0;
-                    font-size: 22px;
-                    font-weight: 600;
-                    border: 1px solid rgba(255, 255, 255, 0.08);
-                    border-radius: 14px;
-                    background: #1F2A24;
-                    color: #F0F4EF;
-                    cursor: pointer;
-                    outline: none;
-                    transition: transform 80ms ease, background 120ms ease;
-                }
-                .iw-keypad-btn:active {
-                    background: #9FF87C;
-                    color: #052E10;
-                    border-color: #9FF87C;
-                    transform: scale(0.94);
-                }
-                .iw-keypad-btn:focus,
-                .iw-keypad-btn:focus-visible {
-                    outline: none;
-                    box-shadow: none;
-                }
-                </style>
-                <div class="iw-amount-card" :class="{ 'is-filled': amount }">
-                    <span class="iw-amount-number amount"
-                          aria-live="polite"
-                          x-text="formattedAmount()"></span>
-                    <span class="iw-amount-symbol"
-                          aria-hidden="true"
-                          x-text="document.getElementById('id_currency') ? document.getElementById('id_currency').value : 'UZS'"></span>
-                </div>
-                <div class="iw-keypad">
-                    <template x-for="key in keypadKeys" :key="key">
-                        <button type="button"
-                                class="iw-keypad-btn"
-                                @click="pressKey(key)"
-                                :aria-label="key === 'BACK' ? 'O\'chirish' : 'Raqam ' + key">
-                            <template x-if="key !== 'BACK'">
-                                <span x-text="key"></span>
-                            </template>
-                            <template x-if="key === 'BACK'">
-                                <svg width="22"
-                                     height="22"
-                                     fill="none"
-                                     stroke="currentColor"
-                                     stroke-width="1.8"
-                                     viewBox="0 0 24 24"
-                                     aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33z" />
-                                </svg>
-                            </template>
-                        </button>
-                    </template>
-                </div>
+                <input id="id_amount"
+                       name="amount"
+                       type="text"
+                       inputmode="numeric"
+                       x-model="amount"
+                       placeholder="0"
+                       required
+                       autocomplete="off"
+                       class="amount"
+                       style="width: 100%;
+                              padding: 20px;
+                              font-size: 32px;
+                              font-weight: 700;
+                              text-align: left;
+                              border: 1.5px solid rgba(255, 255, 255, 0.18);
+                              border-radius: 18px;
+                              background: #161E1A;
+                              color: #F0F4EF;
+                              outline: none">
                 {% if form.amount.errors %}
                     <p style="color: var(--color-danger); font-size: 13px; margin-top: 8px">{{ form.amount.errors|join:" " }}</p>
                 {% endif %}

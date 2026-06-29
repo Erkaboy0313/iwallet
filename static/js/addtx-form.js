@@ -1,9 +1,8 @@
 /* Alpine component for the Add / Edit transaction form.
  *
- * Loaded from both /app/transactions/add/ and /app/transactions/<id>/edit/
- * so the keypad + type radio cards work the same on either page. The
- * registration is guarded so loading the script twice in one page is a
- * no-op.
+ * Tracks the active type pill + the (text) amount + the category-picker
+ * state. The amount field is a plain native input now — the OS keyboard
+ * handles digit entry, no custom keypad.
  */
 (function () {
     if (window.__addTxFormRegistered) return;
@@ -17,19 +16,6 @@
                 picker: null,
                 pickerLabel: "",
                 pickerEmoji: "",
-                keypadKeys: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "000", "0", "BACK"],
-                pressKey: function (key) {
-                    if (key === "BACK") {
-                        this.amount = this.amount.slice(0, -1);
-                        return;
-                    }
-                    var next = (this.amount + key).replace(/^0+(?=\d)/, "");
-                    if (next.length <= 12) this.amount = next;
-                },
-                formattedAmount: function () {
-                    var s = this.amount || "0";
-                    return s.replace(/\B(?=(\d{3})+(?!\d))/g, " ");
-                },
             };
         });
     }
