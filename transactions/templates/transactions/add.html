@@ -58,9 +58,9 @@
                                font-weight: 600;
                                padding: 0;
                                margin-bottom: 8px">Turi</legend>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px">
+                <div style="display: flex; flex-wrap: wrap; gap: 8px">
                     {% for value, label in form.type.field.choices %}
-                        <label style="cursor: pointer; display: block">
+                        <label style="cursor: pointer">
                             <input type="radio"
                                    name="type"
                                    value="{{ value }}"
