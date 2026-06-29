@@ -104,7 +104,6 @@ pulse, shake) because cached Tailwind build may not include arbitrary keyframes.
     if (window.__voiceButtonRegistered) return;
     window.__voiceButtonRegistered = true;
     function register() {
-        if (!window.Alpine) { return setTimeout(register, 30); }
         window.Alpine.data("voiceButton", function (transcribeUrl) {
             return {
                 state: "idle",
@@ -243,6 +242,12 @@ pulse, shake) because cached Tailwind build may not include arbitrary keyframes.
             };
         });
     }
-    register();
+    // Register before Alpine evaluates `x-data`. If Alpine is already loaded
+    // (htmx-swap path) call immediately; otherwise wait for alpine:init.
+    if (window.Alpine) {
+        register();
+    } else {
+        document.addEventListener("alpine:init", register);
+    }
 })();
 </script>

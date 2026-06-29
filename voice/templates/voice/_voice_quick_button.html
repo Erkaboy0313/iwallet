@@ -53,7 +53,6 @@ button has no room for the dots-and-shake choreography.
     if (window.__voiceQuickRegistered) return;
     window.__voiceQuickRegistered = true;
     function register() {
-        if (!window.Alpine) return setTimeout(register, 30);
         window.Alpine.data("voiceQuick", function (transcribeUrl) {
             return {
                 state: "idle",
@@ -132,6 +131,12 @@ button has no room for the dots-and-shake choreography.
             };
         });
     }
-    register();
+    // Register before Alpine evaluates `x-data`. If Alpine is already loaded
+    // (htmx-swap path) call immediately; otherwise wait for alpine:init.
+    if (window.Alpine) {
+        register();
+    } else {
+        document.addEventListener("alpine:init", register);
+    }
 })();
 </script>

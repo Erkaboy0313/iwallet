@@ -206,7 +206,6 @@ and every UI binding reads from it directly.
     <script>
     (function () {
         function register() {
-            if (!window.Alpine) return setTimeout(register, 30);
             var TYPE_LABELS = { expense: "Chiqim", income: "Kirim", debt_lent: "Qarz berdim", debt_borrowed: "Qarz oldim" };
             var FIELD_LABELS = { amount: "summa", currency: "valyuta", category_slug: "kategoriya", date: "sana", counterparty: "kim bilan", confidence: "umumiy aniqlik" };
             function fmt(value) {
@@ -374,7 +373,14 @@ and every UI binding reads from it directly.
                 };
             });
         }
-        register();
+        // Register before Alpine evaluates `x-data`. If Alpine is already
+        // loaded (htmx-swap path, which is the common case for this partial)
+        // call immediately; otherwise wait for alpine:init.
+        if (window.Alpine) {
+            register();
+        } else {
+            document.addEventListener("alpine:init", register);
+        }
     })();
     </script>
 {% endif %}
