@@ -73,6 +73,12 @@ class Transaction(models.Model):
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
+    # Set when a debt-type transaction has been settled (the counterparty has
+    # been paid back, or the user has paid them back). Null on regular income
+    # / expense rows and on still-open debts. The settle action also spawns a
+    # paired income/expense Transaction so the cash flow stays correct.
+    settled_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

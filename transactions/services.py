@@ -84,6 +84,48 @@ def soft_delete_transaction(*, tx: Transaction) -> Transaction:
 
 
 @db_transaction.atomic
+def settle_debt_transaction(*, tx: Transaction) -> tuple[Transaction, Transaction]:
+    """Mark a debt-type Transaction as settled + spawn the counter cash row.
+
+    debt_lent (I lent money, someone paid me back) -> spawns an `income`.
+    debt_borrowed (I borrowed money, I paid them back) -> spawns an `expense`.
+
+    The new cash transaction carries an auto-note tying it back to the
+    counterparty so it reads cleanly in History. Returns (original_tx,
+    counter_tx).
+    """
+    if tx.type not in ("debt_lent", "debt_borrowed"):
+        raise InvalidAmountError("Faqat qarz tranzaksiyasini yopish mumkin.")
+    if tx.settled_at is not None:
+        raise TransactionNotEditableError("Bu qarz allaqachon yopilgan.")
+    if tx.is_deleted:
+        raise TransactionNotEditableError("Tranzaksiya o'chirilgan.")
+
+    if tx.type == "debt_lent":
+        counter_type = "income"
+        counter_note = "Qarz qaytarib oldim"
+    else:
+        counter_type = "expense"
+        counter_note = "Qarz qaytarib berdim"
+    if tx.counterparty:
+        counter_note = f"{counter_note} · {tx.counterparty}"
+
+    tx.settled_at = timezone.now()
+    tx.save(update_fields=["settled_at", "updated_at"])
+
+    counter = Transaction.objects.create(
+        user=tx.user,
+        type=counter_type,
+        amount=tx.amount,
+        currency=tx.currency,
+        date=timezone.localdate(),
+        counterparty=tx.counterparty,
+        note=counter_note,
+    )
+    return tx, counter
+
+
+@db_transaction.atomic
 def restore_transaction(*, tx: Transaction) -> Transaction:
     """Bring a soft-deleted transaction back if still inside the FR8 window."""
     if not tx.is_deleted:

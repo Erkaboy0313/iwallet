@@ -3,7 +3,9 @@
 {% load debts_extras %}
 {% block title %}Qarzlar — IWALLET{% endblock %}
 {% block content %}
-    <section style="padding: 16px 20px 96px">
+    <section style="padding: 16px 20px 96px"
+             x-data="{ sheet: false, sheetCcy: 'UZS' }"
+             @keydown.escape.window="sheet = false">
         <header style="display: flex;
                        align-items: center;
                        gap: 8px;
@@ -85,20 +87,15 @@
                        padding: 0;
                        list-style: none">
                 {% for tx in transactions %}
-                    <li>
-                        <a href="{% url 'transactions:edit' tx.id %}"
-                           class="iw-tap"
-                           aria-label="Qarz tranzaksiyasini ko'rish va tahrirlash"
-                           style="display: flex;
-                                  align-items: center;
-                                  justify-content: space-between;
-                                  gap: 12px;
-                                  padding: 12px 14px;
-                                  background: var(--color-surface);
-                                  border: 1px solid var(--color-border);
-                                  border-radius: 14px;
-                                  text-decoration: none;
-                                  color: var(--color-text)">
+                    <li style="background: var(--color-surface);
+                               border: 1px solid var(--color-border);
+                               border-radius: 14px;
+                               padding: 12px 14px;
+                               {% if tx.settled_at %}opacity: 0.55;{% endif %}">
+                        <div style="display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    gap: 12px">
                             <span style="display: flex;
                                          align-items: center;
                                          gap: 12px;
@@ -135,13 +132,26 @@
                                                  overflow: hidden;
                                                  text-overflow: ellipsis;
                                                  white-space: nowrap">{{ tx.counterparty|default:'Qarz' }}</span>
-                                    <span style="font-size: 12px;
-                                                 color: var(--color-text-muted);
-                                                 overflow: hidden;
-                                                 text-overflow: ellipsis;
-                                                 white-space: nowrap">{{ tx.date|date:"j-N" }}
-                                        {% if tx.note %}
-                                            · {{ tx.note|truncatechars:24 }}
+                                    <span style="display: inline-flex;
+                                                 align-items: center;
+                                                 gap: 6px;
+                                                 font-size: 12px;
+                                                 color: var(--color-text-muted)">
+                                        <span>{{ tx.date|date:"j-N" }}</span>
+                                        {% if tx.settled_at %}
+                                            <span style="padding: 2px 8px;
+                                                         border-radius: 9999px;
+                                                         background: var(--color-primary-light);
+                                                         color: var(--color-primary);
+                                                         font-weight: 600;
+                                                         font-size: 11px">Yopilgan</span>
+                                        {% else %}
+                                            <span style="padding: 2px 8px;
+                                                         border-radius: 9999px;
+                                                         background: var(--color-warning-bg);
+                                                         color: var(--color-warning);
+                                                         font-weight: 600;
+                                                         font-size: 11px">Ochiq</span>
                                         {% endif %}
                                     </span>
                                 </span>
@@ -151,7 +161,58 @@
                                          font-weight: 700;
                                          white-space: nowrap;
                                          color: var(--color-debt)">{{ tx.amount|smart_money:tx.currency }}</span>
-                        </a>
+                        </div>
+                        {% if not tx.settled_at %}
+                            <div style="display: flex; gap: 8px; margin-top: 10px">
+                                <form action="{% url 'debts:settle' tx.id %}"
+                                      method="post"
+                                      hx-post="{% url 'debts:settle' tx.id %}"
+                                      hx-swap="none"
+                                      style="flex: 1">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            aria-label="Qarzni yopish"
+                                            style="width: 100%;
+                                                   padding: 8px 12px;
+                                                   border: 0;
+                                                   border-radius: 10px;
+                                                   background: var(--gradient-cta);
+                                                   color: var(--color-primary-on);
+                                                   font-size: 12px;
+                                                   font-weight: 700;
+                                                   box-shadow: 0 0 12px rgba(159, 248, 124, 0.25);
+                                                   cursor: pointer">
+                                        {% if tx.type == 'debt_lent' %}
+                                            Qaytarib oldim
+                                        {% else %}
+                                            Qaytarib berdim
+                                        {% endif %}
+                                    </button>
+                                </form>
+                                <a href="{% url 'transactions:edit' tx.id %}"
+                                   aria-label="Tahrirlash"
+                                   style="display: inline-flex;
+                                          align-items: center;
+                                          justify-content: center;
+                                          width: 36px;
+                                          height: 36px;
+                                          border-radius: 10px;
+                                          background: var(--color-surface-hi);
+                                          border: 1px solid var(--color-border);
+                                          color: var(--color-text-secondary);
+                                          text-decoration: none">
+                                    <svg width="16"
+                                         height="16"
+                                         fill="none"
+                                         stroke="currentColor"
+                                         stroke-width="1.8"
+                                         viewBox="0 0 24 24"
+                                         aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zM19.5 18.75h-12" />
+                                    </svg>
+                                </a>
+                            </div>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -163,17 +224,178 @@
             {% endif %}
         {% endif %}
         <div style="margin-top: 20px; text-align: center">
-            <a href="{% url 'transactions:add' %}?type={{ active_tab }}"
-               aria-label="Yangi qarz qo'shish"
-               style="display: inline-block;
-                      padding: 12px 22px;
-                      border-radius: 14px;
-                      background: var(--gradient-cta);
-                      color: var(--color-primary-on);
-                      font-size: 14px;
-                      font-weight: 700;
-                      text-decoration: none;
-                      box-shadow: var(--shadow-cta)">+ Yangi qarz</a>
+            <button type="button"
+                    @click="sheet = true; setTimeout(() => document.getElementById('iw-debt-counterparty')?.focus(), 50)"
+                    aria-label="Yangi qarz qo'shish"
+                    style="display: inline-block;
+                           padding: 12px 22px;
+                           border-radius: 14px;
+                           border: 0;
+                           background: var(--gradient-cta);
+                           color: var(--color-primary-on);
+                           font-size: 14px;
+                           font-weight: 700;
+                           box-shadow: var(--shadow-cta);
+                           cursor: pointer">+ Yangi qarz</button>
+        </div>
+        {# Bottom sheet — minimal new-debt form (counterparty / amount / currency). #}
+        <div x-show="sheet"
+             x-cloak
+             style="display: none;
+                    position: fixed;
+                    inset: 0;
+                    z-index: 50;
+                    background: rgba(0, 0, 0, 0.6)"
+             @click.self="sheet = false">
+            <div style="position: absolute;
+                        bottom: 0;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 100%;
+                        max-width: 430px;
+                        background: var(--color-surface);
+                        border-top: 1px solid var(--color-border-strong);
+                        border-radius: 24px 24px 0 0;
+                        box-shadow: var(--shadow-elevated);
+                        padding: 20px 20px calc(28px + env(safe-area-inset-bottom, 0))"
+                 role="dialog"
+                 aria-modal="true"
+                 aria-label="Yangi qarz qo'shish">
+                <header style="display: flex;
+                               align-items: center;
+                               justify-content: space-between;
+                               margin-bottom: 16px">
+                    <h2 style="margin: 0;
+                               font-size: 17px;
+                               font-weight: 600;
+                               color: var(--color-text)">
+                        {% if active_tab == 'debt_lent' %}
+                            Kimga qarz berdingiz?
+                        {% else %}
+                            Kimdan qarz oldingiz?
+                        {% endif %}
+                    </h2>
+                    <button type="button"
+                            @click="sheet = false"
+                            aria-label="Yopish"
+                            style="display: inline-flex;
+                                   align-items: center;
+                                   justify-content: center;
+                                   width: 36px;
+                                   height: 36px;
+                                   border-radius: 9999px;
+                                   border: 0;
+                                   background: var(--color-surface-hi);
+                                   color: var(--color-text-secondary);
+                                   cursor: pointer">
+                        <svg width="16"
+                             height="16"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             viewBox="0 0 24 24"
+                             aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </header>
+                <form action="{% url 'debts:new' %}"
+                      method="post"
+                      hx-post="{% url 'debts:new' %}"
+                      hx-swap="none"
+                      style="display: flex;
+                             flex-direction: column;
+                             gap: 14px">
+                    {% csrf_token %}
+                    <input type="hidden" name="tab" value="{{ active_tab }}">
+                    <div>
+                        <label for="iw-debt-counterparty"
+                               style="display: block;
+                                      font-size: 10px;
+                                      letter-spacing: 0.06em;
+                                      text-transform: uppercase;
+                                      color: var(--color-text-muted);
+                                      font-weight: 600;
+                                      margin-bottom: 6px">Kim bilan</label>
+                        <input id="iw-debt-counterparty"
+                               name="counterparty"
+                               type="text"
+                               placeholder="Masalan: Alisher"
+                               required
+                               style="width: 100%;
+                                      padding: 14px 16px;
+                                      font-size: 16px;
+                                      border: 1.5px solid var(--color-border);
+                                      border-radius: 14px;
+                                      background: var(--color-bg-elevated);
+                                      color: var(--color-text);
+                                      outline: none">
+                    </div>
+                    <div>
+                        <label for="iw-debt-amount"
+                               style="display: block;
+                                      font-size: 10px;
+                                      letter-spacing: 0.06em;
+                                      text-transform: uppercase;
+                                      color: var(--color-text-muted);
+                                      font-weight: 600;
+                                      margin-bottom: 6px">Summa</label>
+                        <input id="iw-debt-amount"
+                               name="amount"
+                               type="text"
+                               inputmode="decimal"
+                               placeholder="0"
+                               required
+                               class="amount"
+                               style="width: 100%;
+                                      padding: 16px;
+                                      font-size: 24px;
+                                      font-weight: 700;
+                                      border: 1.5px solid var(--color-border);
+                                      border-radius: 14px;
+                                      background: var(--color-bg-elevated);
+                                      color: var(--color-text);
+                                      outline: none">
+                    </div>
+                    <div>
+                        <label for="iw-debt-currency"
+                               style="display: block;
+                                      font-size: 10px;
+                                      letter-spacing: 0.06em;
+                                      text-transform: uppercase;
+                                      color: var(--color-text-muted);
+                                      font-weight: 600;
+                                      margin-bottom: 6px">Valyuta</label>
+                        <select id="iw-debt-currency"
+                                name="currency"
+                                x-model="sheetCcy"
+                                style="width: 100%;
+                                       padding: 14px 16px;
+                                       font-size: 15px;
+                                       border: 1.5px solid var(--color-border);
+                                       border-radius: 14px;
+                                       background: var(--color-bg-elevated);
+                                       color: var(--color-text);
+                                       outline: none">
+                            <option value="UZS">so'm (UZS)</option>
+                            <option value="USD">dollar (USD)</option>
+                            <option value="RUB">rubl (RUB)</option>
+                        </select>
+                    </div>
+                    <button type="submit"
+                            aria-label="Saqlash"
+                            style="margin-top: 4px;
+                                   padding: 14px;
+                                   border: 0;
+                                   border-radius: 14px;
+                                   background: var(--gradient-cta);
+                                   color: var(--color-primary-on);
+                                   font-size: 15px;
+                                   font-weight: 700;
+                                   box-shadow: var(--shadow-cta);
+                                   cursor: pointer">Saqlash</button>
+                </form>
+            </div>
         </div>
     </section>
 {% endblock %}
