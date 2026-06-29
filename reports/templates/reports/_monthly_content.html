@@ -1,7 +1,7 @@
 {% load core_extras %}
 {% include 'reports/_period_header.html' %}
 {% if summary.is_empty %}
-    {% include 'core/components/_empty_state.html' with emoji='📊' title="Bu oyda tranzaksiya yo'q" caption="Birinchi tranzaksiyangizni qo'shing — keyin shu yerda grafik chiqadi." cta_url='/app/transactions/add/' cta_label='+ Tranzaksiya qo\'shish' %}
+    {% include 'core/components/_empty_state.html' with icon='chart' title="Bu oyda tranzaksiya yo'q" caption="Birinchi tranzaksiyangizni qo'shing — keyin shu yerda grafik chiqadi." cta_url='/app/transactions/add/' cta_label='+ Tranzaksiya qo\'shish' %}
 {% else %}
     <div style="display: grid;
                 grid-template-columns: 1fr 1fr;

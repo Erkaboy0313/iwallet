@@ -117,8 +117,8 @@
     {% endif %}
 {% else %}
     {% if any_filter_active %}
-        {% include 'core/components/_empty_state.html' with emoji='🔎' title='Filtrga mos tranzaksiya yo\'q' caption='Boshqa filtrni sinab ko\'ring yoki «Tozalash» bosing.' %}
+        {% include 'core/components/_empty_state.html' with icon='search' title='Filtrga mos tranzaksiya yo\'q' caption='Boshqa filtrni sinab ko\'ring yoki «Tozalash» bosing.' %}
     {% else %}
-        {% include 'core/components/_empty_state.html' with emoji='💸' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing.' cta_url='/app/transactions/add/' cta_label='+ Yangi tranzaksiya' %}
+        {% include 'core/components/_empty_state.html' with icon='wallet' title='Hozircha tranzaksiya yo\'q' caption='Birinchi tranzaksiyangizni qo\'shing.' cta_url='/app/transactions/add/' cta_label='+ Yangi tranzaksiya' %}
     {% endif %}
 {% endif %}

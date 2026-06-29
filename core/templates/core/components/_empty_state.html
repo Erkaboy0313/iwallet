@@ -1,17 +1,89 @@
 {% comment %}
 Centred empty / zero-data state.
 Usage:
-    {% include 'core/components/_empty_state.html' with emoji='📊' title='Hozircha hech narsa yo\'q' caption='...' cta_url=url cta_label='+ Birinchi tranzaksiya' %}
+    {% include 'core/components/_empty_state.html' with icon='wallet' title='Hozircha hech narsa yo\'q' caption='...' cta_url=url cta_label='+ Birinchi tranzaksiya' %}
+
+Available icons: wallet, swap, chart, clock, search
 {% endcomment %}
 <div style="text-align: center;
             padding: 48px 24px;
             color: var(--color-text-secondary)">
-    {% if emoji %}
-        <div style="font-size: 64px;
-                    line-height: 1;
-                    margin-bottom: 18px;
-                    filter: drop-shadow(0 4px 12px rgba(159, 248, 124, 0.15))"
-             aria-hidden="true">{{ emoji }}</div>
+    {% if icon %}
+        <div style="width: 88px;
+                    height: 88px;
+                    margin: 0 auto 18px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 50%;
+                    background: radial-gradient(circle, rgba(159, 248, 124, 0.15) 0%, rgba(159, 248, 124, 0) 70%);
+                    color: #9FF87C"
+             aria-hidden="true">
+            {% if icon == 'wallet' %}
+                <svg width="48"
+                     height="48"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.6"
+                     viewBox="0 0 24 24"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H5a2 2 0 0 1-2-2z" />
+                    <path d="M3 5a2 2 0 0 1 2-2h11v4" />
+                    <circle cx="17" cy="13" r="1.4" fill="currentColor" />
+                </svg>
+            {% elif icon == 'swap' %}
+                <svg width="48"
+                     height="48"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.6"
+                     viewBox="0 0 24 24"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <path d="M3 9h13l-3-3" />
+                    <path d="M21 15H8l3 3" />
+                </svg>
+            {% elif icon == 'chart' %}
+                <svg width="48"
+                     height="48"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.6"
+                     viewBox="0 0 24 24"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <line x1="3" y1="20" x2="21" y2="20" />
+                    <line x1="6" y1="20" x2="6" y2="14" />
+                    <line x1="12" y1="20" x2="12" y2="9" />
+                    <line x1="18" y1="20" x2="18" y2="5" />
+                </svg>
+            {% elif icon == 'clock' %}
+                <svg width="48"
+                     height="48"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.6"
+                     viewBox="0 0 24 24"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 2" />
+                </svg>
+            {% elif icon == 'search' %}
+                <svg width="48"
+                     height="48"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.6"
+                     viewBox="0 0 24 24"
+                     stroke-linecap="round"
+                     stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="7" />
+                    <line x1="16.5" y1="16.5" x2="21" y2="21" />
+                </svg>
+            {% endif %}
+        </div>
     {% endif %}
     {% if title %}
         <p style="font-size: 16px;

@@ -222,9 +222,9 @@
             </ul>
         {% else %}
             {% if active_tab == 'debt_lent' %}
-                {% include 'core/components/_empty_state.html' with emoji='🤝' title="Qarz yo'q" caption="Hech kim sizga qarzdor emas — bu yaxshi xabar." %}
+                {% include 'core/components/_empty_state.html' with icon='swap' title="Qarz yo'q" caption="Hech kim sizga qarzdor emas — bu yaxshi xabar." %}
             {% else %}
-                {% include 'core/components/_empty_state.html' with emoji='🤝' title="Qarz yo'q" caption="Hech kimga qarzdor emassiz — bu yaxshi xabar." %}
+                {% include 'core/components/_empty_state.html' with icon='swap' title="Qarz yo'q" caption="Hech kimga qarzdor emassiz — bu yaxshi xabar." %}
             {% endif %}
         {% endif %}
         <div style="margin-top: 20px; text-align: center">
