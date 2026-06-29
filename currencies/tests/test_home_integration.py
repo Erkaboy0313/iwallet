@@ -105,7 +105,14 @@ def test_home_content_session_override_picks_display_currency() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_renders_stale_banner_when_rates_old() -> None:
+def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
+    # Home view now auto-refreshes when today's rate is missing. Stub the
+    # fetch so the test stays hermetic — we still want to verify the banner
+    # renders when the refresh attempt fails / no-ops.
+    import core.views as _core_views
+
+    monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
+
     user = _seed_user_with_mixed_currencies()
     # Wipe today's rates → only stale (yesterday's) ones remain.
     ExchangeRate.objects.all().delete()

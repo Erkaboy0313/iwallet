@@ -80,11 +80,13 @@ def home_content(request):
     rates_stale_date = None
     forced_raw_no_rates = False
     if display_mode == DISPLAY_MODE_CONVERTED:
-        # Bootstrap CBU.uz rates on the first converted-mode render. The
-        # service is idempotent + best-effort (it logs CbuUnavailableError and
-        # returns rather than raises), so this is safe to call from a sync
-        # view — adds ≤2s on the first request after an empty DB, no-op after.
-        if current_rates_stale_days() < 0:
+        # On-demand refresh of CBU.uz rates. Trigger when today's row is not
+        # yet in the DB — i.e., the table is empty (-1) OR the most recent
+        # rate is older than today (>0). `update_rates_if_stale` is itself
+        # idempotent (short-circuits via an EXISTS query) and best-effort, so
+        # this is safe to call from a sync view; network is only hit when the
+        # day actually rolled over.
+        if current_rates_stale_days() != 0:
             update_rates_if_stale()
         aggregated = aggregated_month_summary(user, display_currency)
         rates_stale_days = current_rates_stale_days()
