@@ -24,9 +24,9 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                    height: 48px;
                    border-radius: 9999px;
                    border: 0;
-                   color: #FFFFFF;
-                   background: linear-gradient(135deg, #10B981 0%, #047857 100%);
-                   box-shadow: 0 6px 18px rgba(5, 150, 105, 0.38);
+                   color: var(--color-primary-on);
+                   background: var(--gradient-cta);
+                   box-shadow: var(--shadow-cta);
                    cursor: pointer">
         <svg width="22"
              height="22"
@@ -150,7 +150,7 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                                    height: 112px;
                                    border-radius: 9999px;
                                    border: 0;
-                                   color: #FFFFFF;
+                                   color: var(--color-primary-on);
                                    cursor: pointer;
                                    display: inline-flex;
                                    align-items: center;
@@ -203,21 +203,21 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
 }
 .vq-trigger:active { transform: scale(0.92); }
 @keyframes vq-idle-pulse {
-    0%, 100% { box-shadow: 0 6px 18px rgba(5, 150, 105, 0.38), 0 0 0 0 rgba(16, 185, 129, 0.45); }
-    50%      { box-shadow: 0 6px 18px rgba(5, 150, 105, 0.38), 0 0 0 10px rgba(16, 185, 129, 0); }
+    0%, 100% { box-shadow: var(--shadow-cta), 0 0 0 0 rgba(159, 248, 124, 0.45); }
+    50%      { box-shadow: var(--shadow-cta), 0 0 0 10px rgba(159, 248, 124, 0); }
 }
 
 .vq-sheet-enter { transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1); }
 .vq-sheet-from  { transform: translate(-50%, 100%); }
 .vq-sheet-to    { transform: translate(-50%, 0); }
 
-.vq-bigmic.idle    { background: linear-gradient(135deg, #10B981 0%, #047857 100%); box-shadow: 0 12px 32px rgba(5, 150, 105, 0.32); }
-.vq-bigmic.recording { background: linear-gradient(135deg, #10B981 0%, #047857 100%); animation: vq-record-pulse 1.6s ease-in-out infinite; }
-.vq-bigmic.processing { background: #6B7280; }
-.vq-bigmic.error   { background: #DC2626; animation: vq-shake 300ms ease; }
+.vq-bigmic.idle      { background: var(--gradient-cta); box-shadow: var(--shadow-cta); }
+.vq-bigmic.recording { background: var(--gradient-cta); animation: vq-record-pulse 1.6s ease-in-out infinite; }
+.vq-bigmic.processing { background: var(--color-surface-hi); color: var(--color-text-secondary); }
+.vq-bigmic.error     { background: var(--color-danger); color: var(--color-on-danger); animation: vq-shake 300ms ease; }
 @keyframes vq-record-pulse {
-    0%, 100% { transform: scale(1);   box-shadow: 0 12px 32px rgba(5, 150, 105, 0.32), 0 0 0 0 rgba(16, 185, 129, 0.5); }
-    50%      { transform: scale(1.04); box-shadow: 0 12px 32px rgba(5, 150, 105, 0.32), 0 0 0 24px rgba(16, 185, 129, 0); }
+    0%, 100% { transform: scale(1);   box-shadow: var(--shadow-cta), 0 0 0 0 rgba(159, 248, 124, 0.5); }
+    50%      { transform: scale(1.04); box-shadow: var(--shadow-cta), 0 0 0 24px rgba(159, 248, 124, 0); }
 }
 @keyframes vq-shake {
     0%, 100% { transform: translateX(0); }
@@ -251,7 +251,7 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
     width: 8px;
     height: 8px;
     border-radius: 9999px;
-    background: #FFFFFF;
+    background: var(--color-text);
     animation: vq-dot 1s ease-in-out infinite;
 }
 @keyframes vq-dot {

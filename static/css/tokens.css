@@ -38,11 +38,16 @@
   --color-expense: #FF6B6B;
   --color-debt: #FFB547;
   --color-danger: #FF6B6B;
+  --color-on-danger: #FFFFFF;          /* ink colour on top of solid danger fills */
   --color-warning: #FFB547;
   --color-warning-bg: rgba(255, 181, 71, 0.14);
+  --color-on-warning: #1A0F02;         /* ink colour on top of solid warning fills */
   --color-success: #9FF87C;
   --color-success-bg: rgba(159, 248, 124, 0.14);
   --color-error-bg: rgba(255, 107, 107, 0.14);
+
+  /* Hero card ink — sits on top of the bright neon gradient. */
+  --color-on-hero: #052E10;
 
   /* ===== Shadows + glows ===== */
   --shadow-soft: 0 2px 8px rgba(0, 0, 0, 0.45);
