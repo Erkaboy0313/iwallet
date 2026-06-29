@@ -23,7 +23,6 @@ from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
 from currencies.selectors import aggregated_month_summary, current_rates_stale_days
 from currencies.services import update_rates_if_stale
 from currencies.views import SESSION_DISPLAY_CURRENCY
-from debts.selectors import debt_status_summary
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
 from quotes.services import SESSION_HIDE_TODAY, dismiss_forever, reenable
@@ -65,7 +64,6 @@ def home_content(request):
     display_currency = _resolve_display_currency(request, user)
     source_currency = user.default_currency or "UZS"
     summary = month_summary(user, currency=source_currency)
-    debts = debt_status_summary(user)
 
     # On-demand refresh of CBU.uz rates if today's row is missing.
     if current_rates_stale_days() != 0:
@@ -102,7 +100,6 @@ def home_content(request):
         {
             "summary": summary,
             "user": user,
-            "debts": debts,
             "aggregated": aggregated,
             "display_currency": display_currency,
             "source_currency": source_currency,

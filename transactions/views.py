@@ -51,10 +51,14 @@ def add_transaction_view(request):
             return _success_response(tx)
         return _invalid_form_response(request, form)
 
-    form = ManualTransactionForm(
-        initial={"date": _date_today.today(), "currency": "UZS"},
-        user=request.user,
-    )
+    # ?type=debt_lent (or any valid value) pre-selects the type pill so
+    # deep links from the Qarzlar tab land on the right entry mode.
+    initial_type = request.GET.get("type")
+    valid_types = {"income", "expense", "debt_lent", "debt_borrowed"}
+    initial = {"date": _date_today.today(), "currency": "UZS"}
+    if initial_type in valid_types:
+        initial["type"] = initial_type
+    form = ManualTransactionForm(initial=initial, user=request.user)
     return render(request, "transactions/add.html", {"form": form})
 
 

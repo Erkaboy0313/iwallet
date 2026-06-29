@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load core_extras %}
+{% load debts_extras %}
 {% block title %}Qarzlar — IWALLET{% endblock %}
 {% block content %}
     <section style="padding: 16px 20px 96px">
@@ -31,7 +32,7 @@
                        font-weight: 600;
                        color: var(--color-text)">Qarzlar</h1>
         </header>
-        {# Pill-pair segmented control. UX §6.3(1). #}
+        {# Pill-pair tab — Menga qarzdor / Men qarzdorman. #}
         <div role="tablist"
              aria-label="Qarz yo'nalishi"
              style="display: flex;
@@ -41,9 +42,9 @@
                     background: var(--color-surface);
                     border: 1px solid var(--color-border);
                     margin-bottom: 16px">
-            <a href="{% url 'debts:list' %}?tab=lent"
+            <a href="{% url 'debts:list' %}?tab=debt_lent"
                role="tab"
-               aria-selected="{% if active_tab == 'lent' %}true{% else %}false{% endif %}"
+               aria-selected="{% if active_tab == 'debt_lent' %}true{% else %}false{% endif %}"
                style="flex: 1;
                       text-align: center;
                       padding: 9px 12px;
@@ -51,16 +52,15 @@
                       font-size: 13px;
                       font-weight: 600;
                       text-decoration: none;
-                      transition: background var(--motion-micro) var(--ease-out);
-                      {% if active_tab == 'lent' %}background: var(--color-primary);
+                      {% if active_tab == 'debt_lent' %}background: var(--color-primary);
                       color: var(--color-primary-on);
                       box-shadow: 0 0 16px rgba(159, 248, 124, 0.32);
                       {% else %}background: transparent;
                       color: var(--color-text-secondary);
                       {% endif %}">Menga qarzdor</a>
-            <a href="{% url 'debts:list' %}?tab=borrowed"
+            <a href="{% url 'debts:list' %}?tab=debt_borrowed"
                role="tab"
-               aria-selected="{% if active_tab == 'borrowed' %}true{% else %}false{% endif %}"
+               aria-selected="{% if active_tab == 'debt_borrowed' %}true{% else %}false{% endif %}"
                style="flex: 1;
                       text-align: center;
                       padding: 9px 12px;
@@ -68,17 +68,102 @@
                       font-size: 13px;
                       font-weight: 600;
                       text-decoration: none;
-                      transition: background var(--motion-micro) var(--ease-out);
-                      {% if active_tab == 'borrowed' %}background: var(--color-primary);
+                      {% if active_tab == 'debt_borrowed' %}background: var(--color-primary);
                       color: var(--color-primary-on);
                       box-shadow: 0 0 16px rgba(159, 248, 124, 0.32);
                       {% else %}background: transparent;
                       color: var(--color-text-secondary);
                       {% endif %}">Men qarzdorman</a>
         </div>
-        {% include 'debts/_tab.html' %}
+        {% if transactions %}
+            <ul role="list"
+                aria-label="Qarz tranzaksiyalari"
+                style="display: flex;
+                       flex-direction: column;
+                       gap: 8px;
+                       margin: 0;
+                       padding: 0;
+                       list-style: none">
+                {% for tx in transactions %}
+                    <li>
+                        <a href="{% url 'transactions:edit' tx.id %}"
+                           class="iw-tap"
+                           aria-label="Qarz tranzaksiyasini ko'rish va tahrirlash"
+                           style="display: flex;
+                                  align-items: center;
+                                  justify-content: space-between;
+                                  gap: 12px;
+                                  padding: 12px 14px;
+                                  background: var(--color-surface);
+                                  border: 1px solid var(--color-border);
+                                  border-radius: 14px;
+                                  text-decoration: none;
+                                  color: var(--color-text)">
+                            <span style="display: flex;
+                                         align-items: center;
+                                         gap: 12px;
+                                         min-width: 0;
+                                         flex: 1">
+                                {% if tx.counterparty %}
+                                    <span aria-hidden="true"
+                                          style="display: inline-flex;
+                                                 align-items: center;
+                                                 justify-content: center;
+                                                 width: 40px;
+                                                 height: 40px;
+                                                 flex-shrink: 0;
+                                                 border-radius: 9999px;
+                                                 font-size: 13px;
+                                                 font-weight: 600;
+                                                 {% avatar_style tx.counterparty %}">{{ tx.counterparty|initials }}</span>
+                                {% else %}
+                                    <span aria-hidden="true"
+                                          style="display: inline-flex;
+                                                 align-items: center;
+                                                 justify-content: center;
+                                                 width: 40px;
+                                                 height: 40px;
+                                                 flex-shrink: 0;
+                                                 border-radius: 9999px;
+                                                 background: var(--color-surface-hi);
+                                                 font-size: 18px">💼</span>
+                                {% endif %}
+                                <span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
+                                    <span style="font-size: 14px;
+                                                 font-weight: 600;
+                                                 color: var(--color-text);
+                                                 overflow: hidden;
+                                                 text-overflow: ellipsis;
+                                                 white-space: nowrap">{{ tx.counterparty|default:'Qarz' }}</span>
+                                    <span style="font-size: 12px;
+                                                 color: var(--color-text-muted);
+                                                 overflow: hidden;
+                                                 text-overflow: ellipsis;
+                                                 white-space: nowrap">{{ tx.date|date:"j-N" }}
+                                        {% if tx.note %}
+                                            · {{ tx.note|truncatechars:24 }}
+                                        {% endif %}
+                                    </span>
+                                </span>
+                            </span>
+                            <span class="amount"
+                                  style="font-size: 14px;
+                                         font-weight: 700;
+                                         white-space: nowrap;
+                                         color: var(--color-debt)">{{ tx.amount|smart_money:tx.currency }}</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            {% if active_tab == 'debt_lent' %}
+                {% include 'core/components/_empty_state.html' with emoji='🤝' title="Qarz yo'q" caption="Hech kim sizga qarzdor emas — bu yaxshi xabar." %}
+            {% else %}
+                {% include 'core/components/_empty_state.html' with emoji='🤝' title="Qarz yo'q" caption="Hech kimga qarzdor emassiz — bu yaxshi xabar." %}
+            {% endif %}
+        {% endif %}
         <div style="margin-top: 20px; text-align: center">
-            <a href="{% url 'debts:create' %}"
+            <a href="{% url 'transactions:add' %}?type={{ active_tab }}"
                aria-label="Yangi qarz qo'shish"
                style="display: inline-block;
                       padding: 12px 22px;
@@ -90,6 +175,5 @@
                       text-decoration: none;
                       box-shadow: var(--shadow-cta)">+ Yangi qarz</a>
         </div>
-        <div id="close-form-slot"></div>
     </section>
 {% endblock %}
