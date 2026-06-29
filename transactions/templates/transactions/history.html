@@ -57,11 +57,12 @@
                           white-space: nowrap;
                           scroll-snap-align: start;
                           {% if filter_type == value or not value and not filter_type %}background: var(--color-primary);
-                          color: #FFFFFF;
-                          box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
-                          {% else %}background: #F1F5F9;
+                          color: var(--color-primary-on);
+                          box-shadow: 0 0 16px rgba(159, 248, 124, 0.35);
+                          {% else %}background: var(--color-surface-hi);
                           color: var(--color-text-secondary);
-                          {% endif %} transition: background var(--motion-micro) var(--ease-out)">{{ label }}</a>
+                          border: 1px solid var(--color-border);
+                          {% endif %} transition: background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)">{{ label }}</a>
             {% endfor %}
             {% if any_filter_active %}
                 <a hx-get="{% url 'transactions:history' %}"
@@ -74,8 +75,9 @@
                           border-radius: 9999px;
                           font-size: 13px;
                           font-weight: 600;
-                          background: #FEF3C7;
-                          color: #92400E;
+                          background: var(--color-warning-bg);
+                          color: var(--color-warning);
+                          border: 1px solid rgba(255, 181, 71, 0.35);
                           white-space: nowrap;
                           scroll-snap-align: start;
                           text-decoration: none">Tozalash</a>

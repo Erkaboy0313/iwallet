@@ -23,6 +23,7 @@
             {% for tx in month.list %}
                 <li>
                     <a href="{% url 'transactions:edit' tx.id %}"
+                       class="iw-tap"
                        aria-label="Tranzaksiyani ko'rish va tahrirlash"
                        style="display: flex;
                               align-items: center;
@@ -36,14 +37,23 @@
                               color: var(--color-text)">
                         <span style="display: flex;
                                      align-items: center;
-                                     gap: 10px;
+                                     gap: 12px;
                                      min-width: 0;
                                      flex: 1">
-                            <span aria-hidden="true" style="font-size: 20px; flex-shrink: 0">
+                            <span aria-hidden="true"
+                                  style="display: inline-flex;
+                                         align-items: center;
+                                         justify-content: center;
+                                         width: 40px;
+                                         height: 40px;
+                                         flex-shrink: 0;
+                                         border-radius: 9999px;
+                                         background: var(--color-surface-hi);
+                                         font-size: 18px">
                                 {% if tx.category %}
                                     {{ tx.category.emoji }}
                                 {% else %}
-                                    •
+                                    💼
                                 {% endif %}
                             </span>
                             <span style="min-width: 0; display: flex; flex-direction: column; gap: 2px">
@@ -74,9 +84,9 @@
                         </span>
                         <span class="amount"
                               style="font-size: 14px;
-                                     font-weight: 600;
+                                     font-weight: 700;
                                      white-space: nowrap;
-                                     color: {% if tx.type == 'income' %}var(--color-inflow-text){% elif tx.type == 'expense' %}var(--color-text){% else %}var(--color-debt){% endif %}">
+                                     color: {% if tx.type == 'income' %}var(--color-inflow-text){% elif tx.type == 'expense' %}var(--color-danger){% else %}var(--color-debt){% endif %}">
                             {% if tx.type == 'income' or tx.type == 'debt_borrowed' %}
                                 +
                             {% else %}
@@ -94,10 +104,11 @@
                hx-target="#history-list"
                hx-swap="outerHTML"
                style="display: inline-block;
-                      padding: 8px 16px;
+                      padding: 9px 18px;
                       border-radius: 9999px;
-                      background: #F1F5F9;
-                      color: var(--color-primary-hover);
+                      background: var(--color-surface-hi);
+                      border: 1px solid var(--color-border);
+                      color: var(--color-primary);
                       font-size: 13px;
                       font-weight: 600;
                       cursor: pointer;
