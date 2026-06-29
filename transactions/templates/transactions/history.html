@@ -41,10 +41,7 @@
                     scroll-snap-type: x mandatory;
                     -webkit-overflow-scrolling: touch">
             {% for value, label in filter_choices %}
-                <a hx-get="?{% if value %}type={{ value }}{% endif %}"
-                   hx-target="#history-list"
-                   hx-push-url="true"
-                   href="?{% if value %}type={{ value }}{% endif %}"
+                <a href="?{% if value %}type={{ value }}{% endif %}"
                    role="tab"
                    aria-selected="{% if filter_type == value or not value and not filter_type %}true{% else %}false{% endif %}"
                    style="display: inline-flex;
@@ -65,10 +62,7 @@
                           {% endif %} transition: background var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)">{{ label }}</a>
             {% endfor %}
             {% if any_filter_active %}
-                <a hx-get="{% url 'transactions:history' %}"
-                   hx-target="#history-list"
-                   hx-push-url="true"
-                   href="{% url 'transactions:history' %}"
+                <a href="{% url 'transactions:history' %}"
                    style="display: inline-flex;
                           align-items: center;
                           padding: 8px 14px;

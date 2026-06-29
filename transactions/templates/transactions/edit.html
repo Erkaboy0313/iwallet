@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block title %}Tahrirlash — IWALLET{% endblock %}
 {% block content %}
-    <section style="padding: 16px 20px 96px"
+    <section style="padding: 16px 20px 120px"
              data-initial-cat-name="{% if tx.category %}{{ tx.category.name }}{% endif %}"
              data-initial-cat-emoji="{% if tx.category %}{{ tx.category.emoji }}{% endif %}"
-             x-data="{ type: '{{ form.type.value|default:tx.type }}', amount: '{{ form.amount.value|default:tx.amount }}', picker: null, pickerLabel: '', pickerEmoji: '', confirmDelete: false }"
+             x-data="addTxForm('{{ form.type.value|default:tx.type }}', '{{ form.amount.value|default:tx.amount }}')"
              x-init="pickerLabel = $el.dataset.initialCatName || ''; pickerEmoji = $el.dataset.initialCatEmoji || ''">
         <header style="display: flex;
                        align-items: center;
@@ -82,37 +82,88 @@
                     {% endfor %}
                 </div>
             </fieldset>
+            {# Amount — same keypad as Add transaction. Hidden field submits the digits. #}
             <div>
-                <label for="id_amount"
-                       style="display: block;
+                <label style="display: block;
                               font-size: 10px;
                               letter-spacing: 0.06em;
                               text-transform: uppercase;
                               color: var(--color-text-muted);
                               font-weight: 600;
                               margin-bottom: 8px">Summa</label>
-                <input id="id_amount"
-                       name="amount"
-                       type="text"
-                       inputmode="decimal"
-                       x-model="amount"
-                       required
-                       class="amount"
-                       style="width: 100%;
-                              font-size: 32px;
-                              font-weight: 700;
-                              padding: 18px 20px;
-                              border: 1.5px solid var(--color-border);
-                              border-radius: var(--radius-card);
-                              background: var(--color-surface);
-                              color: var(--color-text);
-                              outline: none;
-                              box-shadow: var(--shadow-soft);
-                              transition: border-color var(--motion-micro) var(--ease-out), box-shadow var(--motion-standard) var(--ease-out)"
-                       onfocus="this.style.borderColor='var(--color-primary)'; this.style.boxShadow='var(--glow-primary)'"
-                       onblur="this.style.borderColor='var(--color-border)'; this.style.boxShadow='var(--shadow-soft)'">
+                <input type="hidden" id="id_amount" name="amount" :value="amount" required>
+                <div style="display: flex;
+                            align-items: baseline;
+                            justify-content: center;
+                            gap: 8px;
+                            padding: 24px 20px;
+                            border: 1.5px solid var(--color-border);
+                            border-radius: var(--radius-card);
+                            background: var(--color-surface);
+                            box-shadow: var(--shadow-soft);
+                            min-height: 76px"
+                     :style="amount ? 'border-color: var(--color-primary); box-shadow: var(--glow-primary)' : ''">
+                    <span class="amount"
+                          aria-live="polite"
+                          style="font-size: 36px;
+                                 font-weight: 700;
+                                 line-height: 1.05;
+                                 letter-spacing: -0.01em;
+                                 color: var(--color-text)"
+                          x-text="formattedAmount()"></span>
+                    <span aria-hidden="true"
+                          style="font-size: 14px;
+                                 font-weight: 600;
+                                 color: var(--color-text-muted);
+                                 letter-spacing: 0.04em"
+                          x-text="document.getElementById('id_currency') ? document.getElementById('id_currency').value : 'UZS'"></span>
+                </div>
+                <style>
+                .iw-keypad button:active {
+                    background: var(--color-primary-light) !important;
+                    border-color: var(--color-primary) !important;
+                    color: var(--color-primary) !important;
+                }
+                </style>
+                <div class="iw-keypad"
+                     style="display: grid;
+                            grid-template-columns: 1fr 1fr 1fr;
+                            gap: 8px;
+                            margin-top: 12px">
+                    <template x-for="key in keypadKeys" :key="key">
+                        <button type="button"
+                                @click="pressKey(key)"
+                                :aria-label="key === 'BACK' ? 'O\'chirish' : 'Raqam ' + key"
+                                style="padding: 14px 0;
+                                       font-size: 22px;
+                                       font-weight: 600;
+                                       border: 1px solid var(--color-border);
+                                       border-radius: 14px;
+                                       background: var(--color-surface-hi);
+                                       color: var(--color-text);
+                                       cursor: pointer;
+                                       transition: transform var(--motion-micro) var(--ease-out), background var(--motion-micro) var(--ease-out)">
+                            <template x-if="key !== 'BACK'">
+                                <span x-text="key"></span>
+                            </template>
+                            <template x-if="key === 'BACK'">
+                                <svg width="22"
+                                     height="22"
+                                     fill="none"
+                                     stroke="currentColor"
+                                     stroke-width="1.8"
+                                     viewBox="0 0 24 24"
+                                     aria-hidden="true"
+                                     style="display: inline-block;
+                                            vertical-align: middle">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.375-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.211-.211.498-.33.796-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.796-.33z" />
+                                </svg>
+                            </template>
+                        </button>
+                    </template>
+                </div>
                 {% if form.amount.errors %}
-                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 4px">{{ form.amount.errors|join:" " }}</p>
+                    <p style="color: var(--color-danger); font-size: 13px; margin-top: 8px">{{ form.amount.errors|join:" " }}</p>
                 {% endif %}
             </div>
             <div>
