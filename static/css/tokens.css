@@ -156,9 +156,12 @@ input::placeholder, textarea::placeholder {
   color: var(--color-text-muted);
   opacity: 1;
 }
+/* box-shadow follows border-radius, outline doesn't on older Chromium —
+ * Telegram Desktop's WebView is conservative, so a shadow-ring is safer
+ * than `outline` for keyboard focus indication. */
 input:focus, textarea:focus, select:focus, button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 1px;
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 /* Tabular numerals globally for amounts */
