@@ -349,25 +349,25 @@
                                  font-family: inherit">{{ form.note.value|default:'' }}</textarea>
             </div>
         </form>
-        {# Sticky bottom CTA — Sprint v0.5 placement (above nav). Gradient primary. #}
+        {# Sticky bottom CTA — butts against the bottom nav (no gap). #}
         <div style="position: fixed;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 100%;
                     max-width: 430px;
-                    bottom: 72px;
+                    bottom: calc(64px + env(safe-area-inset-bottom, 0));
                     z-index: 30;
                     background: var(--color-surface);
                     border-top: 1px solid var(--color-border);
-                    padding: 12px 20px">
+                    padding: 8px 16px">
             <button type="submit"
                     form="add-form"
                     aria-label="Tranzaksiyani saqlash"
                     style="width: 100%;
-                           padding: 14px 20px;
+                           padding: 11px 20px;
                            border: 0;
-                           border-radius: 14px;
-                           font-size: 16px;
+                           border-radius: 12px;
+                           font-size: 15px;
                            font-weight: 600;
                            color: #FFFFFF;
                            background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
