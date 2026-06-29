@@ -38,7 +38,8 @@
                     gap: 4px;
                     padding: 4px;
                     border-radius: 9999px;
-                    background: #F1F5F9;
+                    background: var(--color-surface);
+                    border: 1px solid var(--color-border);
                     margin-bottom: 16px">
             <a hx-get="{% url 'debts:list' %}?tab=lent"
                hx-target="#debts-tab-panel"
@@ -55,9 +56,9 @@
                       font-weight: 600;
                       text-decoration: none;
                       transition: background var(--motion-micro) var(--ease-out);
-                      {% if active_tab == 'lent' %}background: var(--color-surface);
-                      color: var(--color-text);
-                      box-shadow: var(--shadow-soft);
+                      {% if active_tab == 'lent' %}background: var(--color-primary);
+                      color: var(--color-primary-on);
+                      box-shadow: 0 0 16px rgba(159, 248, 124, 0.32);
                       {% else %}background: transparent;
                       color: var(--color-text-secondary);
                       {% endif %}">Menga qarzdor</a>
@@ -76,9 +77,9 @@
                       font-weight: 600;
                       text-decoration: none;
                       transition: background var(--motion-micro) var(--ease-out);
-                      {% if active_tab == 'borrowed' %}background: var(--color-surface);
-                      color: var(--color-text);
-                      box-shadow: var(--shadow-soft);
+                      {% if active_tab == 'borrowed' %}background: var(--color-primary);
+                      color: var(--color-primary-on);
+                      box-shadow: 0 0 16px rgba(159, 248, 124, 0.32);
                       {% else %}background: transparent;
                       color: var(--color-text-secondary);
                       {% endif %}">Men qarzdorman</a>
@@ -88,12 +89,12 @@
             <a href="{% url 'debts:create' %}"
                aria-label="Yangi qarz qo'shish"
                style="display: inline-block;
-                      padding: 12px 20px;
-                      border-radius: 12px;
-                      background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-                      color: #FFFFFF;
+                      padding: 12px 22px;
+                      border-radius: 14px;
+                      background: var(--gradient-cta);
+                      color: var(--color-primary-on);
                       font-size: 14px;
-                      font-weight: 600;
+                      font-weight: 700;
                       text-decoration: none;
                       box-shadow: var(--shadow-cta)">+ Yangi qarz</a>
         </div>

@@ -83,14 +83,14 @@
                                     <span style="font-size: 11px;
                                                  padding: 2px 8px;
                                                  border-radius: 9999px;
-                                                 background: #FEF3C7;
-                                                 color: #92400E">Qoldiq: {{ debt.remaining_amount|smart_money:debt.currency }} / {{ debt.original_amount|smart_money:debt.currency }}</span>
+                                                 background: var(--color-warning-bg);
+                                                 color: var(--color-warning)">Qoldiq: {{ debt.remaining_amount|smart_money:debt.currency }} / {{ debt.original_amount|smart_money:debt.currency }}</span>
                                 {% else %}
                                     <span style="font-size: 11px;
                                                  padding: 2px 8px;
                                                  border-radius: 9999px;
-                                                 background: var(--color-inflow-surface);
-                                                 color: var(--color-inflow-text)">Ochiq</span>
+                                                 background: var(--color-primary-light);
+                                                 color: var(--color-primary)">Ochiq</span>
                                 {% endif %}
                             </span>
                         </span>
@@ -103,10 +103,11 @@
                             style="padding: 8px 14px;
                                    border: 0;
                                    border-radius: 9999px;
-                                   background: linear-gradient(135deg, var(--color-primary-gradient-start) 0%, var(--color-primary-gradient-end) 100%);
-                                   color: #FFFFFF;
+                                   background: var(--gradient-cta);
+                                   color: var(--color-primary-on);
                                    font-size: 13px;
-                                   font-weight: 600;
+                                   font-weight: 700;
+                                   box-shadow: 0 0 12px rgba(159, 248, 124, 0.25);
                                    cursor: pointer;
                                    flex-shrink: 0">Yopish</button>
                 </div>

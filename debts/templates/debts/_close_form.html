@@ -8,19 +8,26 @@
          style="position: fixed;
                 inset: 0;
                 z-index: 80;
-                background: rgba(15, 23, 42, 0.45);
+                background: rgba(0, 0, 0, 0.6);
                 display: flex;
                 align-items: flex-end;
                 justify-content: center">
-        <div style="background:#fff;
+        <div style="background: var(--color-surface);
                     width: 100%;
                     max-width: 430px;
+                    border-top: 1px solid var(--color-border-strong);
                     border-top-left-radius: 24px;
                     border-top-right-radius: 24px;
                     padding: 20px 20px calc(env(safe-area-inset-bottom, 0) + 20px);
-                    box-shadow: 0 -8px 24px rgba(15,23,42,0.12)">
-            <header class="flex items-center justify-between mb-3">
-                <h2 class="text-base font-semibold text-slate-900">
+                    box-shadow: var(--shadow-elevated)">
+            <header style="display: flex;
+                           align-items: center;
+                           justify-content: space-between;
+                           margin-bottom: 12px">
+                <h2 style="margin: 0;
+                           font-size: 16px;
+                           font-weight: 600;
+                           color: var(--color-text)">
                     {% if debt.direction == 'lent' %}
                         Qarzni yopish — {{ debt.counterparty }}
                     {% else %}
@@ -29,63 +36,156 @@
                 </h2>
                 <button type="button"
                         @click="open = false; setTimeout(() => $el.closest('#close-form-slot').remove(), 200)"
-                        class="text-slate-500 px-2 py-1"
-                        aria-label="Yopish">×</button>
+                        aria-label="Yopish"
+                        style="display: inline-flex;
+                               align-items: center;
+                               justify-content: center;
+                               width: 36px;
+                               height: 36px;
+                               border-radius: 9999px;
+                               border: 0;
+                               background: var(--color-surface-hi);
+                               color: var(--color-text-secondary);
+                               cursor: pointer">
+                    <svg width="16"
+                         height="16"
+                         fill="none"
+                         stroke="currentColor"
+                         stroke-width="2"
+                         viewBox="0 0 24 24"
+                         aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
             </header>
-            <p class="text-xs text-slate-500 mb-3">
-                Qoldiq: <span class="amount font-medium text-slate-900">{{ debt.remaining_amount|smart_money:debt.currency }}</span>
+            <p style="margin: 0 0 14px;
+                      font-size: 12px;
+                      color: var(--color-text-muted)">
+                Qoldiq: <span class="amount" style="font-weight: 600; color: var(--color-text)">{{ debt.remaining_amount|smart_money:debt.currency }}</span>
             </p>
             <form hx-post="{% url 'debts:repay' debt.id %}"
                   hx-target="#close-form-slot"
                   hx-swap="outerHTML"
-                  class="space-y-3">
+                  style="display: flex;
+                         flex-direction: column;
+                         gap: 12px">
                 <div>
                     <label for="id_repay_amount"
-                           class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Summa</label>
+                           style="display: block;
+                                  font-size: 10px;
+                                  letter-spacing: 0.06em;
+                                  text-transform: uppercase;
+                                  color: var(--color-text-muted);
+                                  font-weight: 600;
+                                  margin-bottom: 6px">Summa</label>
                     <input id="id_repay_amount"
                            name="amount"
                            type="text"
                            inputmode="decimal"
                            value="{{ form.amount.value|default:debt.remaining_amount }}"
                            required
-                           class="amount w-full text-2xl font-semibold tabular-nums rounded-2xl border border-slate-200 px-4 py-3 focus:border-emerald-600 outline-none">
+                           class="amount"
+                           style="width: 100%;
+                                  padding: 14px 16px;
+                                  font-size: 22px;
+                                  font-weight: 700;
+                                  border: 1.5px solid var(--color-border);
+                                  border-radius: 14px;
+                                  background: var(--color-bg-elevated);
+                                  color: var(--color-text);
+                                  outline: none">
                     {% if form.amount.errors %}
-                        <p class="form-error text-red-700 text-sm mt-1" role="alert">{{ form.amount.errors|join:" " }}</p>
+                        <p style="color: var(--color-danger);
+                                  font-size: 13px;
+                                  margin-top: 4px"
+                           role="alert">{{ form.amount.errors|join:" " }}</p>
                     {% endif %}
                 </div>
                 <div>
                     <label for="id_repay_note"
-                           class="text-xs uppercase tracking-wider text-slate-500 mb-1 block">Izoh (ixtiyoriy)</label>
+                           style="display: block;
+                                  font-size: 10px;
+                                  letter-spacing: 0.06em;
+                                  text-transform: uppercase;
+                                  color: var(--color-text-muted);
+                                  font-weight: 600;
+                                  margin-bottom: 6px">Izoh (ixtiyoriy)</label>
                     <textarea id="id_repay_note"
                               name="note"
                               rows="2"
-                              class="w-full rounded-2xl border border-slate-200 px-3 py-2">{{ form.note.value|default:'' }}</textarea>
+                              style="width: 100%;
+                                     padding: 10px 14px;
+                                     font-size: 14px;
+                                     border: 1.5px solid var(--color-border);
+                                     border-radius: 14px;
+                                     background: var(--color-bg-elevated);
+                                     color: var(--color-text);
+                                     outline: none;
+                                     resize: vertical;
+                                     font-family: inherit">{{ form.note.value|default:'' }}</textarea>
                 </div>
-                <div class="flex gap-2 pt-2">
+                <div style="display: flex; gap: 10px; padding-top: 4px">
                     <button type="submit"
-                            class="flex-1 btn-primary"
-                            aria-label="Qaytarishni saqlash">Saqlash</button>
+                            aria-label="Qaytarishni saqlash"
+                            style="flex: 1;
+                                   padding: 12px;
+                                   border: 0;
+                                   border-radius: 14px;
+                                   background: var(--gradient-cta);
+                                   color: var(--color-primary-on);
+                                   font-size: 14px;
+                                   font-weight: 700;
+                                   box-shadow: var(--shadow-cta);
+                                   cursor: pointer">Saqlash</button>
                     <button type="button"
                             @click="cancelConfirm = true"
-                            class="px-4 py-2 rounded-2xl text-sm text-red-700 border border-red-200 bg-red-50"
-                            aria-label="Qarzni kechirish">Kechirish</button>
+                            aria-label="Qarzni kechirish"
+                            style="padding: 12px 18px;
+                                   border-radius: 14px;
+                                   background: var(--color-error-bg);
+                                   color: var(--color-danger);
+                                   border: 1px solid rgba(255, 107, 107, 0.3);
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   cursor: pointer">Kechirish</button>
                 </div>
             </form>
             <div x-show="cancelConfirm"
                  x-cloak
-                 class="mt-4 p-3 rounded-2xl bg-amber-50 border border-amber-200">
-                <p class="text-sm text-slate-800">Bu qarzni kechirib yuborasizmi? Bu amal ortga qaytmaydi.</p>
+                 style="margin-top: 14px;
+                        padding: 14px;
+                        border-radius: 14px;
+                        background: var(--color-warning-bg);
+                        border: 1px solid rgba(255, 181, 71, 0.35)">
+                <p style="margin: 0; font-size: 13px; color: var(--color-text)">Bu qarzni kechirib yuborasizmi? Bu amal ortga qaytmaydi.</p>
                 <form hx-post="{% url 'debts:cancel' debt.id %}"
                       hx-swap="none"
-                      class="mt-2 flex gap-2">
+                      style="display: flex;
+                             gap: 8px;
+                             margin-top: 10px">
                     <input type="hidden" name="reason" value="forgiven">
                     <button type="submit"
-                            class="flex-1 px-3 py-2 rounded-xl text-sm font-medium bg-red-600 text-white"
-                            aria-label="Kechirishni tasdiqlash">Ha, kechirdim</button>
+                            aria-label="Kechirishni tasdiqlash"
+                            style="flex: 1;
+                                   padding: 10px 14px;
+                                   border: 0;
+                                   border-radius: 12px;
+                                   background: var(--color-danger);
+                                   color: #FFFFFF;
+                                   font-size: 13px;
+                                   font-weight: 700;
+                                   cursor: pointer">Ha, kechirdim</button>
                     <button type="button"
                             @click="cancelConfirm = false"
-                            class="px-3 py-2 rounded-xl text-sm text-slate-700 bg-slate-100"
-                            aria-label="Bekor qilish">Bekor</button>
+                            aria-label="Bekor qilish"
+                            style="padding: 10px 14px;
+                                   border: 1px solid var(--color-border);
+                                   border-radius: 12px;
+                                   background: var(--color-surface-hi);
+                                   color: var(--color-text-secondary);
+                                   font-size: 13px;
+                                   font-weight: 600;
+                                   cursor: pointer">Bekor</button>
                 </form>
             </div>
         </div>
