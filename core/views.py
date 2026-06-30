@@ -13,6 +13,7 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from accounts.exceptions import InvalidInitDataError
@@ -26,6 +27,7 @@ from currencies.views import SESSION_DISPLAY_CURRENCY
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
 from quotes.services import SESSION_HIDE_TODAY, dismiss_forever, reenable
+from recurring.selectors import pending_prompts
 from transactions.selectors import daily_flow_series, month_over_month_delta, month_summary
 
 logger = logging.getLogger(__name__)
@@ -94,6 +96,9 @@ def home_content(request):
     inflow_series, outflow_series = daily_flow_series(user, source_currency)
     mom_delta = month_over_month_delta(user, source_currency)
 
+    today = timezone.localdate()
+    prompts = list(pending_prompts(user, today=today))
+
     return render(
         request,
         "core/_balance_hero.html",
@@ -112,6 +117,7 @@ def home_content(request):
             "inflow_series": inflow_series,
             "outflow_series": outflow_series,
             "mom_delta": mom_delta,
+            "recurring_prompts": prompts,
         },
     )
 

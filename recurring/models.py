@@ -33,22 +33,19 @@ class RecurringType(models.TextChoices):
 
 
 class ScheduleKind(models.TextChoices):
-    MONTHLY = "monthly", "Oylik"
+    DAILY = "daily", "Har kuni"
     WEEKLY = "weekly", "Haftalik"
+    MONTHLY = "monthly", "Oylik"
 
 
 class RecurringScheduleQuerySet(models.QuerySet):
-    """Composable read-side queries for the scheduler + settings views."""
+    """Composable read-side queries for the settings + home prompt views."""
 
     def for_user(self, user: User) -> RecurringScheduleQuerySet:
         return self.filter(user=user)
 
     def active(self) -> RecurringScheduleQuerySet:
         return self.filter(is_active=True)
-
-    def due_on(self, on_date) -> RecurringScheduleQuerySet:
-        """Active schedules whose next_dispatch_at is today or earlier."""
-        return self.filter(is_active=True, next_dispatch_at__lte=on_date)
 
 
 class RecurringScheduleManager(models.Manager.from_queryset(RecurringScheduleQuerySet)):
@@ -95,6 +92,11 @@ class RecurringSchedule(models.Model):
         blank=True,
         help_text="Date the last Transaction was materialized (idempotency key).",
     )
+    defer_until = models.DateField(
+        null=True,
+        blank=True,
+        help_text="If set, the prompt is hidden from the home page until this date.",
+    )
 
     is_active = models.BooleanField(default=True)
 
@@ -119,6 +121,7 @@ class RecurringSchedule(models.Model):
                 condition=(
                     models.Q(schedule_kind="monthly", day_of_month__gte=1, day_of_month__lte=31)
                     | models.Q(schedule_kind="weekly", day_of_week__gte=0, day_of_week__lte=6)
+                    | models.Q(schedule_kind="daily")
                 ),
                 name="recurring_schedule_cadence_valid",
             ),

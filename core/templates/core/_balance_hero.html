@@ -185,6 +185,8 @@ converted in lists — only the headline balance is.
             </a>
         </div>
     </div>
+    {# Today's recurring prompts ("Bugun ijara qo'shamizmi?"). #}
+    {% include 'recurring/_prompts.html' %}
     {# Quote card. #}
     {% include 'quotes/_quote_card.html' with quote=quote %}
     {# Top expense categories (source currency only, never converted). #}

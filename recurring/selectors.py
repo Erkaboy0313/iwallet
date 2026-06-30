@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from django.db.models import QuerySet
+from django.db.models import F, Q, QuerySet
 
 from accounts.models import User
 
@@ -28,6 +28,19 @@ def active_count_for(user: User) -> int:
     return RecurringSchedule.objects.for_user(user).active().count()
 
 
-def due_today(on_date: date) -> QuerySet[RecurringSchedule]:
-    """Active schedules due on or before `on_date` — used by the tick command."""
-    return RecurringSchedule.objects.due_on(on_date).select_related("user", "category")
+def pending_prompts(user: User, *, today: date) -> QuerySet[RecurringSchedule]:
+    """Active schedules whose next fire is today-or-past and not deferred past today.
+
+    These are surfaced as 'Bugun [name] qo'shamizmi?' prompts on home. End-dated
+    schedules whose next fire would land past their end are filtered out (the
+    schedule has run its course).
+    """
+    return (
+        RecurringSchedule.objects.for_user(user)
+        .active()
+        .filter(next_dispatch_at__lte=today)
+        .filter(Q(defer_until__isnull=True) | Q(defer_until__lte=today))
+        .filter(Q(end_date__isnull=True) | Q(next_dispatch_at__lte=F("end_date")))
+        .select_related("category")
+        .order_by("next_dispatch_at", "id")
+    )

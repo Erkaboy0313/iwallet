@@ -1,17 +1,21 @@
-"""Recurring CRUD views (Epic 7 / Story 7.2).
+"""Recurring CRUD + prompt resolution views.
 
-Lives at /app/settings/recurring/. The list view renders a `RecurringCard`
-per schedule + an empty-state CTA when none exist. Create/edit use a
-bottom-sheet form swapped in by htmx, mirroring the categories pattern
-(Story 3.1).
+The list lives at /app/settings/recurring/. Create/edit render as full-page
+forms (matching the Add Transaction page) so the form scrolls naturally and
+can reuse the modal category picker.
+
+Prompt resolution endpoints (confirm/skip/defer) are POST-only and called
+from the home page's "Bugun" prompt cards via htmx.
 """
 
 from __future__ import annotations
 
-import json
+from decimal import Decimal, InvalidOperation
 
 from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, render
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_http_methods, require_POST
 
 from categories.models import Category, CategoryType
@@ -25,10 +29,13 @@ from recurring.forms import RecurringForm
 from recurring.models import RecurringSchedule, RecurringType, ScheduleKind
 from recurring.selectors import schedules_for
 from recurring.services import (
+    confirm_prompt,
     create_recurring,
+    defer_prompt,
     delete_recurring,
     pause_recurring,
     resume_recurring,
+    skip_prompt,
     update_recurring,
 )
 
@@ -37,16 +44,7 @@ def _list_context(user) -> dict:
     return {"schedules": list(schedules_for(user))}
 
 
-def _toast(message: str, type_: str = "success") -> str:
-    return json.dumps({"toast": {"type": type_, "message": message}})
-
-
 def _category_choices(user) -> dict:
-    """Categories the picker can offer per type (income/expense).
-
-    Recurring debt_lent/debt_borrowed don't get a picker (debts are tracked
-    elsewhere); we still let the user save those with no category attached.
-    """
     return {
         "income_categories": list(categories_for(user, CategoryType.INCOME.value)),
         "expense_categories": list(categories_for(user, CategoryType.EXPENSE.value)),
@@ -54,10 +52,6 @@ def _category_choices(user) -> dict:
 
 
 def _resolve_category(user, *, type_: str, slug: str | None) -> Category | None:
-    """Look up the picked category by slug, scoped to the right type.
-
-    Debt types don't have categories so we always return None there.
-    """
     if not slug or type_ in {RecurringType.DEBT_LENT.value, RecurringType.DEBT_BORROWED.value}:
         return None
     cat_type = (
@@ -73,7 +67,6 @@ def _resolve_category(user, *, type_: str, slug: str | None) -> Category | None:
 
 @require_http_methods(["GET"])
 def recurring_list_view(request):
-    """Render `/app/settings/recurring/` — the management page."""
     context = _list_context(request.user)
     template = (
         "recurring/_list_partial.html"
@@ -88,7 +81,6 @@ def recurring_list_view(request):
 
 @require_http_methods(["GET", "POST"])
 def recurring_create_view(request):
-    """Bottom-sheet form: GET → form partial, POST → create + swap list."""
     if request.method == "POST":
         form = RecurringForm(request.POST)
         if form.is_valid():
@@ -116,9 +108,9 @@ def recurring_create_view(request):
                 InvalidScheduleError,
             ) as exc:
                 form.add_error(None, str(exc))
-                return _form_error_response(request, form, action_url=request.path)
-            return _list_swap_response(request, "Takrorlanuvchi qo'shildi.")
-        return _form_error_response(request, form, action_url=request.path)
+                return _render_form(request, form, mode="create", status=422)
+            return redirect("recurring:list")
+        return _render_form(request, form, mode="create", status=422)
 
     form = RecurringForm(
         initial={
@@ -128,13 +120,7 @@ def recurring_create_view(request):
             "day_of_month": 1,
         }
     )
-    context = {
-        "form": form,
-        "action_url": request.path,
-        "mode": "create",
-        **_category_choices(request.user),
-    }
-    return render(request, "recurring/_form.html", context)
+    return _render_form(request, form, mode="create")
 
 
 # ---------- Edit ----------
@@ -174,9 +160,9 @@ def recurring_edit_view(request, schedule_id: int):
                 InvalidScheduleError,
             ) as exc:
                 form.add_error(None, str(exc))
-                return _form_error_response(request, form, action_url=request.path)
-            return _list_swap_response(request, "Takrorlanuvchi yangilandi.")
-        return _form_error_response(request, form, action_url=request.path)
+                return _render_form(request, form, mode="edit", schedule=schedule, status=422)
+            return redirect("recurring:list")
+        return _render_form(request, form, mode="edit", schedule=schedule, status=422)
 
     initial = {
         "type": schedule.type,
@@ -190,14 +176,7 @@ def recurring_edit_view(request, schedule_id: int):
         "category_slug": schedule.category.slug if schedule.category else "",
     }
     form = RecurringForm(initial=initial)
-    context = {
-        "form": form,
-        "action_url": request.path,
-        "mode": "edit",
-        "schedule": schedule,
-        **_category_choices(request.user),
-    }
-    return render(request, "recurring/_form.html", context)
+    return _render_form(request, form, mode="edit", schedule=schedule)
 
 
 # ---------- Delete ----------
@@ -205,16 +184,13 @@ def recurring_edit_view(request, schedule_id: int):
 
 @require_http_methods(["GET", "POST"])
 def recurring_delete_view(request, schedule_id: int):
-    """GET → confirmation modal; POST → delete + list swap."""
     schedule = get_object_or_404(
         RecurringSchedule.objects.filter(user=request.user),
         pk=schedule_id,
     )
-
     if request.method == "POST":
         delete_recurring(schedule=schedule)
-        return _list_swap_response(request, "Takrorlanuvchi o'chirildi.")
-
+        return redirect("recurring:list")
     return render(
         request,
         "recurring/_confirm_delete.html",
@@ -233,35 +209,108 @@ def recurring_toggle_view(request, schedule_id: int):
     )
     if schedule.is_active:
         pause_recurring(schedule=schedule)
-        msg = "Takrorlanuvchi to'xtatildi."
     else:
         resume_recurring(schedule=schedule)
-        msg = "Takrorlanuvchi qayta yoqildi."
-    return _list_swap_response(request, msg)
+    return _list_swap_response(request)
+
+
+# ---------- Prompt resolution ----------
+
+
+@require_POST
+def prompt_confirm_view(request, schedule_id: int):
+    """User said Ha on a Bugun prompt card. Optionally accepts edited amount."""
+    schedule = get_object_or_404(
+        RecurringSchedule.objects.filter(user=request.user),
+        pk=schedule_id,
+    )
+    amount = _parse_amount(request.POST.get("amount"))
+    save_amount = request.POST.get("save_amount") in {"on", "1", "true"}
+    confirm_prompt(
+        schedule=schedule,
+        today=timezone.localdate(),
+        amount=amount,
+        save_amount=save_amount,
+    )
+    return _redirect_home_response(request)
+
+
+@require_POST
+def prompt_skip_view(request, schedule_id: int):
+    """User said Yo'q. Advance cursor without a transaction."""
+    schedule = get_object_or_404(
+        RecurringSchedule.objects.filter(user=request.user),
+        pk=schedule_id,
+    )
+    skip_prompt(schedule=schedule, today=timezone.localdate())
+    return _redirect_home_response(request)
+
+
+@require_POST
+def prompt_defer_view(request, schedule_id: int):
+    """User said Ertaga eslat. Hide this prompt until tomorrow."""
+    schedule = get_object_or_404(
+        RecurringSchedule.objects.filter(user=request.user),
+        pk=schedule_id,
+    )
+    defer_prompt(schedule=schedule, today=timezone.localdate())
+    return _redirect_home_response(request)
 
 
 # ---------- helpers ----------
 
 
-def _list_swap_response(request, message: str) -> HttpResponse:
-    """After a successful mutation: re-render the list partial + flash toast."""
-    response = render(request, "recurring/_list_partial.html", _list_context(request.user))
-    response.headers["HX-Trigger"] = _toast(message)
-    response.headers["HX-Retarget"] = "#recurring-list"
-    response.headers["HX-Reswap"] = "outerHTML"
-    return response
-
-
-def _form_error_response(request, form, *, action_url: str) -> HttpResponse:
-    response = render(
-        request,
-        "recurring/_form.html",
-        {
-            "form": form,
-            "action_url": action_url,
-            "mode": "create",
-            **_category_choices(request.user),
-        },
+def _render_form(
+    request,
+    form: RecurringForm,
+    *,
+    mode: str,
+    schedule: RecurringSchedule | None = None,
+    status: int = 200,
+) -> HttpResponse:
+    action_url = (
+        reverse("recurring:edit", args=[schedule.id])
+        if schedule is not None
+        else reverse("recurring:create")
     )
-    response.status_code = 422
+    context = {
+        "form": form,
+        "action_url": action_url,
+        "mode": mode,
+        "schedule": schedule,
+        **_category_choices(request.user),
+    }
+    response = render(request, "recurring/_form.html", context)
+    if status != 200:
+        response.status_code = status
     return response
+
+
+def _list_swap_response(request) -> HttpResponse:
+    if request.headers.get("HX-Request") == "true":
+        return render(request, "recurring/_list_partial.html", _list_context(request.user))
+    return redirect("recurring:list")
+
+
+def _redirect_home_response(request) -> HttpResponse:
+    """After a prompt action: htmx requests get HX-Redirect, plain POSTs a 302."""
+    if request.headers.get("HX-Request") == "true":
+        response = HttpResponse(status=204)
+        response.headers["HX-Refresh"] = "true"
+        return response
+    return redirect("core:home")
+
+
+def _parse_amount(raw: str | None) -> Decimal | None:
+    if not raw:
+        return None
+    cleaned = raw.strip().replace(" ", "").replace(",", ".")
+    if not cleaned:
+        return None
+    try:
+        value = Decimal(cleaned)
+    except InvalidOperation:
+        return None
+    if value <= 0:
+        return None
+    return value

@@ -104,4 +104,7 @@ class RecurringForm(forms.Form):
             self.add_error("day_of_month", "Oylik takror uchun kunni (1-31) tanlang.")
         if kind == ScheduleKind.WEEKLY.value and cleaned.get("day_of_week") is None:
             self.add_error("day_of_week", "Haftalik takror uchun hafta kunini tanlang.")
+        if kind == ScheduleKind.DAILY.value:
+            cleaned["day_of_month"] = None
+            cleaned["day_of_week"] = None
         return cleaned

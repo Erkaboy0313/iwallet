@@ -1,23 +1,17 @@
 """Write-side business logic for RecurringSchedule (Epic 7).
 
 Lifecycle services (`create_recurring`, `update_recurring`, `delete_recurring`)
-and cadence helpers (`compute_next_dispatch_date`, `mark_dispatched`).
+and cadence helpers (`compute_next_dispatch_date`).
 
-The tick service (`dispatch_due` / `dispatch_one`) lives here too — it walks
-all `is_active=True, next_dispatch_at<=today` rows, materializes one
-Transaction per due day via `transactions.services.create_transaction`, then
-advances `next_dispatch_at` by one cadence step.
-
-Idempotency: `last_dispatched_on` is checked + bumped inside the same atomic
-block as transaction creation, so running the tick twice on the same calendar
-day cannot double-create.
+Prompt resolution (`confirm_prompt`, `skip_prompt`, `defer_prompt`) replaces
+the old auto-fire tick — users now see a prompt on home and choose Ha / Yo'q /
+Ertaga, so days they didn't actually use the service don't get a transaction.
 """
 
 from __future__ import annotations
 
 import calendar
 import logging
-from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
@@ -62,6 +56,8 @@ def _validate_cadence(
     day_of_week: int | None,
 ) -> tuple[int | None, int | None]:
     """Return (day_of_month, day_of_week) coerced to the right shape per kind."""
+    if schedule_kind == ScheduleKind.DAILY.value:
+        return None, None
     if schedule_kind == ScheduleKind.MONTHLY.value:
         if day_of_month is None or not (1 <= day_of_month <= 31):
             raise InvalidScheduleError("Oylik takror uchun kunni (1-31) tanlang.")
@@ -130,6 +126,8 @@ def compute_first_dispatch_date(
     it. That way "create on the 5th, schedule on the 1st" reasonably waits until
     next month rather than firing immediately on a wrong day.
     """
+    if schedule_kind == ScheduleKind.DAILY.value:
+        return start_date
     if schedule_kind == ScheduleKind.MONTHLY.value:
         assert day_of_month is not None
         return _next_monthly(start_date, day_of_month)
@@ -142,9 +140,12 @@ def compute_first_dispatch_date(
 def compute_next_dispatch_date(schedule: RecurringSchedule) -> date:
     """Given the schedule's current next_dispatch_at, compute the one *after*.
 
-    Pure function — does not write. The tick service calls this after
-    materializing the current occurrence to advance the cursor.
+    Pure function — does not write. Used by the prompt resolution services
+    after the user responds (confirm / skip) to advance the cursor by one
+    cadence step.
     """
+    if schedule.schedule_kind == ScheduleKind.DAILY.value:
+        return schedule.next_dispatch_at + timedelta(days=1)
     if schedule.schedule_kind == ScheduleKind.MONTHLY.value:
         assert schedule.day_of_month is not None
         return _advance_one_month(schedule.next_dispatch_at, schedule.day_of_month)
@@ -322,143 +323,90 @@ def resume_recurring(*, schedule: RecurringSchedule) -> RecurringSchedule:
     return set_active(schedule=schedule, is_active=True)
 
 
-# ---------- dispatch (tick) ----------
-
-
-@dataclass(frozen=True)
-class DispatchResult:
-    """One tick's outcome — surfaced by the management command for logging."""
-
-    materialized: list[Transaction]
-    skipped_past_end: int
-    skipped_idempotent: int
-
-    @property
-    def count(self) -> int:
-        return len(self.materialized)
-
-
-def mark_dispatched(schedule: RecurringSchedule, *, fired_on: date) -> RecurringSchedule:
-    """Stamp the idempotency key and advance the cursor. Caller wraps in atomic."""
-    schedule.last_dispatched_on = fired_on
-    schedule.next_dispatch_at = compute_next_dispatch_date(schedule)
-    schedule.save(update_fields=["last_dispatched_on", "next_dispatch_at", "updated_at"])
-    return schedule
+# ---------- prompt resolution (user-driven, replaces the auto-fire tick) ----------
+#
+# Old behaviour: a daily cron tick materialized Transactions automatically on
+# the scheduled date. That punished users who skipped a day — e.g. a daily
+# metro fare on a day they didn't ride. The new flow shows a prompt on the
+# home page; the user chooses Ha (confirm) / Yo'q (skip) / Ertaga (defer).
+# Cadence advances only on Ha or Yo'q; defer just hides the prompt for 1 day.
 
 
 @db_transaction.atomic
-def dispatch_one(
-    schedule: RecurringSchedule,
+def confirm_prompt(
     *,
+    schedule: RecurringSchedule,
     today: date,
+    amount: Decimal | None = None,
+    save_amount: bool = False,
 ) -> Transaction | None:
-    """Materialize today's Transaction for `schedule` if due and not yet fired.
+    """User confirmed today's prompt. Create a Transaction, advance the cursor.
 
-    Returns the new Transaction, or None if the row is not due yet, was already
-    fired today (idempotency), is paused, or has been capped by `end_date`.
+    `amount=None` means "use the schedule's stored amount". `save_amount=True`
+    persists the edited amount as the new default for future fires (e.g. an
+    internet bill that went from 100k → 110k).
     """
-    # Paused → nothing to do.
-    if not schedule.is_active:
-        return None
-    # Not due yet (next fire is in the future).
-    if schedule.next_dispatch_at > today:
-        return None
-    # End-date guardrail: a schedule with end_date in the past stops firing,
-    # even if next_dispatch_at lagged behind.
-    if schedule.end_date is not None and schedule.next_dispatch_at > schedule.end_date:
-        return None
-    # Idempotency: same calendar day → no-op.
-    if schedule.last_dispatched_on == schedule.next_dispatch_at:
-        return None
-
-    # Lock the row so concurrent ticks can't double-create.
     locked = RecurringSchedule.objects.select_for_update().get(pk=schedule.pk)
-    if not locked.is_active:
-        return None
-    if locked.next_dispatch_at > today:
-        return None
-    if locked.last_dispatched_on == locked.next_dispatch_at:
+    if not locked.is_active or locked.next_dispatch_at > today:
         return None
     if locked.end_date is not None and locked.next_dispatch_at > locked.end_date:
         return None
 
+    final_amount = amount if amount is not None else locked.amount
+    _validate_amount(final_amount)
+
     tx = create_transaction(
         user=locked.user,
         type=locked.type,
-        amount=locked.amount,
+        amount=final_amount,
         currency=locked.currency,
         date=locked.next_dispatch_at,
         category=locked.category,
         note=f"Takrorlanuvchi: {locked.name}",
     )
-    fired_on = locked.next_dispatch_at
-    mark_dispatched(locked, fired_on=fired_on)
 
-    # Drop a stub PushQueueItem row so the Epic 9 bot consumer can pick it up.
-    # Local import keeps notifications optional at module load and avoids a
-    # circular if notifications later imports from recurring.
-    # TODO(Epic 9): consumer in notifications/services.py will read this row,
-    # render Uzbek copy ("Ijara yozildi — 2 mln so'm"), call the bot send,
-    # then flip sent_at. Shape here intentionally minimal; Epic 9 may extend
-    # the payload without a fresh migration (JSONField).
-    from notifications.models import NotificationKind, PushQueueItem
-
-    PushQueueItem.objects.create(
-        user=locked.user,
-        kind=NotificationKind.RECURRING_FIRED.value,
-        payload_json={
-            "schedule_id": locked.id,
-            "schedule_name": locked.name,
-            "transaction_id": tx.id,
-            "amount": str(locked.amount),
-            "currency": locked.currency,
-            "fired_on": fired_on.isoformat(),
-        },
-    )
+    fields = ["last_dispatched_on", "next_dispatch_at", "defer_until", "updated_at"]
+    locked.last_dispatched_on = locked.next_dispatch_at
+    locked.next_dispatch_at = compute_next_dispatch_date(locked)
+    locked.defer_until = None
+    if save_amount and amount is not None and amount != locked.amount:
+        locked.amount = amount
+        fields.append("amount")
+    locked.save(update_fields=fields)
 
     logger.info(
-        "recurring schedule %s fired tx=%s on %s",
+        "recurring prompt confirmed schedule=%s tx=%s amount=%s save_amount=%s",
         locked.id,
         tx.id,
-        fired_on.isoformat(),
+        final_amount,
+        save_amount,
     )
     return tx
 
 
-def dispatch_due(*, today: date | None = None) -> DispatchResult:
-    """Tick every active schedule whose next_dispatch_at <= today.
-
-    Idempotent at the *day* granularity — if invoked twice on the same date,
-    second pass exits early on each row because `last_dispatched_on` already
-    equals `next_dispatch_at`.
-    """
-    if today is None:
-        today = timezone.localdate()
-
-    materialized: list[Transaction] = []
-    skipped_past_end = 0
-    skipped_idempotent = 0
-
-    due = list(
-        RecurringSchedule.objects.due_on(today)
-        .select_related("user", "category")
-        .order_by("next_dispatch_at", "id")
+@db_transaction.atomic
+def skip_prompt(*, schedule: RecurringSchedule, today: date) -> RecurringSchedule:
+    """User said Yo'q. Advance cursor without creating a Transaction."""
+    locked = RecurringSchedule.objects.select_for_update().get(pk=schedule.pk)
+    if not locked.is_active or locked.next_dispatch_at > today:
+        return locked
+    locked.last_dispatched_on = locked.next_dispatch_at
+    locked.next_dispatch_at = compute_next_dispatch_date(locked)
+    locked.defer_until = None
+    locked.save(
+        update_fields=["last_dispatched_on", "next_dispatch_at", "defer_until", "updated_at"],
     )
-    for schedule in due:
-        if schedule.end_date is not None and schedule.next_dispatch_at > schedule.end_date:
-            skipped_past_end += 1
-            continue
-        if schedule.last_dispatched_on == schedule.next_dispatch_at:
-            skipped_idempotent += 1
-            continue
-        tx = dispatch_one(schedule, today=today)
-        if tx is None:
-            skipped_idempotent += 1
-        else:
-            materialized.append(tx)
+    logger.info("recurring prompt skipped schedule=%s on=%s", locked.id, today.isoformat())
+    return locked
 
-    return DispatchResult(
-        materialized=materialized,
-        skipped_past_end=skipped_past_end,
-        skipped_idempotent=skipped_idempotent,
-    )
+
+@db_transaction.atomic
+def defer_prompt(*, schedule: RecurringSchedule, today: date) -> RecurringSchedule:
+    """User said Ertaga eslat. Hide the prompt until tomorrow without advancing cadence."""
+    locked = RecurringSchedule.objects.select_for_update().get(pk=schedule.pk)
+    if not locked.is_active:
+        return locked
+    locked.defer_until = today + timedelta(days=1)
+    locked.save(update_fields=["defer_until", "updated_at"])
+    logger.info("recurring prompt deferred schedule=%s until=%s", locked.id, locked.defer_until)
+    return locked

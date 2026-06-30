@@ -1,6 +1,7 @@
-"""Epic 7 / Story 7.2 — view-layer integration tests for recurring CRUD."""
+"""View-layer integration tests for recurring CRUD + prompt resolution."""
 
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from django.test import Client, override_settings
@@ -9,6 +10,7 @@ from django.urls import reverse
 from accounts.tests.test_services import BOT_TOKEN, _make_init_data
 from recurring.models import RecurringSchedule
 from recurring.tests.factories import RecurringScheduleFactory
+from transactions.models import Transaction
 from transactions.tests.factories import UserFactory
 
 
@@ -22,8 +24,7 @@ def _init_data(user_id: int = 7) -> str:
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
 def test_list_view_empty_state_when_no_schedules() -> None:
-    client = Client()
-    response = client.get(
+    response = Client().get(
         reverse("recurring:list"),
         headers={"X-Telegram-InitData": _init_data(user_id=42)},
     )
@@ -43,8 +44,7 @@ def test_list_view_renders_user_schedules() -> None:
         headers={"X-Telegram-InitData": _init_data()},
     )
     assert response.status_code == 200
-    body = response.content.decode("utf-8")
-    assert "Ijara" in body
+    assert "Ijara" in response.content.decode("utf-8")
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
@@ -54,32 +54,21 @@ def test_list_view_only_shows_own_schedules() -> None:
     user_b = UserFactory(telegram_id=99)
     RecurringScheduleFactory(user=user_a, name="MineAaa")
     RecurringScheduleFactory(user=user_b, name="TheirsBbb")
-    response = Client().get(
-        reverse("recurring:list"),
-        headers={"X-Telegram-InitData": _init_data(user_id=7)},
+    body = (
+        Client()
+        .get(
+            reverse("recurring:list"),
+            headers={"X-Telegram-InitData": _init_data(user_id=7)},
+        )
+        .content.decode("utf-8")
     )
-    body = response.content.decode("utf-8")
     assert "MineAaa" in body
     assert "TheirsBbb" not in body
 
 
 @pytest.mark.django_db
 def test_list_view_requires_auth() -> None:
-    response = Client().get(reverse("recurring:list"))
-    assert response.status_code == 401
-
-
-@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
-@pytest.mark.django_db
-def test_list_view_returns_partial_for_htmx() -> None:
-    response = Client().get(
-        reverse("recurring:list"),
-        headers={"X-Telegram-InitData": _init_data(), "HX-Request": "true"},
-    )
-    assert response.status_code == 200
-    body = response.content.decode("utf-8")
-    assert "<!DOCTYPE" not in body
-    assert 'id="recurring-list"' in body
+    assert Client().get(reverse("recurring:list")).status_code == 401
 
 
 # ---------- create ----------
@@ -101,9 +90,8 @@ def test_create_view_get_renders_form() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_create_view_post_persists_schedule() -> None:
-    client = Client()
-    response = client.post(
+def test_create_view_post_redirects_to_list_and_persists() -> None:
+    response = Client().post(
         reverse("recurring:create"),
         data={
             "type": "expense",
@@ -115,15 +103,33 @@ def test_create_view_post_persists_schedule() -> None:
         },
         headers={"X-Telegram-InitData": _init_data(user_id=42)},
     )
-    assert response.status_code == 200
-    schedules = RecurringSchedule.objects.filter(user__telegram_id=42)
-    assert schedules.count() == 1
-    s = schedules.first()
+    assert response.status_code == 302
+    assert response["Location"] == reverse("recurring:list")
+    s = RecurringSchedule.objects.get(user__telegram_id=42)
     assert s.name == "Ijara"
     assert s.schedule_kind == "monthly"
     assert s.day_of_month == 1
-    assert "HX-Trigger" in response.headers
-    assert "qo'shildi" in response.headers["HX-Trigger"]
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_create_view_post_daily_schedule() -> None:
+    response = Client().post(
+        reverse("recurring:create"),
+        data={
+            "type": "expense",
+            "name": "Metro",
+            "amount": "2000",
+            "currency": "UZS",
+            "schedule_kind": "daily",
+        },
+        headers={"X-Telegram-InitData": _init_data(user_id=42)},
+    )
+    assert response.status_code == 302
+    s = RecurringSchedule.objects.get(user__telegram_id=42)
+    assert s.schedule_kind == "daily"
+    assert s.day_of_month is None
+    assert s.day_of_week is None
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
@@ -175,13 +181,12 @@ def test_edit_view_get_prefills_form() -> None:
         headers={"X-Telegram-InitData": _init_data()},
     )
     assert response.status_code == 200
-    body = response.content.decode("utf-8")
-    assert "Ijara" in body
+    assert "Ijara" in response.content.decode("utf-8")
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_edit_view_post_updates_schedule() -> None:
+def test_edit_view_post_updates_and_redirects() -> None:
     user = UserFactory(telegram_id=7)
     schedule = RecurringScheduleFactory(user=user, name="Ijara")
     response = Client().post(
@@ -196,7 +201,7 @@ def test_edit_view_post_updates_schedule() -> None:
         },
         headers={"X-Telegram-InitData": _init_data()},
     )
-    assert response.status_code == 200
+    assert response.status_code == 302
     schedule.refresh_from_db()
     assert schedule.name == "Yangi Ijara"
     assert schedule.day_of_month == 5
@@ -234,14 +239,14 @@ def test_delete_view_get_renders_confirmation() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_delete_view_post_removes_schedule() -> None:
+def test_delete_view_post_removes_and_redirects() -> None:
     user = UserFactory(telegram_id=7)
     schedule = RecurringScheduleFactory(user=user)
     response = Client().post(
         reverse("recurring:delete", kwargs={"schedule_id": schedule.id}),
         headers={"X-Telegram-InitData": _init_data()},
     )
-    assert response.status_code == 200
+    assert response.status_code == 302
     assert not RecurringSchedule.objects.filter(pk=schedule.pk).exists()
 
 
@@ -255,7 +260,7 @@ def test_toggle_view_pauses_active_schedule() -> None:
     schedule = RecurringScheduleFactory(user=user, is_active=True)
     response = Client().post(
         reverse("recurring:toggle", kwargs={"schedule_id": schedule.id}),
-        headers={"X-Telegram-InitData": _init_data()},
+        headers={"X-Telegram-InitData": _init_data(), "HX-Request": "true"},
     )
     assert response.status_code == 200
     schedule.refresh_from_db()
@@ -269,7 +274,7 @@ def test_toggle_view_resumes_paused_schedule() -> None:
     schedule = RecurringScheduleFactory(user=user, is_active=False)
     response = Client().post(
         reverse("recurring:toggle", kwargs={"schedule_id": schedule.id}),
-        headers={"X-Telegram-InitData": _init_data()},
+        headers={"X-Telegram-InitData": _init_data(), "HX-Request": "true"},
     )
     assert response.status_code == 200
     schedule.refresh_from_db()
@@ -288,22 +293,145 @@ def test_toggle_view_404_on_other_user() -> None:
     assert response.status_code == 404
 
 
-# ---------- balance hero link discoverability ----------
+# ---------- prompt resolution ----------
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_balance_hero_does_not_render_recurring_link_after_v0_5() -> None:
-    """Sprint v0.5 redesign moved Kategoriyalar/Takrorlanuvchi off Home — they
-    live on the Settings hub at /app/settings/ (Phase 4). The recurring page
-    is still reachable via direct URL; we just don't surface it on Home.
-    """
-    UserFactory(telegram_id=7, onboarded_at=date(2026, 1, 1))
+def test_prompt_confirm_creates_transaction_and_advances() -> None:
+    user = UserFactory(telegram_id=7)
+    schedule = RecurringScheduleFactory(
+        user=user,
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+        amount=Decimal("2000"),
+    )
+    response = Client().post(
+        reverse("recurring:prompt_confirm", kwargs={"schedule_id": schedule.id}),
+        headers={"X-Telegram-InitData": _init_data()},
+    )
+    assert response.status_code == 302
+    assert Transaction.objects.filter(user=user).count() == 1
+    schedule.refresh_from_db()
+    assert schedule.last_dispatched_on is not None
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_prompt_confirm_with_edited_amount_uses_override() -> None:
+    user = UserFactory(telegram_id=7)
+    schedule = RecurringScheduleFactory(
+        user=user,
+        schedule_kind="monthly",
+        day_of_month=1,
+        amount=Decimal("100000"),
+    )
+    Client().post(
+        reverse("recurring:prompt_confirm", kwargs={"schedule_id": schedule.id}),
+        data={"amount": "110000", "save_amount": "1"},
+        headers={"X-Telegram-InitData": _init_data()},
+    )
+    tx = Transaction.objects.get(user=user)
+    assert tx.amount == Decimal("110000")
+    schedule.refresh_from_db()
+    assert schedule.amount == Decimal("110000")  # persisted as new default
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_prompt_skip_advances_without_transaction() -> None:
+    user = UserFactory(telegram_id=7)
+    schedule = RecurringScheduleFactory(
+        user=user,
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+    )
+    response = Client().post(
+        reverse("recurring:prompt_skip", kwargs={"schedule_id": schedule.id}),
+        headers={"X-Telegram-InitData": _init_data()},
+    )
+    assert response.status_code == 302
+    assert Transaction.objects.count() == 0
+    schedule.refresh_from_db()
+    assert schedule.last_dispatched_on is not None
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_prompt_defer_sets_defer_until_tomorrow() -> None:
+    user = UserFactory(telegram_id=7)
+    today = date.today()
+    schedule = RecurringScheduleFactory(
+        user=user,
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+        next_dispatch_at=today,
+    )
+    response = Client().post(
+        reverse("recurring:prompt_defer", kwargs={"schedule_id": schedule.id}),
+        headers={"X-Telegram-InitData": _init_data()},
+    )
+    assert response.status_code == 302
+    schedule.refresh_from_db()
+    assert schedule.defer_until is not None
+    assert schedule.next_dispatch_at == today  # cursor not advanced
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_prompt_confirm_404_on_other_user() -> None:
+    other = UserFactory(telegram_id=99)
+    schedule = RecurringScheduleFactory(user=other)
+    response = Client().post(
+        reverse("recurring:prompt_confirm", kwargs={"schedule_id": schedule.id}),
+        headers={"X-Telegram-InitData": _init_data(user_id=7)},
+    )
+    assert response.status_code == 404
+
+
+# ---------- home integration ----------
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_renders_prompt_card_for_due_schedule() -> None:
+    user = UserFactory(telegram_id=7, onboarded_at=date(2026, 1, 1))
+    schedule = RecurringScheduleFactory(
+        user=user,
+        name="Metro",
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+        next_dispatch_at=date.today(),
+    )
     response = Client().get(
         reverse("core:home_content"),
         headers={"X-Telegram-InitData": _init_data()},
     )
-    assert response.status_code == 200
     body = response.content.decode("utf-8")
-    assert reverse("recurring:list") not in body
-    assert "Takrorlanuvchi" not in body
+    assert response.status_code == 200
+    assert "Metro" in body
+    assert "Bugun" in body
+    assert reverse("recurring:prompt_confirm", kwargs={"schedule_id": schedule.id}) in body
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_hides_prompt_for_future_dispatch() -> None:
+    user = UserFactory(telegram_id=7, onboarded_at=date(2026, 1, 1))
+    RecurringScheduleFactory(
+        user=user,
+        name="Future",
+        schedule_kind="monthly",
+        day_of_month=28,
+        next_dispatch_at=date(2099, 12, 31),
+    )
+    response = Client().get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": _init_data()},
+    )
+    body = response.content.decode("utf-8")
+    assert "Future" not in body
