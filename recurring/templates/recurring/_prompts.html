@@ -13,7 +13,7 @@
         freely without touching the inner flex.
     {% endcomment %}
     <template x-teleport="body">
-        <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
+        <div x-data="{ idx: 0, total: {{ recurring_prompts|length }}, needRefresh: false, advance() { this.idx++; if (this.idx >= this.total && this.needRefresh) window.location.reload() } }"
              x-init="$nextTick(() => { if (window.htmx) window.htmx.process($el); })"
              x-show="idx < total"
              x-cloak
@@ -215,7 +215,7 @@
                                 <form hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { needRefresh = true; advance() }">
                                     {% csrf_token %}
                                     <input type="hidden"
                                            name="amount"
@@ -239,7 +239,7 @@
                                 <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { advance() }">
                                     {% csrf_token %}
                                     <button type="submit"
                                             :disabled="busy"
@@ -258,7 +258,7 @@
                                 <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { advance() }">
                                     {% csrf_token %}
                                     <button type="submit"
                                             :disabled="busy"
