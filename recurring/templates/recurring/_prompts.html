@@ -120,7 +120,11 @@
                         Bu summani kelajakda ham saqlash
                     </label>
                 </div>
-                {# Two-row button layout: primary Ha/Yo'q on top, secondary defer at bottom. #}
+                {% comment %}
+                    Ha / Yo'q on top — always. 'Ertaga eslat' is meaningless
+                    for daily schedules (tomorrow IS the next cycle), so it
+                    only renders for weekly/monthly.
+                {% endcomment %}
                 <div style="display: grid;
                             grid-template-columns: 1fr 1fr;
                             gap: 8px;
@@ -145,7 +149,7 @@
                                        font-size: 15px;
                                        font-weight: 700;
                                        cursor: pointer;
-                                       box-shadow: var(--shadow-cta)">Ha, qo'sh</button>
+                                       box-shadow: var(--shadow-cta)">Ha</button>
                     </form>
                     <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
                           hx-swap="none"
@@ -162,26 +166,28 @@
                                        color: var(--color-text);
                                        font-size: 15px;
                                        font-weight: 600;
-                                       cursor: pointer">Bugun yo'q</button>
+                                       cursor: pointer">Yo'q</button>
                     </form>
                 </div>
-                <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
-                      hx-swap="none"
-                      @htmx:before-request="busy = true"
-                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
-                    {% csrf_token %}
-                    <button type="submit"
-                            :disabled="busy"
-                            style="width: 100%;
-                                   padding: 12px 0;
-                                   border: 1px dashed var(--color-border);
-                                   border-radius: 12px;
-                                   background: transparent;
-                                   color: var(--color-text-secondary);
-                                   font-size: 13px;
-                                   font-weight: 600;
-                                   cursor: pointer">Ertaga qaytadan so'rasin</button>
-                </form>
+                {% if schedule.schedule_kind != 'daily' %}
+                    <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
+                          hx-swap="none"
+                          @htmx:before-request="busy = true"
+                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                        {% csrf_token %}
+                        <button type="submit"
+                                :disabled="busy"
+                                style="width: 100%;
+                                       padding: 12px 0;
+                                       border: 1px dashed var(--color-border);
+                                       border-radius: 12px;
+                                       background: transparent;
+                                       color: var(--color-text-secondary);
+                                       font-size: 13px;
+                                       font-weight: 600;
+                                       cursor: pointer">Ertaga eslat</button>
+                    </form>
+                {% endif %}
             </article>
         {% endfor %}
     </div>
