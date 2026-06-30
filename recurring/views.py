@@ -293,11 +293,11 @@ def _list_swap_response(request) -> HttpResponse:
 
 
 def _redirect_home_response(request) -> HttpResponse:
-    """After a prompt action: htmx requests get HX-Redirect, plain POSTs a 302."""
+    """After a prompt action: htmx gets a bare 204 (frontend advances to
+    the next prompt in the modal stack and reloads on the last one);
+    plain POSTs fall back to a redirect."""
     if request.headers.get("HX-Request") == "true":
-        response = HttpResponse(status=204)
-        response.headers["HX-Refresh"] = "true"
-        return response
+        return HttpResponse(status=204)
     return redirect("core:home")
 
 

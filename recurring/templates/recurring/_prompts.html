@@ -1,67 +1,92 @@
 {% load core_extras %}
 {% if recurring_prompts %}
-    <section style="margin: 0 0 16px"
-             aria-label="Bugungi takrorlanuvchi to'lovlar">
-        <h2 style="font-size: 11px;
-                   letter-spacing: 0.08em;
-                   text-transform: uppercase;
-                   color: var(--color-text-muted);
-                   font-weight: 700;
-                   margin: 0 0 10px">Bugun</h2>
+    {% comment %}
+        Blocking modal — prompts demand attention before the user can do
+        anything else on home. Renders all pending prompts at once but
+        Alpine reveals only one card at a time; each Ha/Yo'q/Ertaga
+        advances to the next and the last one triggers a page reload so
+        the hero reflects the new balance.
+    {% endcomment %}
+    <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
+         x-show="idx < total"
+         x-cloak
+         role="dialog"
+         aria-modal="true"
+         aria-label="Bugungi takrorlanuvchi to'lovlar"
+         style="position: fixed;
+                inset: 0;
+                z-index: 100;
+                background: rgba(5, 9, 7, 0.72);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px">
         {% for schedule in recurring_prompts %}
-            <article x-data="{ edit: false, amount: '{{ schedule.amount|stringformat:'d' }}', save_next: false }"
+            <article x-show="idx === {{ forloop.counter0 }}"
+                     x-data="{ edit: false, amount: '{{ schedule.amount|stringformat:'d' }}', save_next: false, busy: false }"
                      style="background: var(--color-surface);
                             border: 1px solid var(--color-border);
-                            border-radius: var(--radius-card);
-                            padding: 16px;
-                            margin-bottom: 10px">
-                <header style="display: flex;
-                               align-items: flex-start;
-                               justify-content: space-between;
-                               gap: 12px;
-                               margin-bottom: 12px">
-                    <div style="min-width: 0; flex: 1">
-                        <p style="margin: 0 0 4px;
-                                  font-size: 15px;
-                                  font-weight: 600;
-                                  color: var(--color-text);
-                                  line-height: 1.3">
-                            {% if schedule.category %}
-                                <span aria-hidden="true" style="margin-right: 6px">{{ schedule.category.emoji }}</span>
-                            {% endif %}
-                            Bugun «{{ schedule.name }}» qo'shamizmi?
-                        </p>
-                        <p style="margin: 0;
-                                  font-size: 13px;
-                                  color: var(--color-text-secondary)">
-                            <span x-show="!edit" class="amount">{{ schedule.amount|smart_money:schedule.currency }}</span>
-                            <button type="button"
-                                    x-show="!edit"
-                                    @click="edit = true"
-                                    style="margin-left: 8px;
-                                           background: none;
-                                           border: 0;
-                                           color: var(--color-primary);
-                                           font-size: 12px;
-                                           font-weight: 600;
-                                           cursor: pointer;
-                                           padding: 0">o'zgartirish</button>
-                        </p>
-                    </div>
-                </header>
+                            border-radius: 18px;
+                            padding: 22px 20px;
+                            width: 100%;
+                            max-width: 380px;
+                            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5)">
+                {% if recurring_prompts|length > 1 %}
+                    <p style="font-size: 11px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 700;
+                              margin: 0 0 12px">
+                        Bugun · <span x-text="idx + 1"></span> / {{ recurring_prompts|length }}
+                    </p>
+                {% else %}
+                    <p style="font-size: 11px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 700;
+                              margin: 0 0 12px">Bugun</p>
+                {% endif %}
+                <h2 style="font-size: 17px;
+                           font-weight: 600;
+                           color: var(--color-text);
+                           line-height: 1.3;
+                           margin: 0 0 6px">
+                    {% if schedule.category %}
+                        <span aria-hidden="true" style="margin-right: 6px">{{ schedule.category.emoji }}</span>
+                    {% endif %}
+                    «{{ schedule.name }}» qo'shamizmi?
+                </h2>
+                <p style="margin: 0 0 18px;
+                          font-size: 14px;
+                          color: var(--color-text-secondary)">
+                    <span x-show="!edit" class="amount">{{ schedule.amount|smart_money:schedule.currency }}</span>
+                    <button type="button"
+                            x-show="!edit"
+                            @click="edit = true"
+                            style="margin-left: 10px;
+                                   background: none;
+                                   border: 0;
+                                   color: var(--color-primary);
+                                   font-size: 12px;
+                                   font-weight: 600;
+                                   cursor: pointer;
+                                   padding: 0">o'zgartirish</button>
+                </p>
                 <div x-show="edit"
                      x-cloak
                      style="display: flex;
                             flex-direction: column;
-                            gap: 8px;
-                            margin-bottom: 12px">
+                            gap: 10px;
+                            margin-bottom: 18px">
                     <input type="text"
                            inputmode="numeric"
                            x-model="amount"
                            class="amount"
                            style="width: 100%;
-                                  padding: 12px 14px;
-                                  font-size: 18px;
+                                  padding: 14px;
+                                  font-size: 22px;
                                   font-weight: 700;
                                   border: 1.5px solid var(--color-border);
                                   border-radius: 12px;
@@ -79,18 +104,19 @@
                     </label>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px">
-                    <form method="post"
-                          action="{% url 'recurring:prompt_confirm' schedule.id %}"
-                          hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
-                          hx-swap="none">
+                    <form hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
+                          hx-swap="none"
+                          @htmx:before-request="busy = true"
+                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
                         {% csrf_token %}
                         <input type="hidden" name="amount" :value="edit ? amount : ''">
                         <input type="hidden"
                                name="save_amount"
                                :value="edit && save_next ? '1' : ''">
                         <button type="submit"
+                                :disabled="busy"
                                 style="width: 100%;
-                                       padding: 12px;
+                                       padding: 13px 0;
                                        border: 0;
                                        border-radius: 12px;
                                        background: var(--gradient-cta);
@@ -100,14 +126,15 @@
                                        cursor: pointer;
                                        box-shadow: var(--shadow-cta)">Ha</button>
                     </form>
-                    <form method="post"
-                          action="{% url 'recurring:prompt_skip' schedule.id %}"
-                          hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
-                          hx-swap="none">
+                    <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
+                          hx-swap="none"
+                          @htmx:before-request="busy = true"
+                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
                         {% csrf_token %}
                         <button type="submit"
+                                :disabled="busy"
                                 style="width: 100%;
-                                       padding: 12px;
+                                       padding: 13px 0;
                                        border: 1px solid var(--color-border);
                                        border-radius: 12px;
                                        background: var(--color-surface-hi);
@@ -116,14 +143,15 @@
                                        font-weight: 600;
                                        cursor: pointer">Yo'q</button>
                     </form>
-                    <form method="post"
-                          action="{% url 'recurring:prompt_defer' schedule.id %}"
-                          hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
-                          hx-swap="none">
+                    <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
+                          hx-swap="none"
+                          @htmx:before-request="busy = true"
+                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
                         {% csrf_token %}
                         <button type="submit"
+                                :disabled="busy"
                                 style="width: 100%;
-                                       padding: 12px;
+                                       padding: 13px 0;
                                        border: 1px solid var(--color-border);
                                        border-radius: 12px;
                                        background: transparent;
@@ -135,5 +163,5 @@
                 </div>
             </article>
         {% endfor %}
-    </section>
+    </div>
 {% endif %}
