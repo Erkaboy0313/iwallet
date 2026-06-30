@@ -14,6 +14,7 @@
     {% endcomment %}
     <template x-teleport="body">
         <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
+             x-init="$nextTick(() => { if (window.htmx) window.htmx.process($el); })"
              x-show="idx < total"
              x-cloak
              role="dialog"
