@@ -441,6 +441,40 @@ def test_skip_prompt_advances_cursor_without_transaction() -> None:
     assert Transaction.objects.count() == 0
 
 
+@pytest.mark.django_db
+def test_skip_prompt_advances_past_today_when_cursor_is_stale() -> None:
+    """Regression: a daily schedule whose next_dispatch_at is several days
+    behind today must land strictly after today after one skip — otherwise
+    the modal pops up forever because pending_prompts keeps finding the
+    same overdue row on every reload."""
+    today = date(2026, 7, 10)
+    schedule = RecurringScheduleFactory(
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+        next_dispatch_at=date(2026, 7, 3),  # 7 days behind
+    )
+    skip_prompt(schedule=schedule, today=today)
+    schedule.refresh_from_db()
+    assert schedule.next_dispatch_at > today, (
+        f"cursor stuck at {schedule.next_dispatch_at}, would re-fire today"
+    )
+
+
+@pytest.mark.django_db
+def test_confirm_prompt_advances_past_today_when_cursor_is_stale() -> None:
+    today = date(2026, 7, 10)
+    schedule = RecurringScheduleFactory(
+        schedule_kind="daily",
+        day_of_month=None,
+        day_of_week=None,
+        next_dispatch_at=date(2026, 7, 3),
+    )
+    confirm_prompt(schedule=schedule, today=today)
+    schedule.refresh_from_db()
+    assert schedule.next_dispatch_at > today
+
+
 # ---------- prompt resolution: defer ----------
 
 

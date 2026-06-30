@@ -332,6 +332,22 @@ def resume_recurring(*, schedule: RecurringSchedule) -> RecurringSchedule:
 # Cadence advances only on Ha or Yo'q; defer just hides the prompt for 1 day.
 
 
+def _advance_past_today(schedule: RecurringSchedule, today: date) -> date:
+    """Advance the cadence cursor until it lands strictly after today.
+
+    If a user creates a daily schedule and ignores it for a week, the cursor
+    is still on the start date — a single +1-day advance leaves it in the
+    past, so the prompt would re-fire on the very next render and the modal
+    would loop forever. Loop the per-cadence advance until we're truly
+    beyond today, then return that date.
+    """
+    new_next = compute_next_dispatch_date(schedule)
+    while new_next <= today:
+        schedule.next_dispatch_at = new_next
+        new_next = compute_next_dispatch_date(schedule)
+    return new_next
+
+
 @db_transaction.atomic
 def confirm_prompt(
     *,
@@ -367,7 +383,7 @@ def confirm_prompt(
 
     fields = ["last_dispatched_on", "next_dispatch_at", "defer_until", "updated_at"]
     locked.last_dispatched_on = locked.next_dispatch_at
-    locked.next_dispatch_at = compute_next_dispatch_date(locked)
+    locked.next_dispatch_at = _advance_past_today(locked, today)
     locked.defer_until = None
     if save_amount and amount is not None and amount != locked.amount:
         locked.amount = amount
@@ -391,7 +407,7 @@ def skip_prompt(*, schedule: RecurringSchedule, today: date) -> RecurringSchedul
     if not locked.is_active or locked.next_dispatch_at > today:
         return locked
     locked.last_dispatched_on = locked.next_dispatch_at
-    locked.next_dispatch_at = compute_next_dispatch_date(locked)
+    locked.next_dispatch_at = _advance_past_today(locked, today)
     locked.defer_until = None
     locked.save(
         update_fields=["last_dispatched_on", "next_dispatch_at", "defer_until", "updated_at"],
