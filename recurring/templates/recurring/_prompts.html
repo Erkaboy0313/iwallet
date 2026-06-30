@@ -1,21 +1,23 @@
 {% load core_extras %}
 {% if recurring_prompts %}
     {% comment %}
-        Blocking modal — prompts demand attention. Rendered all at once,
-        Alpine shows one card at a time, last action reloads home.
+        Blocking modal — prompts demand attention before the user can do
+        anything else on home.
 
-        x-teleport="body" moves this whole block to <body> at render time
-        so it escapes the `.iw-enter` transform animation higher up in
-        _balance_hero.html, which creates a containing block that was
-        nudging the modal off-viewport. Inside <body> directly, position:
-        fixed truly fills the viewport.
+        Centering: x-teleport moves the whole modal to <body> so it escapes
+        the `.iw-enter` transform animation higher up, which had been
+        creating a containing block that nudged `position: fixed` off the
+        viewport. No explicit width/height either — top/right/bottom/left: 0
+        + flex centring lets the container actually fill the viewport.
 
-        Interaction:
-          - Default: amount shows as static text + pencil icon button.
-          - Tap pencil: amount becomes an editable input, pencil swaps
-            to a save (✓) button, save_next checkbox appears below if
-            the value differs from the original.
-          - Tap save: collapse back to view mode keeping the new amount.
+        Edit interaction: amount cell + side button live in two separate
+        sibling flex containers (one for view, one for edit). When you
+        toggle edit, the entire row swaps. Saves us juggling x-show on
+        individual flex children, which left the save button collapsed.
+
+        save_next toggle: replaced the native checkbox (tiny tap target)
+        with a 44×24 iOS-style switch; the whole label is a 48px-tall
+        tappable strip.
     {% endcomment %}
     <template x-teleport="body">
         <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
@@ -29,8 +31,6 @@
                     left: 0;
                     right: 0;
                     bottom: 0;
-                    width: 100vw;
-                    height: 100vh;
                     z-index: 1000;
                     background: rgba(5, 9, 7, 0.82);
                     display: flex;
@@ -69,15 +69,16 @@
                         {% endif %}
                         «{{ schedule.name }}» qo'shamizmi?
                     </h2>
-                    <div style="display: flex;
+                    <div x-show="!edit"
+                         x-cloak
+                         style="display: flex;
                                 border: 1.5px solid var(--color-border);
                                 border-radius: 14px;
                                 background: var(--color-bg);
                                 overflow: hidden;
                                 margin-bottom: 12px">
-                        <div x-show="!edit"
-                             x-cloak
-                             style="flex: 1;
+                        <div style="flex: 1;
+                                    min-width: 0;
                                     padding: 14px 16px;
                                     font-size: 22px;
                                     font-weight: 700;
@@ -86,28 +87,10 @@
                                     align-items: center">
                             <span class="amount" x-text="amount + ' so\'m'"></span>
                         </div>
-                        <input x-show="edit"
-                               x-cloak
-                               x-ref="amountInput"
-                               type="text"
-                               inputmode="numeric"
-                               x-model="amount"
-                               class="amount"
-                               aria-label="Summa"
-                               style="flex: 1;
-                                      padding: 14px 16px;
-                                      font-size: 22px;
-                                      font-weight: 700;
-                                      border: 0;
-                                      background: transparent;
-                                      color: var(--color-text);
-                                      outline: none">
                         <button type="button"
-                                x-show="!edit"
-                                x-cloak
                                 @click="edit = true; $nextTick(() => { $refs.amountInput.focus(); $refs.amountInput.select(); })"
                                 aria-label="Summani tahrirlash"
-                                style="padding: 0 16px;
+                                style="flex: 0 0 56px;
                                        border: 0;
                                        border-left: 1px solid var(--color-border);
                                        background: var(--color-surface-hi);
@@ -115,8 +98,7 @@
                                        cursor: pointer;
                                        display: flex;
                                        align-items: center;
-                                       justify-content: center;
-                                       min-width: 52px">
+                                       justify-content: center">
                             <svg width="22"
                                  height="22"
                                  fill="none"
@@ -127,22 +109,42 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
                             </svg>
                         </button>
+                    </div>
+                    <div x-show="edit"
+                         x-cloak
+                         style="display: flex;
+                                border: 1.5px solid var(--color-primary);
+                                border-radius: 14px;
+                                background: var(--color-bg);
+                                overflow: hidden;
+                                margin-bottom: 12px">
+                        <input x-ref="amountInput"
+                               type="text"
+                               inputmode="numeric"
+                               x-model="amount"
+                               class="amount"
+                               aria-label="Summa"
+                               style="flex: 1;
+                                      min-width: 0;
+                                      padding: 14px 16px;
+                                      font-size: 22px;
+                                      font-weight: 700;
+                                      border: 0;
+                                      background: transparent;
+                                      color: var(--color-text);
+                                      outline: none">
                         <button type="button"
-                                x-show="edit"
-                                x-cloak
                                 @click="edit = false"
                                 aria-label="Saqlash"
-                                style="padding: 0 16px;
+                                style="flex: 0 0 56px;
                                        border: 0;
-                                       border-left: 1px solid var(--color-border);
+                                       border-left: 1px solid var(--color-primary);
                                        background: var(--color-primary);
                                        color: var(--color-primary-on);
                                        cursor: pointer;
                                        display: flex;
                                        align-items: center;
-                                       justify-content: center;
-                                       min-width: 52px;
-                                       font-weight: 700">
+                                       justify-content: center">
                             <svg width="22"
                                  height="22"
                                  fill="none"
@@ -154,17 +156,47 @@
                             </svg>
                         </button>
                     </div>
-                    <label x-show="edit && amount && amount !== original"
+                    <label x-show="amount && amount !== original"
                            x-cloak
                            style="display: flex;
                                   align-items: center;
-                                  gap: 8px;
-                                  font-size: 13px;
-                                  color: var(--color-text-secondary);
+                                  justify-content: space-between;
+                                  gap: 12px;
+                                  padding: 10px 16px;
+                                  min-height: 48px;
+                                  border: 1px solid var(--color-border);
+                                  border-radius: 12px;
+                                  background: var(--color-bg);
+                                  cursor: pointer;
                                   margin-bottom: 14px;
-                                  cursor: pointer">
-                        <input type="checkbox" x-model="save_next">
-                        Bu summani kelajakda ham saqlash
+                                  -webkit-tap-highlight-color: transparent">
+                        <span style="font-size: 14px; color: var(--color-text); line-height: 1.3">Bu summani kelajakda ham saqlash</span>
+                        <input type="checkbox"
+                               x-model="save_next"
+                               style="position: absolute;
+                                      opacity: 0;
+                                      pointer-events: none">
+                        <span aria-hidden="true"
+                              :style="save_next ? 'background: var(--color-primary); border-color: var(--color-primary)' : 'background: var(--color-surface-hi); border-color: var(--color-border)'"
+                              style="flex-shrink: 0;
+                                     display: inline-block;
+                                     width: 46px;
+                                     height: 26px;
+                                     border: 1px solid var(--color-border);
+                                     border-radius: 13px;
+                                     position: relative;
+                                     transition: background 150ms ease, border-color 150ms ease">
+                            <span :style="save_next ? 'transform: translateX(20px)' : 'transform: translateX(0)'"
+                                  style="position: absolute;
+                                         top: 2px;
+                                         left: 2px;
+                                         width: 20px;
+                                         height: 20px;
+                                         background: #ffffff;
+                                         border-radius: 50%;
+                                         transition: transform 150ms ease;
+                                         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25)"></span>
+                        </span>
                     </label>
                     <div style="display: grid;
                                 grid-template-columns: 1fr 1fr;
