@@ -64,10 +64,6 @@
                                 {% if recurring_prompts|length > 1 %}
                                     · <span x-text="idx + 1"></span> / {{ recurring_prompts|length }}
                                 {% endif %}
-                                <span style="opacity: 0.4;
-                                             font-weight: 500;
-                                             text-transform: none;
-                                             letter-spacing: 0">· #{{ schedule.id }} · {{ schedule.next_dispatch_at|date:"d M" }}</span>
                             </p>
                             <h2 style="font-size: 18px;
                                        font-weight: 600;
@@ -219,7 +215,7 @@
                                 <form hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
                                     {% csrf_token %}
                                     <input type="hidden"
                                            name="amount"
@@ -243,7 +239,7 @@
                                 <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
                                     {% csrf_token %}
                                     <button type="submit"
                                             :disabled="busy"
@@ -262,7 +258,7 @@
                                 <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
                                       hx-swap="none"
                                       @htmx:before-request="busy = true"
-                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                                      @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { idx++ }">
                                     {% csrf_token %}
                                     <button type="submit"
                                             :disabled="busy"
