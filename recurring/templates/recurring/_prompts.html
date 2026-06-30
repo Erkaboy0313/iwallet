@@ -1,194 +1,238 @@
 {% load core_extras %}
 {% if recurring_prompts %}
     {% comment %}
-        Blocking modal — prompts demand attention before the user can do
-        anything else on home. Renders all pending prompts at once but
-        Alpine reveals only one card at a time; each Ha/Yo'q/Ertaga
-        advances to the next and the last one triggers a page reload so
-        the hero reflects the new balance.
+        Blocking modal — prompts demand attention. Rendered all at once,
+        Alpine shows one card at a time, last action reloads home.
 
-        Centering: belt-and-braces. Some ancestor (`.iw-enter` runs a
-        transform-based animation) creates a containing block that would
-        shift `position: fixed` off the viewport, so we set top/left/right/
-        bottom explicitly AND use flex centering — that holds in all
-        Telegram WebView versions.
+        x-teleport="body" moves this whole block to <body> at render time
+        so it escapes the `.iw-enter` transform animation higher up in
+        _balance_hero.html, which creates a containing block that was
+        nudging the modal off-viewport. Inside <body> directly, position:
+        fixed truly fills the viewport.
+
+        Interaction:
+          - Default: amount shows as static text + pencil icon button.
+          - Tap pencil: amount becomes an editable input, pencil swaps
+            to a save (✓) button, save_next checkbox appears below if
+            the value differs from the original.
+          - Tap save: collapse back to view mode keeping the new amount.
     {% endcomment %}
-    <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
-         x-show="idx < total"
-         x-cloak
-         role="dialog"
-         aria-modal="true"
-         aria-label="Bugungi takrorlanuvchi to'lovlar"
-         style="position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                width: 100vw;
-                height: 100vh;
-                z-index: 1000;
-                background: rgba(5, 9, 7, 0.82);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 16px;
-                box-sizing: border-box">
-        {% for schedule in recurring_prompts %}
-            <article x-show="idx === {{ forloop.counter0 }}"
-                     x-data="{ amount: '{{ schedule.amount|stringformat:'d' }}', original: '{{ schedule.amount|stringformat:'d' }}', save_next: false, busy: false }"
-                     style="background: var(--color-surface);
-                            border: 1px solid var(--color-border);
-                            border-radius: 18px;
-                            padding: 22px 20px;
-                            width: 100%;
-                            max-width: 380px;
-                            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5)">
-                <p style="font-size: 11px;
-                          letter-spacing: 0.06em;
-                          text-transform: uppercase;
-                          color: var(--color-text-muted);
-                          font-weight: 700;
-                          margin: 0 0 12px">
-                    Bugun
-                    {% if recurring_prompts|length > 1 %}
-                        · <span x-text="idx + 1"></span> / {{ recurring_prompts|length }}
-                    {% endif %}
-                </p>
-                <h2 style="font-size: 18px;
-                           font-weight: 600;
-                           color: var(--color-text);
-                           line-height: 1.3;
-                           margin: 0 0 14px">
-                    {% if schedule.category %}
-                        <span aria-hidden="true" style="margin-right: 6px">{{ schedule.category.emoji }}</span>
-                    {% endif %}
-                    «{{ schedule.name }}» qo'shamizmi?
-                </h2>
-                {% comment %}
-                    Amount input + divided pencil button. Input is always
-                    editable; tapping the pencil focuses + selects it.
-                {% endcomment %}
-                <div style="display: flex;
-                            border: 1.5px solid var(--color-border);
-                            border-radius: 14px;
-                            background: var(--color-bg);
-                            overflow: hidden;
-                            margin-bottom: 12px">
-                    <input type="text"
-                           inputmode="numeric"
-                           x-ref="amountInput"
-                           x-model="amount"
-                           class="amount"
-                           aria-label="Summa"
-                           style="flex: 1;
-                                  padding: 14px 16px;
-                                  font-size: 22px;
-                                  font-weight: 700;
-                                  border: 0;
-                                  background: transparent;
-                                  color: var(--color-text);
-                                  outline: none">
-                    <button type="button"
-                            @click="$refs.amountInput.focus(); $refs.amountInput.select()"
-                            aria-label="Summani tahrirlash"
-                            style="padding: 0 18px;
-                                   border: 0;
-                                   border-left: 1px solid var(--color-border);
-                                   background: var(--color-surface-hi);
-                                   color: var(--color-primary);
-                                   cursor: pointer;
-                                   display: flex;
-                                   align-items: center;
-                                   justify-content: center">
-                        <svg width="18"
-                             height="18"
-                             fill="none"
-                             stroke="currentColor"
-                             stroke-width="1.8"
-                             viewBox="0 0 24 24"
-                             aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-                        </svg>
-                    </button>
-                </div>
-                <label x-show="amount && amount !== original"
-                       x-cloak
-                       style="display: flex;
-                              align-items: center;
-                              gap: 8px;
-                              font-size: 13px;
-                              color: var(--color-text-secondary);
-                              margin-bottom: 14px;
-                              cursor: pointer">
-                    <input type="checkbox" x-model="save_next">
-                    Bu summani kelajakda ham saqlash
-                </label>
-                <div style="display: grid;
-                            grid-template-columns: 1fr 1fr;
-                            gap: 8px;
-                            margin-bottom: 8px">
-                    <form hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
-                          hx-swap="none"
-                          @htmx:before-request="busy = true"
-                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
-                        {% csrf_token %}
-                        <input type="hidden"
-                               name="amount"
-                               :value="amount && amount !== original ? amount : ''">
-                        <input type="hidden"
-                               name="save_amount"
-                               :value="save_next && amount && amount !== original ? '1' : ''">
-                        <button type="submit"
-                                :disabled="busy"
-                                style="width: 100%;
-                                       padding: 14px 0;
+    <template x-teleport="body">
+        <div x-data="{ idx: 0, total: {{ recurring_prompts|length }} }"
+             x-show="idx < total"
+             x-cloak
+             role="dialog"
+             aria-modal="true"
+             aria-label="Bugungi takrorlanuvchi to'lovlar"
+             style="position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    z-index: 1000;
+                    background: rgba(5, 9, 7, 0.82);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 16px;
+                    box-sizing: border-box">
+            {% for schedule in recurring_prompts %}
+                <article x-show="idx === {{ forloop.counter0 }}"
+                         x-data="{ edit: false, amount: '{{ schedule.amount|stringformat:'d' }}', original: '{{ schedule.amount|stringformat:'d' }}', save_next: false, busy: false }"
+                         style="background: var(--color-surface);
+                                border: 1px solid var(--color-border);
+                                border-radius: 18px;
+                                padding: 22px 20px;
+                                width: 100%;
+                                max-width: 380px;
+                                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5)">
+                    <p style="font-size: 11px;
+                              letter-spacing: 0.06em;
+                              text-transform: uppercase;
+                              color: var(--color-text-muted);
+                              font-weight: 700;
+                              margin: 0 0 12px">
+                        Bugun
+                        {% if recurring_prompts|length > 1 %}
+                            · <span x-text="idx + 1"></span> / {{ recurring_prompts|length }}
+                        {% endif %}
+                    </p>
+                    <h2 style="font-size: 18px;
+                               font-weight: 600;
+                               color: var(--color-text);
+                               line-height: 1.3;
+                               margin: 0 0 14px">
+                        {% if schedule.category %}
+                            <span aria-hidden="true" style="margin-right: 6px">{{ schedule.category.emoji }}</span>
+                        {% endif %}
+                        «{{ schedule.name }}» qo'shamizmi?
+                    </h2>
+                    <div style="display: flex;
+                                border: 1.5px solid var(--color-border);
+                                border-radius: 14px;
+                                background: var(--color-bg);
+                                overflow: hidden;
+                                margin-bottom: 12px">
+                        <div x-show="!edit"
+                             x-cloak
+                             style="flex: 1;
+                                    padding: 14px 16px;
+                                    font-size: 22px;
+                                    font-weight: 700;
+                                    color: var(--color-text);
+                                    display: flex;
+                                    align-items: center">
+                            <span class="amount" x-text="amount + ' so\'m'"></span>
+                        </div>
+                        <input x-show="edit"
+                               x-cloak
+                               x-ref="amountInput"
+                               type="text"
+                               inputmode="numeric"
+                               x-model="amount"
+                               class="amount"
+                               aria-label="Summa"
+                               style="flex: 1;
+                                      padding: 14px 16px;
+                                      font-size: 22px;
+                                      font-weight: 700;
+                                      border: 0;
+                                      background: transparent;
+                                      color: var(--color-text);
+                                      outline: none">
+                        <button type="button"
+                                x-show="!edit"
+                                x-cloak
+                                @click="edit = true; $nextTick(() => { $refs.amountInput.focus(); $refs.amountInput.select(); })"
+                                aria-label="Summani tahrirlash"
+                                style="padding: 0 16px;
                                        border: 0;
-                                       border-radius: 12px;
-                                       background: var(--gradient-cta);
-                                       color: var(--color-primary-on);
-                                       font-size: 15px;
-                                       font-weight: 700;
-                                       cursor: pointer;
-                                       box-shadow: var(--shadow-cta)">Ha</button>
-                    </form>
-                    <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
-                          hx-swap="none"
-                          @htmx:before-request="busy = true"
-                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
-                        {% csrf_token %}
-                        <button type="submit"
-                                :disabled="busy"
-                                style="width: 100%;
-                                       padding: 14px 0;
-                                       border: 1px solid var(--color-border);
-                                       border-radius: 12px;
+                                       border-left: 1px solid var(--color-border);
                                        background: var(--color-surface-hi);
-                                       color: var(--color-text);
-                                       font-size: 15px;
-                                       font-weight: 600;
-                                       cursor: pointer">Yo'q</button>
-                    </form>
-                </div>
-                {% if schedule.schedule_kind != 'daily' %}
-                    <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
-                          hx-swap="none"
-                          @htmx:before-request="busy = true"
-                          @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
-                        {% csrf_token %}
-                        <button type="submit"
-                                :disabled="busy"
-                                style="width: 100%;
-                                       padding: 12px 0;
-                                       border: 1px dashed var(--color-border);
-                                       border-radius: 12px;
-                                       background: transparent;
-                                       color: var(--color-text-secondary);
-                                       font-size: 13px;
-                                       font-weight: 600;
-                                       cursor: pointer">Ertaga eslat</button>
-                    </form>
-                {% endif %}
-            </article>
-        {% endfor %}
-    </div>
+                                       color: var(--color-primary);
+                                       cursor: pointer;
+                                       display: flex;
+                                       align-items: center;
+                                       justify-content: center;
+                                       min-width: 52px">
+                            <svg width="22"
+                                 height="22"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2"
+                                 viewBox="0 0 24 24"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
+                            </svg>
+                        </button>
+                        <button type="button"
+                                x-show="edit"
+                                x-cloak
+                                @click="edit = false"
+                                aria-label="Saqlash"
+                                style="padding: 0 16px;
+                                       border: 0;
+                                       border-left: 1px solid var(--color-border);
+                                       background: var(--color-primary);
+                                       color: var(--color-primary-on);
+                                       cursor: pointer;
+                                       display: flex;
+                                       align-items: center;
+                                       justify-content: center;
+                                       min-width: 52px;
+                                       font-weight: 700">
+                            <svg width="22"
+                                 height="22"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 stroke-width="2.4"
+                                 viewBox="0 0 24 24"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                        </button>
+                    </div>
+                    <label x-show="edit && amount && amount !== original"
+                           x-cloak
+                           style="display: flex;
+                                  align-items: center;
+                                  gap: 8px;
+                                  font-size: 13px;
+                                  color: var(--color-text-secondary);
+                                  margin-bottom: 14px;
+                                  cursor: pointer">
+                        <input type="checkbox" x-model="save_next">
+                        Bu summani kelajakda ham saqlash
+                    </label>
+                    <div style="display: grid;
+                                grid-template-columns: 1fr 1fr;
+                                gap: 8px;
+                                margin-bottom: 8px">
+                        <form hx-post="{% url 'recurring:prompt_confirm' schedule.id %}"
+                              hx-swap="none"
+                              @htmx:before-request="busy = true"
+                              @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                            {% csrf_token %}
+                            <input type="hidden"
+                                   name="amount"
+                                   :value="amount && amount !== original ? amount : ''">
+                            <input type="hidden"
+                                   name="save_amount"
+                                   :value="save_next && amount && amount !== original ? '1' : ''">
+                            <button type="submit"
+                                    :disabled="busy"
+                                    style="width: 100%;
+                                           padding: 14px 0;
+                                           border: 0;
+                                           border-radius: 12px;
+                                           background: var(--gradient-cta);
+                                           color: var(--color-primary-on);
+                                           font-size: 15px;
+                                           font-weight: 700;
+                                           cursor: pointer;
+                                           box-shadow: var(--shadow-cta)">Ha</button>
+                        </form>
+                        <form hx-post="{% url 'recurring:prompt_skip' schedule.id %}"
+                              hx-swap="none"
+                              @htmx:before-request="busy = true"
+                              @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    :disabled="busy"
+                                    style="width: 100%;
+                                           padding: 14px 0;
+                                           border: 1px solid var(--color-border);
+                                           border-radius: 12px;
+                                           background: var(--color-surface-hi);
+                                           color: var(--color-text);
+                                           font-size: 15px;
+                                           font-weight: 600;
+                                           cursor: pointer">Yo'q</button>
+                        </form>
+                    </div>
+                    {% if schedule.schedule_kind != 'daily' %}
+                        <form hx-post="{% url 'recurring:prompt_defer' schedule.id %}"
+                              hx-swap="none"
+                              @htmx:before-request="busy = true"
+                              @htmx:after-request="busy = false; if ($event.detail.xhr.status < 400) { if (idx + 1 >= total) { window.location.reload(); } else { idx++; } }">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    :disabled="busy"
+                                    style="width: 100%;
+                                           padding: 12px 0;
+                                           border: 1px dashed var(--color-border);
+                                           border-radius: 12px;
+                                           background: transparent;
+                                           color: var(--color-text-secondary);
+                                           font-size: 13px;
+                                           font-weight: 600;
+                                           cursor: pointer">Ertaga eslat</button>
+                        </form>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    </template>
 {% endif %}
