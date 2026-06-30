@@ -21,14 +21,13 @@ from accounts.middleware import SESSION_KEY
 from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
 from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
-from currencies.selectors import aggregated_month_summary, current_rates_stale_days
-from currencies.services import update_rates_if_stale
+from currencies.selectors import compute_home_aggregates, current_rates_stale_days
 from currencies.views import SESSION_DISPLAY_CURRENCY
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
 from quotes.services import SESSION_HIDE_TODAY, dismiss_forever, reenable
 from recurring.selectors import pending_prompts
-from transactions.selectors import daily_flow_series, month_over_month_delta, month_summary
+from transactions.selectors import daily_flow_series, month_over_month_delta
 
 logger = logging.getLogger(__name__)
 INIT_DATA_HEADER = "X-Telegram-InitData"
@@ -65,38 +64,27 @@ def home_content(request):
     # currency (user.default_currency drives the per-source summary below).
     display_currency = _resolve_display_currency(request, user)
     source_currency = user.default_currency or "UZS"
-    summary = month_summary(user, currency=source_currency)
+    today = timezone.localdate()
 
-    # On-demand refresh of CBU.uz rates if today's row is missing.
-    if current_rates_stale_days() != 0:
-        update_rates_if_stale()
-
-    # Pre-compute the aggregated balance in every currency so the switcher
-    # can flip the displayed amount client-side without a page reload.
-    balance_by_currency = {}
-    aggregated = None
-    fully_supported = True
-    rate_date = None
-    for ccy in CURRENCY_CODES:
-        agg = aggregated_month_summary(user, ccy)
-        balance_by_currency[ccy] = agg.cash_balance
-        if ccy == display_currency:
-            aggregated = agg
-        if not agg.is_fully_supported:
-            fully_supported = False
-        if agg.rate_date is not None and (rate_date is None or agg.rate_date < rate_date):
-            rate_date = agg.rate_date
+    # One pass for everything currency-related: 3 month_summary queries +
+    # 3 latest_rate queries shared across all 3 switcher aggregates.
+    # Previously this block ran ~63 queries; CBU.uz refresh has also moved
+    # off the hot path into the daily refresh_cbu_rates management command.
+    bundle = compute_home_aggregates(user, today=today)
+    summary = bundle.summaries[source_currency]
+    aggregated = bundle.aggregates[display_currency]
+    balance_by_currency = {ccy: agg.cash_balance for ccy, agg in bundle.aggregates.items()}
+    fully_supported = aggregated.is_fully_supported
 
     rates_stale_days = current_rates_stale_days()
-    rates_stale_date = rate_date
+    rates_stale_date = aggregated.rate_date
     forced_raw_no_rates = not fully_supported
 
     quote = None if request.session.get(SESSION_HIDE_TODAY) else quote_of_the_day(user)
 
     inflow_series, outflow_series = daily_flow_series(user, source_currency)
-    mom_delta = month_over_month_delta(user, source_currency)
+    mom_delta = month_over_month_delta(user, source_currency, today=today, current=summary)
 
-    today = timezone.localdate()
     prompts = list(pending_prompts(user, today=today))
 
     return render(

@@ -19,7 +19,8 @@
                        min-height: 44px;
                        margin-bottom: 20px">
             <a href="{% url 'recurring:list' %}"
-               aria-label="Bekor qilish va orqaga qaytish"
+               onclick="iwBack(this.href); return false"
+               aria-label="Orqaga"
                style="display: inline-flex;
                       align-items: center;
                       justify-content: center;

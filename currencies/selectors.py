@@ -104,18 +104,73 @@ def aggregated_month_summary(
 ) -> AggregatedMonthSummary:
     """Sum a user's month across all currencies into ``display_currency``.
 
-    Avoids a circular import by deferring `month_summary` + `convert_for_display`
-    until call time.
+    Thin wrapper kept for backwards compatibility; new code should call
+    `compute_home_aggregates` and pull out what it needs.
     """
-    # Local imports — `currencies.selectors` is imported by `accounts.models`
-    # via `currencies.constants`, but `transactions.selectors` itself imports
-    # from `accounts.models`. Going through the function-local import keeps
-    # the boot graph clean.
-    from currencies.services import safe_convert_for_display
+    bundle = compute_home_aggregates(user, today=today)
+    return bundle.aggregates[display_currency]
+
+
+@dataclass(frozen=True)
+class HomeAggregatesBundle:
+    """All the per-currency totals the home view needs, computed in one pass."""
+
+    summaries: dict  # source_currency → transactions.selectors.MonthSummary
+    aggregates: dict  # display_currency → AggregatedMonthSummary
+
+
+def compute_home_aggregates(
+    user: User,
+    *,
+    today: date | None = None,
+) -> HomeAggregatesBundle:
+    """Compute everything the home page's currency block needs in one pass.
+
+    Previously the home view called `month_summary` once for the source
+    currency and then `aggregated_month_summary` three times for the switcher
+    — each of those internally re-ran `month_summary` for every currency
+    plus two `latest_rate` lookups per foreign pair. That was roughly
+    63 queries for the hero alone. This function pulls each `month_summary`
+    once per currency (3 queries) plus each `latest_rate` once (3 queries)
+    and composes everything from those caches.
+    """
+    from currencies.services import _quantize
     from transactions.selectors import month_summary
 
     today = today or timezone.localdate()
 
+    summaries = {ccy: month_summary(user, ccy, today=today) for ccy in CURRENCY_CODES}
+    rate_cache = {ccy: latest_rate(ccy, on_or_before=today) for ccy in CURRENCY_CODES}
+
+    aggregates: dict[str, AggregatedMonthSummary] = {}
+    for display_ccy in CURRENCY_CODES:
+        aggregates[display_ccy] = _build_aggregate(
+            display_currency=display_ccy,
+            summaries=summaries,
+            rate_cache=rate_cache,
+            today=today,
+            quantize=_quantize,
+        )
+    return HomeAggregatesBundle(summaries=summaries, aggregates=aggregates)
+
+
+def compute_all_currency_aggregates(
+    user: User,
+    *,
+    today: date | None = None,
+) -> dict[str, AggregatedMonthSummary]:
+    """Back-compat alias — returns just the aggregates map."""
+    return compute_home_aggregates(user, today=today).aggregates
+
+
+def _build_aggregate(
+    *,
+    display_currency: str,
+    summaries: dict,
+    rate_cache: dict,
+    today: date,  # noqa: ARG001
+    quantize,
+) -> AggregatedMonthSummary:
     per_currency: list[PerCurrencySummary] = []
     total_income = Decimal("0")
     total_expense = Decimal("0")
@@ -124,8 +179,9 @@ def aggregated_month_summary(
     any_stale = False
     fully_supported = True
 
+    display_rate = rate_cache.get(display_currency)
     for ccy in CURRENCY_CODES:
-        per = month_summary(user, ccy, today=today)
+        per = summaries[ccy]
         if per.transaction_count == 0:
             continue
         per_currency.append(
@@ -139,39 +195,29 @@ def aggregated_month_summary(
         )
         transaction_count += per.transaction_count
 
-        # Cash math mirrors month_summary: inflow = income + debt_borrowed,
-        # outflow = expense + debt_lent. Anything else made the hero's
-        # Sof balans drift from the Kirim/Chiqim pills it sits next to.
         if ccy == display_currency:
             total_income += per.inflow_total
             total_expense += per.outflow_total
             continue
 
-        income_conv = safe_convert_for_display(
-            per.inflow_total,
-            ccy,
-            display_currency,
-            as_of_date=today,
-        )
-        expense_conv = safe_convert_for_display(
-            per.outflow_total,
-            ccy,
-            display_currency,
-            as_of_date=today,
-        )
-        if income_conv is None or expense_conv is None:
-            # No rate at all — flag for the view to fall back to raw.
+        from_rate = rate_cache.get(ccy)
+        if from_rate is None or display_rate is None:
             fully_supported = False
             continue
-        total_income += income_conv.amount
-        total_expense += expense_conv.amount
 
-        for conv in (income_conv, expense_conv):
-            if conv.rate_date is not None and (
-                earliest_rate_date is None or conv.rate_date < earliest_rate_date
-            ):
-                earliest_rate_date = conv.rate_date
-            if conv.is_stale:
+        inflow_converted = quantize(
+            per.inflow_total * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+        )
+        outflow_converted = quantize(
+            per.outflow_total * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+        )
+        total_income += inflow_converted
+        total_expense += outflow_converted
+
+        for rate in (from_rate, display_rate):
+            if earliest_rate_date is None or rate.rate_date < earliest_rate_date:
+                earliest_rate_date = rate.rate_date
+            if rate.is_stale:
                 any_stale = True
 
     return AggregatedMonthSummary(

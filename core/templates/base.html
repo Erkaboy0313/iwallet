@@ -131,6 +131,51 @@
             window._iwLog && window._iwLog("HX-HEADER", "X-Telegram-InitData.len=" + initData.length);
             if (initData) evt.detail.headers["X-Telegram-InitData"] = initData;
         });
+        // Back navigation helper — history.back() when possible, fallback to
+        // the supplied URL when there's no in-app history (deep-link entry).
+        window.iwBack = function (fallback) {
+            try {
+                if (window.history.length > 1 && document.referrer && new URL(document.referrer).origin === window.location.origin) {
+                    window.history.back();
+                    return;
+                }
+            } catch (e) {}
+            window.location.href = fallback || "/app/home/";
+        };
+        // Tiny top-of-page progress strip — shows on full-page navigation
+        // (clicks to <a>) and htmx requests, hidden when content settles.
+        (function () {
+            var bar = document.createElement("div");
+            bar.id = "iw-pageload";
+            bar.style.cssText = "position:fixed;top:0;left:0;height:2px;background:#9FF87C;width:0;z-index:99999;transition:width 200ms ease,opacity 200ms ease;opacity:0;pointer-events:none;box-shadow:0 0 6px #9FF87C";
+            document.body.appendChild(bar);
+            var timer;
+            function start() {
+                clearTimeout(timer);
+                bar.style.opacity = "1";
+                bar.style.width = "20%";
+                setTimeout(function () { bar.style.width = "70%"; }, 150);
+            }
+            function done() {
+                clearTimeout(timer);
+                bar.style.width = "100%";
+                timer = setTimeout(function () { bar.style.opacity = "0"; bar.style.width = "0"; }, 220);
+            }
+            document.addEventListener("htmx:beforeRequest", start);
+            document.addEventListener("htmx:afterRequest", done);
+            document.addEventListener("htmx:sendError", done);
+            // Full-page nav — anchors not handled by htmx.
+            document.addEventListener("click", function (e) {
+                var a = e.target.closest("a[href]");
+                if (!a) return;
+                if (a.hasAttribute("hx-get") || a.hasAttribute("hx-post")) return;
+                var href = a.getAttribute("href") || "";
+                if (href.startsWith("#") || href.startsWith("javascript:") || a.target === "_blank") return;
+                if (a.origin && a.origin !== window.location.origin) return;
+                start();
+            }, true);
+            window.addEventListener("pageshow", done);
+        })();
         </script>
     </body>
 </html>

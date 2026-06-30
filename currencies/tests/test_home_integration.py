@@ -60,12 +60,8 @@ def test_home_content_shows_aggregated_balance_in_default_currency() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_falls_back_to_raw_when_rates_missing(monkeypatch) -> None:
+def test_home_content_falls_back_to_raw_when_rates_missing() -> None:
     """No exchange rates → hero shows the user's default-currency total only."""
-    import core.views as _core_views
-
-    monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
-
     user = User.objects.create(
         telegram_id=902,
         first_name="Eric",
@@ -108,11 +104,7 @@ def test_home_content_session_currency_drives_hero_aggregation() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
-    import core.views as _core_views
-
-    monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda: False)
-
+def test_home_content_renders_stale_banner_when_rates_old() -> None:
     user = _seed_user_with_mixed_currencies()
     # Wipe today's rates → only stale (very old) ones remain.
     ExchangeRate.objects.all().delete()

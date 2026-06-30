@@ -17,7 +17,8 @@
                         flex: 1;
                         min-width: 0">
                 <a href="{% url 'core:home' %}"
-                   aria-label="Bekor qilish va orqaga qaytish"
+                   onclick="iwBack(this.href); return false"
+                   aria-label="Orqaga"
                    style="display: inline-flex;
                           align-items: center;
                           justify-content: center;

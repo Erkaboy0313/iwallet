@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from django.db.models import QuerySet, Sum
+from django.db.models import Count, QuerySet, Sum
 
 from accounts.models import User
 
@@ -77,17 +77,27 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
     cash out. The standing debt obligation is still tracked separately by
     `debts.selectors.debt_status_summary` — this selector only describes the
     cash flow for the month.
+
+    Perf: one aggregation grouped by type instead of 4 separate Sum() queries
+    + one count call. Top-categories stays a separate query (different group
+    key + LIMIT 3). Total: 2 queries per call, down from 6.
     """
     start, end = _month_bounds(today)
     qs = Transaction.objects.for_user(user).in_period(start, end).filter(currency=currency)
 
-    income_total = qs.by_type("income").aggregate(t=Sum("amount"))["t"] or Decimal("0")
-    expense_total = qs.by_type("expense").aggregate(t=Sum("amount"))["t"] or Decimal("0")
-    borrowed_total = qs.by_type("debt_borrowed").aggregate(t=Sum("amount"))["t"] or Decimal("0")
-    lent_total = qs.by_type("debt_lent").aggregate(t=Sum("amount"))["t"] or Decimal("0")
+    by_type = qs.values("type").annotate(total=Sum("amount"), n=Count("id"))
+    totals: dict[str, tuple[Decimal, int]] = {
+        row["type"]: (row["total"] or Decimal("0"), row["n"]) for row in by_type
+    }
+
+    income_total, income_n = totals.get("income", (Decimal("0"), 0))
+    expense_total, expense_n = totals.get("expense", (Decimal("0"), 0))
+    borrowed_total, borrowed_n = totals.get("debt_borrowed", (Decimal("0"), 0))
+    lent_total, lent_n = totals.get("debt_lent", (Decimal("0"), 0))
 
     inflow_total = income_total + borrowed_total
     outflow_total = expense_total + lent_total
+    transaction_count = income_n + expense_n + borrowed_n + lent_n
 
     top_qs = (
         qs.by_type("expense")
@@ -96,8 +106,6 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
         .annotate(total=Sum("amount"))
         .order_by("-total")[:3]
     )
-    # share_pct is each row's % of the month's full expense total — drives the
-    # proportional bar Sally specced for the Eng ko'p sarflandi list.
     top_max = top_qs[0]["total"] if top_qs else Decimal("0")
     top = [
         TopCategory(
@@ -120,7 +128,7 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
         total_debt_lent=lent_total,
         currency=currency,
         top_categories=top,
-        transaction_count=qs.count(),
+        transaction_count=transaction_count,
     )
 
 
@@ -170,14 +178,18 @@ def month_over_month_delta(
     currency: str,
     *,
     today: date | None = None,
+    current: "MonthSummary | None" = None,
 ) -> CashFlowDelta:
     """Compare this month's cash position vs last month's same selector.
 
-    Used by the Home big-balance card's delta caption (Sprint v0.6 §2.4).
+    Used by the Home big-balance card's delta caption. Pass an already-
+    computed `current` summary to skip the redundant DB query — the home
+    view does this since it already has the current month cached.
     """
     today = today or date.today()
     last_month_anchor = (today.replace(day=1) - timedelta(days=1)).replace(day=15)
-    current = month_summary(user, currency, today=today)
+    if current is None:
+        current = month_summary(user, currency, today=today)
     previous = month_summary(user, currency, today=last_month_anchor)
     delta = current.cash_balance - previous.cash_balance
     if previous.is_empty:

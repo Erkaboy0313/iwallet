@@ -13,7 +13,8 @@
                        min-height: 44px;
                        margin-bottom: 20px">
             <a href="{% url 'transactions:detail' tx.id %}"
-               aria-label="Bekor qilish va tafsilotlarga qaytish"
+               onclick="iwBack(this.href); return false"
+               aria-label="Orqaga"
                style="display: inline-flex;
                       align-items: center;
                       justify-content: center;

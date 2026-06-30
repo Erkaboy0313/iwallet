@@ -8,7 +8,8 @@ subtle Joriy pill + pill-driven tab nav. Reused across all 3 reports.
                min-height: 44px;
                margin-bottom: 16px">
     <a href="{% url 'core:home' %}"
-       aria-label="Uyga qaytish"
+       onclick="iwBack(this.href); return false"
+       aria-label="Orqaga"
        style="display: inline-flex;
               align-items: center;
               justify-content: center;
