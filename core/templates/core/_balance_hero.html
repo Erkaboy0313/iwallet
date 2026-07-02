@@ -191,6 +191,12 @@ Sprint v0.8: kept OUT of the operating hero so a "qarz oldim" only user
 doesn't mistake borrowed cash for income. Both zero → whole row hidden.
     {% endcomment %}
     {% if aggregated.all_time_receivable or aggregated.all_time_payable %}
+        <p style="font-size: 10px;
+                  letter-spacing: 0.06em;
+                  text-transform: uppercase;
+                  color: var(--color-text-muted);
+                  font-weight: 600;
+                  margin: 0 0 8px">Qarzlar</p>
         <div style="display: grid;
                     grid-template-columns: 1fr 1fr;
                     gap: 10px;
@@ -297,7 +303,7 @@ doesn't mistake borrowed cash for income. Both zero → whole row hidden.
                       text-transform: uppercase;
                       color: var(--color-text-muted);
                       font-weight: 600;
-                      margin: 0 0 8px">Eng ko'p sarflandi · {{ source_currency }}</p>
+                      margin: 0 0 8px">Bu oyda eng ko'p sarflandi · {{ source_currency }}</p>
             <div style="display: flex; flex-direction: column; gap: 8px">
                 {% for cat in summary.top_categories %}
                     <div style="position: relative;
