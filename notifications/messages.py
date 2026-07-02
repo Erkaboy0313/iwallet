@@ -20,6 +20,9 @@ CB_RECURRING_CONFIRM = "rec:ok"
 CB_RECURRING_CANCEL = "rec:no"
 CB_DEBT_CONFIRM = "debt:ok"
 CB_DEBT_CANCEL = "debt:no"
+# Sprint v0.8 — weekly reminder on raw debt Transactions.
+CB_DEBT_REMINDER_PAID = "debt_rem:paid"
+CB_DEBT_REMINDER_PENDING = "debt_rem:pending"
 
 
 def _format_amount(raw: Any, currency: str) -> str:
@@ -100,6 +103,40 @@ def render_debt_due(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     return body, reply_markup
 
 
+def render_debt_reminder(payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    """Sprint v0.8 — weekly reminder on a still-open raw debt Transaction.
+
+    Payload shape from `enqueue_debt_reminders`:
+        transaction_id, counterparty, amount, currency, type.
+
+    ``type`` is the Transaction type — ``debt_lent`` (they owe you) or
+    ``debt_borrowed`` (you owe them). Copy pivots on that.
+    """
+    counterparty = payload.get("counterparty") or "Kimdir"
+    amount = _format_amount(payload.get("amount", 0), payload.get("currency", "UZS"))
+    tx_type = payload.get("type", "debt_lent")
+    tx_id = payload.get("transaction_id")
+
+    if tx_type == "debt_lent":
+        # User lent → counterparty owes user → "olishingiz kerak edi".
+        text = f"\U0001f44b Eslatma: {counterparty}dan {amount} olishingiz kerak edi. Qaytarganmi?"
+    else:
+        # User borrowed → user owes counterparty → "qaytarish kerak edi".
+        text = f"\U0001f44b Eslatma: {counterparty}ga {amount} qaytarish kerak edi. Berganmi?"
+
+    # "Paid" verb pivots on direction so it reads naturally.
+    paid_label = "✓ Ha, oldim" if tx_type == "debt_lent" else "✓ Ha, berdim"
+    reply_markup = {
+        "inline_keyboard": [
+            [
+                {"text": paid_label, "callback_data": f"{CB_DEBT_REMINDER_PAID}:{tx_id}"},
+                {"text": "Hali yo'q", "callback_data": f"{CB_DEBT_REMINDER_PENDING}:{tx_id}"},
+            ]
+        ]
+    }
+    return text, reply_markup
+
+
 def render_for_kind(kind: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
     """Dispatch table — keep all kind→renderer wiring in one place.
 
@@ -110,6 +147,8 @@ def render_for_kind(kind: str, payload: dict[str, Any]) -> tuple[str, dict[str, 
         return render_recurring_fired(payload)
     if kind == NotificationKind.DEBT_DUE.value:
         return render_debt_due(payload)
+    if kind == NotificationKind.DEBT_REMINDER.value:
+        return render_debt_reminder(payload)
     # Daily digest + any future kind: lightweight placeholder.
     text = payload.get("text") or "IWALLET'dan eslatma"
     return text, {}

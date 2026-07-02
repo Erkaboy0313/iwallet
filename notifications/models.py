@@ -17,6 +17,10 @@ class NotificationKind(models.TextChoices):
     RECURRING_FIRED = "recurring_fired", "Takrorlanuvchi yozildi"
     DEBT_DUE = "debt_due", "Qarz muddati keldi"
     DAILY_DIGEST = "daily_digest", "Kunlik xulosa"
+    # Sprint v0.8 — weekly ping on still-open raw debt transactions (7 days
+    # old, no follow-up). Separate from DEBT_DUE which is tied to an
+    # explicit expected_return_date on the Debt aggregate.
+    DEBT_REMINDER = "debt_reminder", "Qarz eslatmasi"
 
 
 class PushQueueItem(models.Model):

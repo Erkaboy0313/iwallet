@@ -16,9 +16,12 @@ from notifications.models import NotificationKind, PushQueueItem
 from notifications.services import (
     cancel_debt_due_callback,
     cancel_recurring_callback,
+    confirm_debt_reminder_paid_callback,
     confirm_debt_repaid_callback,
     confirm_recurring_callback,
+    defer_debt_reminder_callback,
     enqueue_debt_due_reminders,
+    enqueue_debt_reminders,
     handle_callback,
     process_pending,
     send_push,
@@ -391,3 +394,188 @@ def test_handle_callback_routes_debt_cancel() -> None:
     debt = DebtFactory(user=user)
     result = handle_callback(f"debt:no:{debt.id}")
     assert "eslataman" in result.lower()
+
+
+# ----------------------------------------------------------------------------
+# Sprint v0.8 — weekly debt Transaction reminder
+# ----------------------------------------------------------------------------
+
+
+@pytest.mark.django_db(transaction=True)
+def test_enqueue_debt_reminders_picks_stale_open_debts_and_stamps_them() -> None:
+    """Only unsettled, undeleted debt Transactions ≥ 7 days old, never
+    previously reminded, get a queue row. `debt_reminder_sent_at` is
+    stamped so a second run the same day is a no-op.
+    """
+    user = UserFactory(telegram_id=5001)
+    now = timezone.now()
+    old_created = now - timedelta(days=10)
+
+    old_lent = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("100000"),
+        counterparty="Karim",
+        date=old_created.date(),
+    )
+    Transaction.objects.filter(pk=old_lent.pk).update(created_at=old_created)
+
+    old_borrowed = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("200000"),
+        counterparty="Akram",
+        date=old_created.date(),
+    )
+    Transaction.objects.filter(pk=old_borrowed.pk).update(created_at=old_created)
+
+    # Not old enough → skipped.
+    fresh = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("500"),
+        counterparty="Dilshod",
+        date=(now - timedelta(days=2)).date(),
+    )
+    Transaction.objects.filter(pk=fresh.pk).update(created_at=now - timedelta(days=2))
+
+    # Settled → skipped.
+    settled = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("999"),
+        counterparty="Otabek",
+        date=old_created.date(),
+    )
+    Transaction.objects.filter(pk=settled.pk).update(
+        created_at=old_created,
+        settled_at=now,
+    )
+
+    # Not a debt → skipped.
+    expense = TransactionFactory(
+        user=user,
+        type="expense",
+        amount=Decimal("1000"),
+        date=old_created.date(),
+    )
+    Transaction.objects.filter(pk=expense.pk).update(created_at=old_created)
+
+    first = enqueue_debt_reminders(now=now)
+    assert first == 2
+    queued = PushQueueItem.objects.filter(kind=NotificationKind.DEBT_REMINDER.value)
+    assert queued.count() == 2
+    tx_ids_in_payloads = {
+        p["transaction_id"] for p in queued.values_list("payload_json", flat=True)
+    }
+    assert tx_ids_in_payloads == {old_lent.pk, old_borrowed.pk}
+
+    # Both eligible rows should now have debt_reminder_sent_at stamped so a
+    # second run the same day is a no-op.
+    for tx in (old_lent, old_borrowed):
+        tx.refresh_from_db()
+        assert tx.debt_reminder_sent_at is not None
+
+    second = enqueue_debt_reminders(now=now)
+    assert second == 0
+    assert PushQueueItem.objects.filter(kind=NotificationKind.DEBT_REMINDER.value).count() == 2
+
+
+@pytest.mark.django_db(transaction=True)
+def test_enqueue_debt_reminders_repings_after_a_week_gap() -> None:
+    """A debt whose last reminder is > 7 days old gets pinged again."""
+    user = UserFactory(telegram_id=5002)
+    now = timezone.now()
+    old_created = now - timedelta(days=30)
+    stale_reminder = now - timedelta(days=10)
+
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("1000"),
+        counterparty="Karim",
+        date=old_created.date(),
+    )
+    Transaction.objects.filter(pk=tx.pk).update(
+        created_at=old_created,
+        debt_reminder_sent_at=stale_reminder,
+    )
+
+    created = enqueue_debt_reminders(now=now)
+    assert created == 1
+
+
+@pytest.mark.django_db
+def test_confirm_debt_reminder_paid_marks_settled_at() -> None:
+    user = UserFactory(telegram_id=5003)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("50000"),
+        counterparty="Karim",
+        date=date.today(),
+    )
+    assert tx.settled_at is None
+    result = confirm_debt_reminder_paid_callback(transaction_id=tx.pk)
+    tx.refresh_from_db()
+    assert tx.settled_at is not None
+    assert "yopildi" in result.lower()
+
+
+@pytest.mark.django_db
+def test_confirm_debt_reminder_paid_is_idempotent_on_already_settled() -> None:
+    user = UserFactory(telegram_id=5004)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("100"),
+        counterparty="X",
+        date=date.today(),
+    )
+    Transaction.objects.filter(pk=tx.pk).update(settled_at=timezone.now())
+    result = confirm_debt_reminder_paid_callback(transaction_id=tx.pk)
+    assert "yopilgan" in result.lower()
+
+
+@pytest.mark.django_db
+def test_defer_debt_reminder_bumps_reminder_stamp_forward() -> None:
+    user = UserFactory(telegram_id=5005)
+    now = timezone.now()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("500"),
+        counterparty="Y",
+        date=date.today(),
+    )
+    Transaction.objects.filter(pk=tx.pk).update(debt_reminder_sent_at=now - timedelta(days=8))
+    before = Transaction.objects.get(pk=tx.pk).debt_reminder_sent_at
+    result = defer_debt_reminder_callback(transaction_id=tx.pk)
+    after = Transaction.objects.get(pk=tx.pk).debt_reminder_sent_at
+    assert after > before
+    assert Transaction.objects.get(pk=tx.pk).settled_at is None
+    assert "keyingi haftada" in result.lower() or "eslataman" in result.lower()
+
+
+@pytest.mark.django_db
+def test_handle_callback_routes_debt_reminder_paid_and_pending() -> None:
+    user = UserFactory(telegram_id=5006)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("100"),
+        counterparty="X",
+        date=date.today(),
+    )
+    result_paid = handle_callback(f"debt_rem:paid:{tx.pk}")
+    assert "yopildi" in result_paid.lower()
+
+    tx2 = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("200"),
+        counterparty="Y",
+        date=date.today(),
+    )
+    result_pending = handle_callback(f"debt_rem:pending:{tx2.pk}")
+    assert "eslat" in result_pending.lower()

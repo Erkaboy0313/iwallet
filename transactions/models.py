@@ -79,6 +79,12 @@ class Transaction(models.Model):
     # paired income/expense Transaction so the cash flow stays correct.
     settled_at = models.DateTimeField(null=True, blank=True)
 
+    # Only meaningful for debt_lent / debt_borrowed rows. Populated by the
+    # weekly debt reminder enqueuer (Sprint v0.8) so the bot pings the user
+    # once per week per still-open debt. Bumped forward another 7 days when
+    # the user taps "Hali yo'q" on the reminder callback.
+    debt_reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

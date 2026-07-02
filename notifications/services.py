@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 from typing import Any
 
 from asgiref.sync import sync_to_async
 from django.conf import settings
-from django.db import transaction as db_transaction
+from django.db import models, transaction as db_transaction
 from django.utils import timezone
 
 from debts.exceptions import (
@@ -39,6 +39,8 @@ from .bot.telegram_client import TelegramAPIError, TelegramBotClient
 from .messages import (
     CB_DEBT_CANCEL,
     CB_DEBT_CONFIRM,
+    CB_DEBT_REMINDER_PAID,
+    CB_DEBT_REMINDER_PENDING,
     CB_RECURRING_CANCEL,
     CB_RECURRING_CONFIRM,
     render_for_kind,
@@ -217,6 +219,119 @@ def enqueue_debt_due_reminders(*, on_date: date | None = None) -> int:
 
 
 # ----------------------------------------------------------------------------
+# Sprint v0.8 — weekly reminder on raw debt Transactions
+# ----------------------------------------------------------------------------
+
+
+DEBT_REMINDER_AGE_DAYS = 7
+
+
+@db_transaction.atomic
+def enqueue_debt_reminders(*, now: Any = None) -> int:
+    """Queue weekly-reminder pushes for debt Transactions ≥ 7 days old.
+
+    Walks unsettled, undeleted debt_lent / debt_borrowed rows whose
+    ``debt_reminder_sent_at`` is still NULL (never reminded) or older than
+    ``DEBT_REMINDER_AGE_DAYS`` days ago (last reminder aged out). For each
+    match we create a `PushQueueItem(kind='debt_reminder')` and stamp
+    ``debt_reminder_sent_at = now`` so a second run the same day is a
+    no-op. Returns the number of rows actually enqueued.
+    """
+    from transactions.models import Transaction
+
+    now = now or timezone.now()
+    cutoff = now - timedelta(days=DEBT_REMINDER_AGE_DAYS)
+    # Age-only cutoff on the debt-open date + reminder-age cutoff on the last
+    # ping. If we've never pinged, only the debt-age check applies.
+    candidates = list(
+        Transaction.objects.filter(
+            type__in=("debt_lent", "debt_borrowed"),
+            is_deleted=False,
+            settled_at__isnull=True,
+        )
+        .filter(created_at__lte=cutoff)
+        .filter(
+            models.Q(debt_reminder_sent_at__isnull=True)
+            | models.Q(debt_reminder_sent_at__lte=cutoff),
+        )
+        .select_related("user"),
+    )
+
+    created = 0
+    for tx in candidates:
+        PushQueueItem.objects.create(
+            user=tx.user,
+            kind=NotificationKind.DEBT_REMINDER.value,
+            payload_json={
+                "transaction_id": tx.id,
+                "counterparty": tx.counterparty or "",
+                "amount": str(tx.amount),
+                "currency": tx.currency,
+                "type": tx.type,
+            },
+        )
+        tx.debt_reminder_sent_at = now
+        tx.save(update_fields=["debt_reminder_sent_at", "updated_at"])
+        created += 1
+
+    logger.info(
+        "enqueue_debt_reminders: created=%d candidates=%d",
+        created,
+        len(candidates),
+    )
+    return created
+
+
+@db_transaction.atomic
+def confirm_debt_reminder_paid_callback(*, transaction_id: int) -> str:
+    """User tapped "Ha, oldim/berdim" — mark the raw debt txn as settled.
+
+    We DON'T spawn a paired income/expense here (that path exists in
+    `transactions.services.settle_debt_transaction` but requires a currency
+    and note the bot doesn't have). Marking `settled_at` is enough to hide
+    the row from the reminder walker; cash-flow reconciliation stays a
+    WebApp-side action if the user needs it.
+    """
+    from transactions.models import Transaction
+
+    tx = Transaction.objects.filter(
+        pk=transaction_id,
+        is_deleted=False,
+        type__in=("debt_lent", "debt_borrowed"),
+    ).first()
+    if tx is None:
+        return "Qarz topilmadi yoki o'chirilgan."
+    if tx.settled_at is not None:
+        return "✅ Qarz allaqachon yopilgan."
+    tx.settled_at = timezone.now()
+    tx.save(update_fields=["settled_at", "updated_at"])
+    return "✅ Qarz yopildi."
+
+
+@db_transaction.atomic
+def defer_debt_reminder_callback(*, transaction_id: int) -> str:
+    """User tapped "Hali yo'q" — bump the reminder forward another 7 days.
+
+    We stamp ``debt_reminder_sent_at = now`` so the next reminder fires
+    seven days from now. No mutation to settled_at.
+    """
+    from transactions.models import Transaction
+
+    tx = Transaction.objects.filter(
+        pk=transaction_id,
+        is_deleted=False,
+        type__in=("debt_lent", "debt_borrowed"),
+    ).first()
+    if tx is None:
+        return "Qarz topilmadi yoki o'chirilgan."
+    if tx.settled_at is not None:
+        return "✅ Qarz allaqachon yopilgan."
+    tx.debt_reminder_sent_at = timezone.now()
+    tx.save(update_fields=["debt_reminder_sent_at", "updated_at"])
+    return "Yaxshi, keyingi haftada yana eslataman."
+
+
+# ----------------------------------------------------------------------------
 # Story 9.5 — callback handlers (recurring / debt 1-tap actions)
 # ----------------------------------------------------------------------------
 
@@ -323,6 +438,8 @@ CALLBACK_ROUTES = {
     CB_RECURRING_CANCEL: ("recurring", "cancel"),
     CB_DEBT_CONFIRM: ("debt", "confirm"),
     CB_DEBT_CANCEL: ("debt", "cancel"),
+    CB_DEBT_REMINDER_PAID: ("debt_rem", "paid"),
+    CB_DEBT_REMINDER_PENDING: ("debt_rem", "pending"),
 }
 
 
@@ -352,6 +469,10 @@ def handle_callback(data: str) -> str:
         return confirm_debt_repaid_callback(debt_id=entity_id)
     if key == CB_DEBT_CANCEL:
         return cancel_debt_due_callback(_debt_id=entity_id)
+    if key == CB_DEBT_REMINDER_PAID:
+        return confirm_debt_reminder_paid_callback(transaction_id=entity_id)
+    if key == CB_DEBT_REMINDER_PENDING:
+        return defer_debt_reminder_callback(transaction_id=entity_id)
     return "Eski yoki noma'lum amal."
 
 
@@ -359,12 +480,15 @@ __all__ = [
     "send_push",
     "process_pending",
     "enqueue_debt_due_reminders",
+    "enqueue_debt_reminders",
     "handle_callback",
     "parse_callback_data",
     "confirm_recurring_callback",
     "cancel_recurring_callback",
     "confirm_debt_repaid_callback",
     "cancel_debt_due_callback",
+    "confirm_debt_reminder_paid_callback",
+    "defer_debt_reminder_callback",
 ]
 
 
