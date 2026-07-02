@@ -104,11 +104,16 @@ def test_home_content_session_currency_drives_hero_aggregation() -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_renders_stale_banner_when_rates_old() -> None:
+def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
+    # home_content refreshes CBU rates on-demand when today's row is missing.
+    # This test needs the seeded stale rates to stay stale, so stub the
+    # refresh call to a no-op — otherwise a live network fetch inside the
+    # test would insert today's rate and hide the banner.
+    import core.views as _core_views
+
+    monkeypatch.setattr(_core_views, "update_rates_if_stale", lambda **_kw: False)
+
     user = _seed_user_with_mixed_currencies()
-    # Wipe today's rates → only stale (very old) ones remain. Anchor at ~30
-    # days old so the banner (which fires at >1 day) always triggers no
-    # matter what day-of-month the test runs on.
     ExchangeRate.objects.all().delete()
     stale_date = date.today() - timedelta(days=30)
     ExchangeRate.objects.create(

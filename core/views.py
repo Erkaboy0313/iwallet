@@ -22,6 +22,7 @@ from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
 from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
 from currencies.selectors import compute_home_aggregates, current_rates_stale_days
+from currencies.services import update_rates_if_stale
 from currencies.views import SESSION_DISPLAY_CURRENCY
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
@@ -65,6 +66,22 @@ def home_content(request):
     display_currency = _resolve_display_currency(request, user)
     source_currency = user.default_currency or "UZS"
     today = timezone.localdate()
+
+    # Refresh CBU.uz rates on-demand if today's row is missing. The check
+    # itself is one indexed DB lookup; the external HTTP call only fires
+    # once per calendar day (until today's rate is stored). Session flag
+    # is only set once a fetch has actually succeeded, so a transient CBU
+    # outage on the first hit doesn't lock us out of retries for the day.
+    from currencies.models import ExchangeRate  # noqa: PLC0415 — avoid cycle
+
+    _rates_key = f"iw_rates_checked_{today.isoformat()}"
+    if not request.session.get(_rates_key):
+        try:
+            update_rates_if_stale(today=today)
+        except Exception:
+            logger.exception("update_rates_if_stale failed; will retry next request")
+        if ExchangeRate.objects.filter(date=today).exists():
+            request.session[_rates_key] = True
 
     # One pass for everything currency-related: 3 month_summary queries +
     # 3 latest_rate queries shared across all 3 switcher aggregates.
