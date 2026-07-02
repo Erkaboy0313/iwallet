@@ -116,7 +116,15 @@ def render_for_kind(kind: str, payload: dict[str, Any]) -> tuple[str, dict[str, 
 
 
 WELCOME_TEXT = (
-    "Salom! IWALLET shaxsiy moliyaviy yordamchingiz.\nQuyidagi tugmani bosib ilovani oching."
+    "Salom!\n\n"
+    "IWALLET — Telegram ichida ishlaydigan shaxsiy moliya yordamchingiz.\n\n"
+    "🎤 Hisob yuritish endi oson. Yozuvlarni ovoz bilan boshqaring — "
+    "summa, kategoriya va sana o'zi tanlanadi.\n\n"
+    "🤝 Qarzlar endi unutilmaydi. Kim qancha berib-olganini IWALLET "
+    "eslab qoladi, qaytarish vaqti yaqinlashsa eslatib turadi.\n\n"
+    "📊 Pul tahlili endi avtomatik. Oy oxirida: qayerga ketdi, qancha "
+    "qoldi, nimani tejadingiz — aniq raqamlarda.\n\n"
+    "Boshlash uchun pastdagi «Ilovani ochish» tugmasini bosing."
 )
 
 HELP_TEXT = (
