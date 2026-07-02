@@ -73,7 +73,9 @@ def home_content(request):
     bundle = compute_home_aggregates(user, today=today)
     summary = bundle.summaries[source_currency]
     aggregated = bundle.aggregates[display_currency]
-    balance_by_currency = {ccy: agg.cash_balance for ccy, agg in bundle.aggregates.items()}
+    # Hero shows all-time cash position (not just this month's flow) so the
+    # first of every month doesn't look like all previous money vanished.
+    balance_by_currency = {ccy: agg.all_time_cash_balance for ccy, agg in bundle.aggregates.items()}
     fully_supported = aggregated.is_fully_supported
 
     rates_stale_days = current_rates_stale_days()

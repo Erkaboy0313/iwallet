@@ -5,7 +5,7 @@
 - Switcher is a session-only preference; it never mutates user.default_currency.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
@@ -106,17 +106,20 @@ def test_home_content_session_currency_drives_hero_aggregation() -> None:
 @pytest.mark.django_db
 def test_home_content_renders_stale_banner_when_rates_old() -> None:
     user = _seed_user_with_mixed_currencies()
-    # Wipe today's rates → only stale (very old) ones remain.
+    # Wipe today's rates → only stale (very old) ones remain. Anchor at ~30
+    # days old so the banner (which fires at >1 day) always triggers no
+    # matter what day-of-month the test runs on.
     ExchangeRate.objects.all().delete()
+    stale_date = date.today() - timedelta(days=30)
     ExchangeRate.objects.create(
         currency="USD",
         rate_to_uzs=Decimal("12500"),
-        date=date.today().replace(day=1),
+        date=stale_date,
     )
     ExchangeRate.objects.create(
         currency="RUB",
         rate_to_uzs=Decimal("125"),
-        date=date.today().replace(day=1),
+        date=stale_date,
     )
     client = Client()
     init_data = _make_init_data(user_id=user.telegram_id, first_name="Eric")

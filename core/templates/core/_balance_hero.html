@@ -76,7 +76,7 @@ converted in lists — only the headline balance is.
                   margin: 0;
                   line-height: 1.05">
             {% if aggregated and aggregated.is_fully_supported %}
-                {{ aggregated.cash_balance|smart_money:display_currency }}
+                {{ aggregated.all_time_cash_balance|smart_money:display_currency }}
             {% else %}
                 {{ summary.cash_balance|smart_money:source_currency }}
             {% endif %}

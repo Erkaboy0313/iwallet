@@ -82,6 +82,10 @@ class AggregatedMonthSummary:
     Drives the BalanceHero when `User.show_converted` is True (or the user
     has toggled the switcher). When `is_fully_supported` is False, the view
     should fall back to per-currency rendering.
+
+    `all_time_cash_balance` is the running total across every transaction
+    ever recorded — that's what the hero renders as "Sof balans". The
+    monthly `cash_balance` is kept for the Kirim/Chiqim pills below.
     """
 
     display_currency: str
@@ -89,6 +93,7 @@ class AggregatedMonthSummary:
     total_income: Decimal
     total_expense: Decimal
     transaction_count: int
+    all_time_cash_balance: Decimal = Decimal("0")
     per_currency: list[PerCurrencySummary] = field(default_factory=list)
     rate_date: date | None = None
     is_stale: bool = False
@@ -135,12 +140,13 @@ def compute_home_aggregates(
     and composes everything from those caches.
     """
     from currencies.services import _quantize
-    from transactions.selectors import month_summary
+    from transactions.selectors import all_time_cash_balance, month_summary
 
     today = today or timezone.localdate()
 
     summaries = {ccy: month_summary(user, ccy, today=today) for ccy in CURRENCY_CODES}
     rate_cache = {ccy: latest_rate(ccy, on_or_before=today) for ccy in CURRENCY_CODES}
+    all_time_by_source = {ccy: all_time_cash_balance(user, ccy) for ccy in CURRENCY_CODES}
 
     aggregates: dict[str, AggregatedMonthSummary] = {}
     for display_ccy in CURRENCY_CODES:
@@ -148,6 +154,7 @@ def compute_home_aggregates(
             display_currency=display_ccy,
             summaries=summaries,
             rate_cache=rate_cache,
+            all_time_by_source=all_time_by_source,
             today=today,
             quantize=_quantize,
         )
@@ -168,12 +175,14 @@ def _build_aggregate(
     display_currency: str,
     summaries: dict,
     rate_cache: dict,
+    all_time_by_source: dict,
     today: date,  # noqa: ARG001
     quantize,
 ) -> AggregatedMonthSummary:
     per_currency: list[PerCurrencySummary] = []
     total_income = Decimal("0")
     total_expense = Decimal("0")
+    all_time_balance = Decimal("0")
     transaction_count = 0
     earliest_rate_date: date | None = None
     any_stale = False
@@ -182,22 +191,25 @@ def _build_aggregate(
     display_rate = rate_cache.get(display_currency)
     for ccy in CURRENCY_CODES:
         per = summaries[ccy]
-        if per.transaction_count == 0:
+        all_time_raw = all_time_by_source.get(ccy, Decimal("0"))
+        if per.transaction_count == 0 and all_time_raw == 0:
             continue
-        per_currency.append(
-            PerCurrencySummary(
-                currency=ccy,
-                cash_balance=per.cash_balance,
-                total_income=per.total_income,
-                total_expense=per.total_expense,
-                transaction_count=per.transaction_count,
-            ),
-        )
-        transaction_count += per.transaction_count
+        if per.transaction_count > 0:
+            per_currency.append(
+                PerCurrencySummary(
+                    currency=ccy,
+                    cash_balance=per.cash_balance,
+                    total_income=per.total_income,
+                    total_expense=per.total_expense,
+                    transaction_count=per.transaction_count,
+                ),
+            )
+            transaction_count += per.transaction_count
 
         if ccy == display_currency:
             total_income += per.inflow_total
             total_expense += per.outflow_total
+            all_time_balance += all_time_raw
             continue
 
         from_rate = rate_cache.get(ccy)
@@ -211,8 +223,12 @@ def _build_aggregate(
         outflow_converted = quantize(
             per.outflow_total * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
         )
+        all_time_converted = quantize(
+            all_time_raw * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+        )
         total_income += inflow_converted
         total_expense += outflow_converted
+        all_time_balance += all_time_converted
 
         for rate in (from_rate, display_rate):
             if earliest_rate_date is None or rate.rate_date < earliest_rate_date:
@@ -226,6 +242,7 @@ def _build_aggregate(
         total_income=total_income,
         total_expense=total_expense,
         transaction_count=transaction_count,
+        all_time_cash_balance=all_time_balance,
         per_currency=per_currency,
         rate_date=earliest_rate_date,
         is_stale=any_stale,

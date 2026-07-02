@@ -59,6 +59,22 @@ class MonthSummary:
         return self.transaction_count == 0
 
 
+def all_time_cash_balance(user: User, currency: str = "UZS") -> Decimal:
+    """User's all-time cash position in a single source currency.
+
+    Sum inflow (income + debt_borrowed) minus outflow (expense + debt_lent)
+    over every transaction ever recorded — no month cutoff. Powers the
+    home hero so the first of the month doesn't look like all previous
+    money vanished.
+    """
+    qs = Transaction.objects.for_user(user).filter(currency=currency)
+    by_type = qs.values("type").annotate(total=Sum("amount"))
+    totals = {row["type"]: row["total"] or Decimal("0") for row in by_type}
+    inflow = totals.get("income", Decimal("0")) + totals.get("debt_borrowed", Decimal("0"))
+    outflow = totals.get("expense", Decimal("0")) + totals.get("debt_lent", Decimal("0"))
+    return inflow - outflow
+
+
 def _month_bounds(today: date | None = None) -> tuple[date, date]:
     today = today or date.today()
     first = today.replace(day=1)
