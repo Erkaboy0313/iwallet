@@ -208,7 +208,7 @@ and every UI binding reads from it directly.
             <button type="button"
                     aria-label="Hammasini saqlash"
                     :disabled="!canSave || saving"
-                    :style="(!canSave || saving) ? 'opacity: 0.45; cursor: not-allowed' : ''"
+                    :style="{ opacity: (!canSave || saving) ? '0.45' : '1', cursor: (!canSave || saving) ? 'not-allowed' : 'pointer' }"
                     @click="saveAll()"
                     style="padding: 12px;
                            border-radius: 14px;
@@ -271,13 +271,15 @@ and every UI binding reads from it directly.
                             .join(", ");
                     },
                     cardStyle: function (i) {
+                        // Alpine :style with a STRING replaces the inline
+                        // style attribute wholesale — we'd lose padding /
+                        // background / radius. Return an OBJECT so Alpine
+                        // merges the border override into the static styles.
                         var d = this.drafts[i];
                         var amb = (d.ambiguous_fields || []).length > 0 || (d.confidence || 1) < 0.7;
-                        // Sprint v0.6 §7.3: ambiguous cards use a soft dashed
-                        // amber border ('review' cue), not a loud solid one.
                         return amb
-                            ? "border: 1.5px dashed rgba(255, 181, 71, 0.7)"
-                            : "border: 1px solid rgba(255, 255, 255, 0.07)";
+                            ? { border: "1.5px dashed rgba(255, 181, 71, 0.7)" }
+                            : { border: "1px solid rgba(255, 255, 255, 0.07)" };
                     },
                     get keptCount() {
                         var n = 0;
