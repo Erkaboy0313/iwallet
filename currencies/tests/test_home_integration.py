@@ -139,6 +139,42 @@ def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
+def test_home_content_hero_stays_zero_for_debt_only_user() -> None:
+    """Sprint v0.8 — a user who only recorded 'qarz oldim' must not see the
+    hero jump like it's income. Sof balans should stay at 0 so'm; the debt
+    surfaces as a Berishingiz kerak chip instead.
+    """
+    user = User.objects.create(
+        telegram_id=904,
+        first_name="Debtor",
+        onboarded_at=timezone.now(),
+        default_currency="UZS",
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("500000"),
+        currency="UZS",
+        counterparty="Karim",
+        date=date.today(),
+    )
+    client = Client()
+    init_data = _make_init_data(user_id=user.telegram_id, first_name="Debtor")
+    response = client.get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": init_data},
+    )
+    body = response.content.decode("utf-8")
+    # The big Sof balans number is 0 so'm — debt_borrowed is NOT folded in.
+    assert "Sof balans" in body
+    assert f"0 {SOM}" in body
+    # But the debt shows up as a "Berishingiz kerak" chip with the amount.
+    assert "Berishingiz kerak" in body
+    assert f"500{THIN}000 {SOM}" in body
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
 def test_home_content_shows_switcher_dropdown_options() -> None:
     """All 3 currencies are rendered as options in the switcher dropdown."""
     user = User.objects.create(

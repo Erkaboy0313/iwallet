@@ -75,6 +75,39 @@ def all_time_cash_balance(user: User, currency: str = "UZS") -> Decimal:
     return inflow - outflow
 
 
+@dataclass(frozen=True)
+class AllTimeTotals:
+    """Split the hero into three unambiguous positions (Sprint v0.8).
+
+    ``operating`` is the true cash-in-hand — income minus expense, no debts
+    mixed in. ``receivable`` is money the user has lent out (they should get
+    it back). ``payable`` is money the user has borrowed (they owe it back).
+    Debts are surfaced as separate chips so a new user recording only
+    "qarz oldim" doesn't see the hero go up like it's income.
+    """
+
+    operating: Decimal
+    receivable: Decimal
+    payable: Decimal
+
+
+def all_time_totals(user: User, currency: str = "UZS") -> AllTimeTotals:
+    """User's all-time operating cash + open debt positions, all in one query.
+
+    One aggregation grouped by type — no per-type SELECTs, no month cutoff.
+    ``operating`` = sum(income) − sum(expense). ``receivable`` = sum(debt_lent).
+    ``payable`` = sum(debt_borrowed). Cheap for the home hero which needs all
+    three side by side.
+    """
+    qs = Transaction.objects.for_user(user).filter(currency=currency)
+    by_type = qs.values("type").annotate(total=Sum("amount"))
+    totals = {row["type"]: row["total"] or Decimal("0") for row in by_type}
+    operating = totals.get("income", Decimal("0")) - totals.get("expense", Decimal("0"))
+    receivable = totals.get("debt_lent", Decimal("0"))
+    payable = totals.get("debt_borrowed", Decimal("0"))
+    return AllTimeTotals(operating=operating, receivable=receivable, payable=payable)
+
+
 def _month_bounds(today: date | None = None) -> tuple[date, date]:
     today = today or date.today()
     first = today.replace(day=1)

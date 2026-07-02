@@ -76,6 +76,38 @@ def test_missing_rate_marks_not_fully_supported() -> None:
 
 
 @pytest.mark.django_db
+def test_all_time_operating_matches_direct_selector_single_currency() -> None:
+    """Sprint v0.8 — aggregated all_time_operating equals the direct selector
+    when only one source currency is in play. Also verifies debt sums land in
+    receivable / payable, not in the operating hero.
+    """
+    from transactions.selectors import all_time_totals
+
+    user = UserFactory()
+    TransactionFactory(user=user, type="income", amount=Decimal("1500"), date=date(2026, 6, 1))
+    TransactionFactory(user=user, type="expense", amount=Decimal("400"), date=date(2026, 6, 2))
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("250"),
+        counterparty="Karim",
+        date=date(2026, 6, 3),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("100"),
+        counterparty="Ali",
+        date=date(2026, 6, 4),
+    )
+    direct = all_time_totals(user, "UZS")
+    agg = aggregated_month_summary(user, "UZS", today=date(2026, 6, 15))
+    assert agg.all_time_operating == direct.operating == Decimal("1100")
+    assert agg.all_time_receivable == direct.receivable == Decimal("250")
+    assert agg.all_time_payable == direct.payable == Decimal("100")
+
+
+@pytest.mark.django_db
 def test_stale_rate_propagates_through_aggregate() -> None:
     user = UserFactory()
     today = date(2026, 6, 15)

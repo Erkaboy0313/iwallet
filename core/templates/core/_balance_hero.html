@@ -76,7 +76,7 @@ converted in lists — only the headline balance is.
                   margin: 0;
                   line-height: 1.05">
             {% if aggregated and aggregated.is_fully_supported %}
-                {{ aggregated.all_time_cash_balance|smart_money:display_currency }}
+                {{ aggregated.all_time_operating|smart_money:display_currency }}
             {% else %}
                 {{ summary.cash_balance|smart_money:source_currency }}
             {% endif %}
@@ -185,6 +185,106 @@ converted in lists — only the headline balance is.
             </a>
         </div>
     </div>
+    {% comment %}
+Debt position chips — receivable (they owe you) + payable (you owe them).
+Sprint v0.8: kept OUT of the operating hero so a "qarz oldim" only user
+doesn't mistake borrowed cash for income. Both zero → whole row hidden.
+    {% endcomment %}
+    {% if aggregated.all_time_receivable or aggregated.all_time_payable %}
+        <div style="display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    margin-bottom: 16px">
+            {% if aggregated.all_time_receivable %}
+                <a href="{% url 'debts:list' %}?direction=lent"
+                   aria-label="Sizga qaytarilishi kerak bo'lgan qarzlar"
+                   style="display: flex;
+                          align-items: center;
+                          gap: 10px;
+                          padding: 12px 14px;
+                          border-radius: 14px;
+                          background: var(--color-surface);
+                          border: 1px solid var(--color-border);
+                          box-shadow: var(--shadow-soft);
+                          color: var(--color-text);
+                          text-decoration: none">
+                    <span aria-hidden="true"
+                          style="display: inline-flex;
+                                 align-items: center;
+                                 justify-content: center;
+                                 width: 32px;
+                                 height: 32px;
+                                 border-radius: 9999px;
+                                 background: rgba(159, 248, 124, 0.16);
+                                 color: var(--color-primary)">
+                        <svg width="16"
+                             height="16"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                    </span>
+                    <span style="display: flex; flex-direction: column; min-width: 0">
+                        <span style="font-size: 10px;
+                                     letter-spacing: 0.06em;
+                                     text-transform: uppercase;
+                                     color: var(--color-text-muted);
+                                     font-weight: 600">Olishingiz kerak</span>
+                        <span class="amount"
+                              style="font-size: 14px;
+                                     font-weight: 700;
+                                     color: var(--color-text)">{{ aggregated.all_time_receivable|smart_money:display_currency }}</span>
+                    </span>
+                </a>
+            {% endif %}
+            {% if aggregated.all_time_payable %}
+                <a href="{% url 'debts:list' %}?direction=borrowed"
+                   aria-label="Siz qaytarishingiz kerak bo'lgan qarzlar"
+                   style="display: flex;
+                          align-items: center;
+                          gap: 10px;
+                          padding: 12px 14px;
+                          border-radius: 14px;
+                          background: var(--color-surface);
+                          border: 1px solid var(--color-border);
+                          box-shadow: var(--shadow-soft);
+                          color: var(--color-text);
+                          text-decoration: none">
+                    <span aria-hidden="true"
+                          style="display: inline-flex;
+                                 align-items: center;
+                                 justify-content: center;
+                                 width: 32px;
+                                 height: 32px;
+                                 border-radius: 9999px;
+                                 background: rgba(255, 181, 71, 0.18);
+                                 color: var(--color-warning)">
+                        <svg width="16"
+                             height="16"
+                             fill="none"
+                             stroke="currentColor"
+                             stroke-width="2"
+                             viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                    </span>
+                    <span style="display: flex; flex-direction: column; min-width: 0">
+                        <span style="font-size: 10px;
+                                     letter-spacing: 0.06em;
+                                     text-transform: uppercase;
+                                     color: var(--color-text-muted);
+                                     font-weight: 600">Berishingiz kerak</span>
+                        <span class="amount"
+                              style="font-size: 14px;
+                                     font-weight: 700;
+                                     color: var(--color-text)">{{ aggregated.all_time_payable|smart_money:display_currency }}</span>
+                    </span>
+                </a>
+            {% endif %}
+        </div>
+    {% endif %}
     {# Today's recurring prompts ("Bugun ijara qo'shamizmi?"). #}
     {% include 'recurring/_prompts.html' %}
     {# Quote card. #}

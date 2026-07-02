@@ -94,6 +94,12 @@ class AggregatedMonthSummary:
     total_expense: Decimal
     transaction_count: int
     all_time_cash_balance: Decimal = Decimal("0")
+    # Sprint v0.8 hero split — operating cash (income - expense) is the big
+    # number; receivable / payable go into separate chips below the hero so
+    # a debt-only user doesn't see the operating balance jump.
+    all_time_operating: Decimal = Decimal("0")
+    all_time_receivable: Decimal = Decimal("0")
+    all_time_payable: Decimal = Decimal("0")
     per_currency: list[PerCurrencySummary] = field(default_factory=list)
     rate_date: date | None = None
     is_stale: bool = False
@@ -140,13 +146,18 @@ def compute_home_aggregates(
     and composes everything from those caches.
     """
     from currencies.services import _quantize
-    from transactions.selectors import all_time_cash_balance, month_summary
+    from transactions.selectors import all_time_cash_balance, all_time_totals, month_summary
 
     today = today or timezone.localdate()
 
     summaries = {ccy: month_summary(user, ccy, today=today) for ccy in CURRENCY_CODES}
     rate_cache = {ccy: latest_rate(ccy, on_or_before=today) for ccy in CURRENCY_CODES}
     all_time_by_source = {ccy: all_time_cash_balance(user, ccy) for ccy in CURRENCY_CODES}
+    # Sprint v0.8 — split hero: operating + receivable + payable, in one query
+    # per source currency (grouped by type). Same pattern as all_time_by_source
+    # so it folds into the display-currency conversion below without any new
+    # rate lookups.
+    totals_by_source = {ccy: all_time_totals(user, ccy) for ccy in CURRENCY_CODES}
 
     aggregates: dict[str, AggregatedMonthSummary] = {}
     for display_ccy in CURRENCY_CODES:
@@ -155,6 +166,7 @@ def compute_home_aggregates(
             summaries=summaries,
             rate_cache=rate_cache,
             all_time_by_source=all_time_by_source,
+            totals_by_source=totals_by_source,
             today=today,
             quantize=_quantize,
         )
@@ -176,6 +188,7 @@ def _build_aggregate(
     summaries: dict,
     rate_cache: dict,
     all_time_by_source: dict,
+    totals_by_source: dict,
     today: date,  # noqa: ARG001
     quantize,
 ) -> AggregatedMonthSummary:
@@ -183,6 +196,9 @@ def _build_aggregate(
     total_income = Decimal("0")
     total_expense = Decimal("0")
     all_time_balance = Decimal("0")
+    all_time_operating = Decimal("0")
+    all_time_receivable = Decimal("0")
+    all_time_payable = Decimal("0")
     transaction_count = 0
     earliest_rate_date: date | None = None
     any_stale = False
@@ -192,7 +208,11 @@ def _build_aggregate(
     for ccy in CURRENCY_CODES:
         per = summaries[ccy]
         all_time_raw = all_time_by_source.get(ccy, Decimal("0"))
-        if per.transaction_count == 0 and all_time_raw == 0:
+        totals = totals_by_source.get(ccy)
+        has_split_activity = totals is not None and (
+            totals.operating != 0 or totals.receivable != 0 or totals.payable != 0
+        )
+        if per.transaction_count == 0 and all_time_raw == 0 and not has_split_activity:
             continue
         if per.transaction_count > 0:
             per_currency.append(
@@ -210,6 +230,10 @@ def _build_aggregate(
             total_income += per.inflow_total
             total_expense += per.outflow_total
             all_time_balance += all_time_raw
+            if totals is not None:
+                all_time_operating += totals.operating
+                all_time_receivable += totals.receivable
+                all_time_payable += totals.payable
             continue
 
         from_rate = rate_cache.get(ccy)
@@ -229,6 +253,16 @@ def _build_aggregate(
         total_income += inflow_converted
         total_expense += outflow_converted
         all_time_balance += all_time_converted
+        if totals is not None:
+            all_time_operating += quantize(
+                totals.operating * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+            )
+            all_time_receivable += quantize(
+                totals.receivable * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+            )
+            all_time_payable += quantize(
+                totals.payable * from_rate.rate_to_uzs / display_rate.rate_to_uzs,
+            )
 
         for rate in (from_rate, display_rate):
             if earliest_rate_date is None or rate.rate_date < earliest_rate_date:
@@ -243,6 +277,9 @@ def _build_aggregate(
         total_expense=total_expense,
         transaction_count=transaction_count,
         all_time_cash_balance=all_time_balance,
+        all_time_operating=all_time_operating,
+        all_time_receivable=all_time_receivable,
+        all_time_payable=all_time_payable,
         per_currency=per_currency,
         rate_date=earliest_rate_date,
         is_stale=any_stale,

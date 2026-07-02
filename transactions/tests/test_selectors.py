@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from transactions.selectors import month_summary
+from transactions.selectors import all_time_totals, month_summary
 from transactions.tests.factories import TransactionFactory, UserFactory
 
 
@@ -122,3 +122,73 @@ def test_top_categories_orders_by_total_desc_and_caps_at_three() -> None:
     assert len(summary.top_categories) == 3
     assert [c.slug for c in summary.top_categories] == ["taxi", "qahva_kafe", "oziq_ovqat"]
     assert summary.top_categories[0].total == Decimal("400")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_splits_operating_receivable_payable() -> None:
+    """Sprint v0.8 hero split — debts must not be conflated with operating cash."""
+    user = UserFactory()
+    # Operating side: income minus expense = 800.
+    TransactionFactory(user=user, type="income", amount=Decimal("1000"), date=date(2026, 5, 10))
+    TransactionFactory(user=user, type="expense", amount=Decimal("200"), date=date(2026, 5, 12))
+    # Debt side: two open positions, kept separate from operating.
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("300"),
+        counterparty="Karim",
+        date=date(2026, 5, 14),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("50"),
+        counterparty="Ali",
+        date=date(2026, 5, 15),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("400"),
+        counterparty="Sardor",
+        date=date(2026, 5, 16),
+    )
+
+    totals = all_time_totals(user, "UZS")
+    assert totals.operating == Decimal("800")
+    assert totals.receivable == Decimal("350")
+    assert totals.payable == Decimal("400")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_empty_user_is_zero() -> None:
+    user = UserFactory()
+    totals = all_time_totals(user, "UZS")
+    assert totals.operating == Decimal("0")
+    assert totals.receivable == Decimal("0")
+    assert totals.payable == Decimal("0")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_isolates_by_currency() -> None:
+    user = UserFactory()
+    TransactionFactory(
+        user=user, type="income", amount=Decimal("1000"), currency="UZS", date=date(2026, 5, 1)
+    )
+    TransactionFactory(
+        user=user, type="income", amount=Decimal("500"), currency="USD", date=date(2026, 5, 1)
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("100"),
+        counterparty="X",
+        currency="USD",
+        date=date(2026, 5, 2),
+    )
+    totals_uzs = all_time_totals(user, "UZS")
+    totals_usd = all_time_totals(user, "USD")
+    assert totals_uzs.operating == Decimal("1000")
+    assert totals_uzs.receivable == Decimal("0")
+    assert totals_usd.operating == Decimal("500")
+    assert totals_usd.receivable == Decimal("100")
