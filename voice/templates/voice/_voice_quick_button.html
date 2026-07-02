@@ -110,14 +110,29 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
             {# Recording UI — visible until confirm partial fills voice-confirm-area. #}
             <div x-show="!hasConfirm" style="text-align: center; padding: 16px 0 8px">
                 <h2 id="vq-sheet-title"
-                    style="margin: 0 0 4px;
-                           font-size: 16px;
-                           font-weight: 600;
-                           color: var(--color-text)">Ovoz orqali tranzaksiya</h2>
-                <p style="margin: 0 0 24px;
+                    style="margin: 0 0 6px;
+                           font-size: 17px;
+                           font-weight: 700;
+                           color: var(--color-text)"
+                    x-text="title"></h2>
+                <p style="margin: 0 0 6px;
                           font-size: 13px;
                           color: var(--color-text-secondary)"
                    x-text="hint"></p>
+                <p x-show="state === 'idle'"
+                   x-cloak
+                   style="margin: 0 0 22px;
+                          font-size: 12px;
+                          color: var(--color-text-muted);
+                          line-height: 1.5">
+                    Masalan:
+                    <br>
+                    «Nonga 25 ming sarfladim»
+                    <br>
+                    «Karimga 100 ming berdim»
+                    <br>
+                    «Bugun oylik 5 million keldi»
+                </p>
                 {# Big mic with wave bars. #}
                 <div style="display: inline-flex;
                             align-items: center;
@@ -273,14 +288,39 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
     window.__voiceQuickRegistered = true;
     function register() {
         window.Alpine.data("voiceQuick", function (transcribeUrl) {
+            var STATE_COPY = {
+                idle: {
+                    title: "Ovoz bilan yozamiz",
+                    hint: "Mikrofonni bosing va gapiring",
+                },
+                recording: {
+                    title: "Eshityapman…",
+                    hint: "Tugatgach yana bosing",
+                },
+                processing: {
+                    title: "Ishlab chiqmoqda…",
+                    hint: "Bir zumda tayyor bo'ladi",
+                },
+                error: {
+                    title: "Xatolik",
+                    hint: "Yana urinib ko'ring",
+                },
+            };
             return {
                 state: "idle",
                 sheet: false,
                 hasConfirm: false,
-                hint: "Mikrofonni bosib gapiring",
+                hint: STATE_COPY.idle.hint,
+                title: STATE_COPY.idle.title,
                 errorTooltip: "",
                 recorder: null,
                 _confirmObserver: null,
+                _cancelHandler: null,
+                _applyStateCopy() {
+                    var copy = STATE_COPY[this.state] || STATE_COPY.idle;
+                    this.title = copy.title;
+                    this.hint = copy.hint;
+                },
                 init() {
                     var self = this;
                     var tries = 0;
@@ -300,6 +340,7 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                             onStateChange: function (s) {
                                 if (self.state === "error" && s !== "idle") return;
                                 self.state = s;
+                                self._applyStateCopy();
                             },
                         });
                     }
@@ -313,6 +354,23 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                         });
                         this._confirmObserver.observe(host, { childList: true });
                     }
+                    // Confirm partial fires this when the user hits Bekor qilish.
+                    // Bounce the sheet back to a fresh idle state — otherwise the
+                    // mic still reads as 'idle' but the pulse/instructions are
+                    // gone because Alpine already rendered the confirm cards.
+                    this._cancelHandler = function () {
+                        self.hasConfirm = false;
+                        self.state = "idle";
+                        self.errorTooltip = "";
+                        self._applyStateCopy();
+                    };
+                    document.addEventListener("voice-confirm-cancelled", this._cancelHandler);
+                },
+                destroy() {
+                    if (this._cancelHandler) {
+                        document.removeEventListener("voice-confirm-cancelled", this._cancelHandler);
+                    }
+                    if (this._confirmObserver) this._confirmObserver.disconnect();
                 },
                 openSheet() {
                     if (this.state === "error" && !this.recorder) return;
@@ -329,31 +387,36 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                         this.state = "idle";
                     }
                     this.sheet = false;
-                    this.hint = "Mikrofonni bosib gapiring";
                     // Clear confirm partial so a re-open starts fresh.
                     var host = document.getElementById("voice-confirm-area");
                     if (host) host.innerHTML = "";
                     this.hasConfirm = false;
+                    this._applyStateCopy();
                 },
                 async toggle() {
                     if (!this.recorder) return;
                     if (this.state === "idle") {
-                        this.hint = "Tinglayapman… yana bosib to'xtating";
                         try { await this.recorder.start(); }
                         catch (e) {
                             this.state = "error";
                             this.errorTooltip = (e && e.message) || "Mikrofon ruxsati kerak.";
-                            setTimeout(() => { this.state = "idle"; }, 800);
+                            this._applyStateCopy();
+                            setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
                         }
                         return;
                     }
                     if (this.state === "recording") {
                         let blob = null;
                         try { blob = await this.recorder.stop(); }
-                        catch (e) { this.state = "error"; return; }
-                        if (!blob) { this.state = "idle"; this.hint = "Mikrofonni bosib gapiring"; return; }
+                        catch (e) { this.state = "error"; this._applyStateCopy(); return; }
+                        if (!blob) {
+                            this.state = "idle";
+                            this._applyStateCopy();
+                            return;
+                        }
                         if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
                             this.state = "idle";
+                            this.title = "Ovoz bilan yozamiz";
                             this.hint = "Hech narsa eshitilmadi. Yana urinib ko'ring.";
                             return;
                         }
@@ -362,7 +425,7 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                 },
                 async upload(blob) {
                     this.state = "processing";
-                    this.hint = "Eshityapman…";
+                    this._applyStateCopy();
                     const fd = new FormData();
                     const ext = (blob.type && blob.type.indexOf("mp4") !== -1) ? "m4a" : "webm";
                     fd.append("audio", blob, "voice." + ext);
@@ -386,11 +449,12 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                             if (window.htmx) window.htmx.process(host);
                         }
                         this.state = "idle";
-                        this.hint = "";
+                        this._applyStateCopy();
                     } catch (e) {
                         this.state = "error";
                         this.errorTooltip = "Tarmoq xatosi. Yana urinib ko'ring.";
-                        setTimeout(() => { this.state = "idle"; this.hint = "Mikrofonni bosib gapiring"; }, 800);
+                        this._applyStateCopy();
+                        setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
                     }
                 },
             };

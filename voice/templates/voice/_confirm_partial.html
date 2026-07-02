@@ -365,6 +365,10 @@ and every UI binding reads from it directly.
                     cancel: function () {
                         var host = document.getElementById("voice-confirm-area");
                         if (host) host.innerHTML = "";
+                        // Tell the outer voiceQuick sheet to reset back to
+                        // a fresh idle mic (title + hint + example) so a
+                        // second recording feels like a first recording.
+                        document.dispatchEvent(new CustomEvent("voice-confirm-cancelled"));
                     },
                     saveAll: async function () {
                         if (!this.canSave || this.saving) return;
