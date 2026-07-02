@@ -73,7 +73,8 @@ def test_partial_renders_directional_strip_for_debt_drafts() -> None:
     template scaffolding + copy is present in the served HTML.
     """
     user = UserFactory()
-    Category.objects.create(user=None, type="debt_lent", slug="qarz", name="Qarz", emoji="🤝")
+    # No Category needed — the strip is gated on the draft's `type` alone.
+    # (CategoryType only enumerates income/expense; debts don't get categories.)
     html = _render_partial(user, [_draft(type="debt_lent", counterparty="Karim")])
     # Alpine x-if gates on the draft's type so the strip only renders for debts.
     assert "d.type === 'debt_lent'" in html
