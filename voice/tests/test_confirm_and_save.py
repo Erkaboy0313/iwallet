@@ -66,6 +66,26 @@ def test_partial_renders_single_draft_card() -> None:
 
 
 @pytest.mark.django_db
+def test_partial_renders_directional_strip_for_debt_drafts() -> None:
+    """Sprint v0.8 — voice sometimes misclassifies the debt direction. A visible
+    directional strip inside the card lets the user catch it in one glance.
+    The strip is Alpine-rendered per-draft via <template x-if>; assert the
+    template scaffolding + copy is present in the served HTML.
+    """
+    user = UserFactory()
+    Category.objects.create(user=None, type="debt_lent", slug="qarz", name="Qarz", emoji="🤝")
+    html = _render_partial(user, [_draft(type="debt_lent", counterparty="Karim")])
+    # Alpine x-if gates on the draft's type so the strip only renders for debts.
+    assert "d.type === 'debt_lent'" in html
+    assert "d.type === 'debt_borrowed'" in html
+    # Uzbek copy for both directions is present in the template — even if the
+    # DOM doesn't yet reflect it (Alpine renders client-side), the fragment
+    # scaffolding must be there.
+    assert "Siz berdingiz — qaytarishlari kerak" in html
+    assert "Siz oldingiz — qaytarishingiz kerak" in html
+
+
+@pytest.mark.django_db
 def test_partial_flags_ambiguous_card_with_amber_border() -> None:
     user = UserFactory()
     Category.objects.create(user=None, type="expense", slug="food", name="Ovqat", emoji="🍔")
