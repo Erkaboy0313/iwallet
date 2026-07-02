@@ -122,17 +122,9 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                 <p x-show="state === 'idle'"
                    x-cloak
                    style="margin: 0 0 22px;
-                          font-size: 12px;
+                          font-size: 13px;
                           color: var(--color-text-muted);
-                          line-height: 1.5">
-                    Masalan:
-                    <br>
-                    «Nonga 25 ming sarfladim»
-                    <br>
-                    «Karimga 100 ming berdim»
-                    <br>
-                    «Bugun oylik 5 million keldi»
-                </p>
+                          font-style: italic">«Bugun kofega 40 ming to'ladim»</p>
                 {# Big mic with wave bars. #}
                 <div style="display: inline-flex;
                             align-items: center;
@@ -154,9 +146,12 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                         <rect class="vq-wave" x="58" y="18" width="4" height="12" rx="2" />
                     </svg>
                     <button type="button"
-                            @click="toggle()"
+                            @pointerdown.prevent="holdStart($event)"
+                            @pointerup.prevent="holdEnd($event)"
+                            @pointercancel.prevent="holdEnd($event)"
+                            @pointerleave="holdEnd($event)"
                             :disabled="state === 'processing'"
-                            :aria-label="state === 'recording' ? 'Yozuvni to\'xtatish' : 'Yozuvni boshlash'"
+                            aria-label="Ovoz yozish — bosib turing"
                             class="vq-bigmic"
                             :class="state"
                             style="position: relative;
@@ -291,11 +286,11 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
             var STATE_COPY = {
                 idle: {
                     title: "Ovoz bilan yozamiz",
-                    hint: "Mikrofonni bosing va gapiring",
+                    hint: "Bosib turib gapiring",
                 },
                 recording: {
                     title: "Eshityapman…",
-                    hint: "Tugatgach yana bosing",
+                    hint: "Qo'yib yuborsangiz — yozamiz",
                 },
                 processing: {
                     title: "Ishlab chiqmoqda…",
@@ -375,10 +370,9 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                 openSheet() {
                     if (this.state === "error" && !this.recorder) return;
                     this.sheet = true;
-                    // Auto-start recording so a single tap kicks off the flow.
-                    if (this.state === "idle" && this.recorder && !this.hasConfirm) {
-                        this.toggle();
-                    }
+                    // No auto-record — Eric wants the user to explicitly
+                    // press-and-hold the mic. That way an accidental sheet
+                    // open doesn't listen to background audio.
                 },
                 closeSheet() {
                     if (this.state === "recording" && this.recorder) {
@@ -393,35 +387,41 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                     this.hasConfirm = false;
                     this._applyStateCopy();
                 },
-                async toggle() {
-                    if (!this.recorder) return;
-                    if (this.state === "idle") {
-                        try { await this.recorder.start(); }
-                        catch (e) {
-                            this.state = "error";
-                            this.errorTooltip = (e && e.message) || "Mikrofon ruxsati kerak.";
-                            this._applyStateCopy();
-                            setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
-                        }
+                async holdStart(evt) {
+                    // Press-and-hold to record. Ignore multi-touch / repeated
+                    // downs so we don't try to start() twice on quick taps.
+                    if (evt && evt.target && evt.target.setPointerCapture) {
+                        try { evt.target.setPointerCapture(evt.pointerId); } catch (e) { /* noop */ }
+                    }
+                    if (!this.recorder || this.state !== "idle") return;
+                    try { await this.recorder.start(); }
+                    catch (e) {
+                        this.state = "error";
+                        this.errorTooltip = (e && e.message) || "Mikrofon ruxsati kerak.";
+                        this._applyStateCopy();
+                        setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
+                    }
+                },
+                async holdEnd(evt) {
+                    if (evt && evt.target && evt.target.releasePointerCapture) {
+                        try { evt.target.releasePointerCapture(evt.pointerId); } catch (e) { /* noop */ }
+                    }
+                    if (this.state !== "recording" || !this.recorder) return;
+                    let blob = null;
+                    try { blob = await this.recorder.stop(); }
+                    catch (e) { this.state = "error"; this._applyStateCopy(); return; }
+                    if (!blob) {
+                        this.state = "idle";
+                        this._applyStateCopy();
                         return;
                     }
-                    if (this.state === "recording") {
-                        let blob = null;
-                        try { blob = await this.recorder.stop(); }
-                        catch (e) { this.state = "error"; this._applyStateCopy(); return; }
-                        if (!blob) {
-                            this.state = "idle";
-                            this._applyStateCopy();
-                            return;
-                        }
-                        if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
-                            this.state = "idle";
-                            this.title = "Ovoz bilan yozamiz";
-                            this.hint = "Hech narsa eshitilmadi. Yana urinib ko'ring.";
-                            return;
-                        }
-                        await this.upload(blob);
+                    if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
+                        this.state = "idle";
+                        this.title = "Ovoz bilan yozamiz";
+                        this.hint = "Hech narsa eshitilmadi. Yana urinib ko'ring.";
+                        return;
                     }
+                    await this.upload(blob);
                 },
                 async upload(blob) {
                     this.state = "processing";

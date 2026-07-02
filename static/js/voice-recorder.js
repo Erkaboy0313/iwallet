@@ -147,6 +147,10 @@
                     const r = this._stopResolve;
                     this._stopResolve = null;
                     this._stopReject = null;
+                    // Ready for the next start() — without this the state
+                    // stays 'processing' forever and a second recording
+                    // silently no-ops on the isState === 'idle' guard.
+                    this._setState("idle");
                     r(blob);
                 }
             });
