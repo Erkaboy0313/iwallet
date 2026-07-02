@@ -146,12 +146,9 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                         <rect class="vq-wave" x="58" y="18" width="4" height="12" rx="2" />
                     </svg>
                     <button type="button"
-                            @pointerdown.prevent="holdStart($event)"
-                            @pointerup.prevent="holdEnd($event)"
-                            @pointercancel.prevent="holdEnd($event)"
-                            @pointerleave="holdEnd($event)"
+                            @click="toggle()"
                             :disabled="state === 'processing'"
-                            aria-label="Ovoz yozish — bosib turing"
+                            :aria-label="state === 'recording' ? 'Yozuvni to\'xtatish' : 'Yozuvni boshlash'"
                             class="vq-bigmic"
                             :class="state"
                             style="position: relative;
@@ -286,11 +283,11 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
             var STATE_COPY = {
                 idle: {
                     title: "Ovoz bilan yozamiz",
-                    hint: "Bosib turib gapiring",
+                    hint: "Mikrofonni bosing va gapiring",
                 },
                 recording: {
                     title: "Eshityapman…",
-                    hint: "Qo'yib yuborsangiz — yozamiz",
+                    hint: "Tugatgach yana bosing",
                 },
                 processing: {
                     title: "Ishlab chiqmoqda…",
@@ -387,41 +384,35 @@ inline on the Add page. Closing the sheet aborts an in-flight recording.
                     this.hasConfirm = false;
                     this._applyStateCopy();
                 },
-                async holdStart(evt) {
-                    // Press-and-hold to record. Ignore multi-touch / repeated
-                    // downs so we don't try to start() twice on quick taps.
-                    if (evt && evt.target && evt.target.setPointerCapture) {
-                        try { evt.target.setPointerCapture(evt.pointerId); } catch (e) { /* noop */ }
-                    }
-                    if (!this.recorder || this.state !== "idle") return;
-                    try { await this.recorder.start(); }
-                    catch (e) {
-                        this.state = "error";
-                        this.errorTooltip = (e && e.message) || "Mikrofon ruxsati kerak.";
-                        this._applyStateCopy();
-                        setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
-                    }
-                },
-                async holdEnd(evt) {
-                    if (evt && evt.target && evt.target.releasePointerCapture) {
-                        try { evt.target.releasePointerCapture(evt.pointerId); } catch (e) { /* noop */ }
-                    }
-                    if (this.state !== "recording" || !this.recorder) return;
-                    let blob = null;
-                    try { blob = await this.recorder.stop(); }
-                    catch (e) { this.state = "error"; this._applyStateCopy(); return; }
-                    if (!blob) {
-                        this.state = "idle";
-                        this._applyStateCopy();
+                async toggle() {
+                    if (!this.recorder) return;
+                    if (this.state === "idle") {
+                        try { await this.recorder.start(); }
+                        catch (e) {
+                            this.state = "error";
+                            this.errorTooltip = (e && e.message) || "Mikrofon ruxsati kerak.";
+                            this._applyStateCopy();
+                            setTimeout(() => { this.state = "idle"; this._applyStateCopy(); }, 800);
+                        }
                         return;
                     }
-                    if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
-                        this.state = "idle";
-                        this.title = "Ovoz bilan yozamiz";
-                        this.hint = "Hech narsa eshitilmadi. Yana urinib ko'ring.";
-                        return;
+                    if (this.state === "recording") {
+                        let blob = null;
+                        try { blob = await this.recorder.stop(); }
+                        catch (e) { this.state = "error"; this._applyStateCopy(); return; }
+                        if (!blob) {
+                            this.state = "idle";
+                            this._applyStateCopy();
+                            return;
+                        }
+                        if (window.voiceIsLikelySilent && await window.voiceIsLikelySilent(blob)) {
+                            this.state = "idle";
+                            this.title = "Ovoz bilan yozamiz";
+                            this.hint = "Hech narsa eshitilmadi. Yana urinib ko'ring.";
+                            return;
+                        }
+                        await this.upload(blob);
                     }
-                    await this.upload(blob);
                 },
                 async upload(blob) {
                     this.state = "processing";
