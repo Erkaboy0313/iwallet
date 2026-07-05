@@ -10,4 +10,9 @@ urlpatterns = [
     path("debts/", views.debts_list_view, name="list"),
     path("debts/new/", views.new_debt_view, name="new"),
     path("debts/<int:tx_id>/settle/", views.settle_debt_view, name="settle"),
+    path(
+        "debts/<int:tx_id>/partial-settle/",
+        views.partial_settle_view,
+        name="partial_settle",
+    ),
 ]

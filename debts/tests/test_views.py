@@ -320,3 +320,210 @@ def test_settle_other_users_debt_404() -> None:
         headers={"X-Telegram-InitData": _init(me.telegram_id)},
     )
     assert response.status_code == 404
+
+
+# ---------- Sprint v0.8.1 — partial settle ----------
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_debts_list_shows_qaytardim_and_oldim_buttons() -> None:
+    """Debt rows expose 'Oldim' (lent) and 'Qaytardim' (borrowed) triggers."""
+    user = _user(30)
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("500000"),
+        date=date.today(),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="Sardor",
+        amount=Decimal("300000"),
+        date=date.today(),
+    )
+    client = Client()
+    lent_html = client.get(
+        reverse("debts:list") + "?tab=debt_lent",
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    ).content.decode("utf-8")
+    borrowed_html = client.get(
+        reverse("debts:list") + "?tab=debt_borrowed",
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    ).content.decode("utf-8")
+    assert "Oldim" in lent_html
+    assert "Qaytardim" in borrowed_html
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_view_creates_repayment_and_returns_updated_list() -> None:
+    user = _user(31)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("500000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    response = Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "200000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    assert response.status_code == 200
+    assert response.headers["HX-Redirect"] == reverse("debts:list") + "?tab=debt_lent"
+
+    repayment = Transaction.objects.get(user=user, type="debt_repaid_to_me")
+    assert repayment.amount == Decimal("200000")
+    assert repayment.counterparty == "Karim"
+    assert repayment.currency == "UZS"
+    # Original stays open — 300k still owed.
+    tx.refresh_from_db()
+    assert tx.settled_at is None
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_full_amount_marks_original_settled() -> None:
+    user = _user(32)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="Sardor",
+        amount=Decimal("300000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "300000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    tx.refresh_from_db()
+    assert tx.settled_at is not None
+    repayment = Transaction.objects.get(user=user, type="debt_repaid_by_me")
+    assert repayment.amount == Decimal("300000")
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_rejects_amount_over_remaining() -> None:
+    user = _user(33)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("100000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    response = Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "500000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    assert response.status_code == 422
+    assert Transaction.objects.filter(user=user, type="debt_repaid_to_me").count() == 0
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_rejects_zero_amount() -> None:
+    user = _user(34)
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("100000"),
+        date=date.today(),
+    )
+    response = Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "0"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    assert response.status_code == 422
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_isolates_by_counterparty_aggregate() -> None:
+    """Aggregation-by-counterparty approximation: two open lends to the same
+    counterparty share one remaining pool. A partial payment reduces that
+    pool; the pool is fully covered once the sum of repayments meets the
+    sum of lends."""
+    user = _user(35)
+    tx1 = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("300000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("200000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    # Total lent to Karim = 500k. Repay 400k against tx1.
+    Client().post(
+        reverse("debts:partial_settle", args=[tx1.id]),
+        data={"amount": "400000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    # Aggregate remaining = 100k. Another 100k closes tx1 (last-touched row
+    # is the one whose settled_at flips in this approximation).
+    Client().post(
+        reverse("debts:partial_settle", args=[tx1.id]),
+        data={"amount": "100000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    tx1.refresh_from_db()
+    assert tx1.settled_at is not None
+    assert Transaction.objects.filter(user=user, type="debt_repaid_to_me").count() == 2
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_non_debt_transaction_404() -> None:
+    user = _user(36)
+    tx = TransactionFactory(
+        user=user,
+        type="income",
+        amount=Decimal("100000"),
+        date=date.today(),
+    )
+    response = Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "50000"},
+        headers={"X-Telegram-InitData": _init(user.telegram_id)},
+    )
+    assert response.status_code == 404
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_partial_settle_other_users_debt_404() -> None:
+    me = _user(37)
+    other = _user(38)
+    tx = TransactionFactory(
+        user=other,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("100000"),
+        date=date.today(),
+    )
+    response = Client().post(
+        reverse("debts:partial_settle", args=[tx.id]),
+        data={"amount": "50000"},
+        headers={"X-Telegram-InitData": _init(me.telegram_id)},
+    )
+    assert response.status_code == 404

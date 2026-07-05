@@ -14,9 +14,11 @@ from datetime import date as _date_type
 from decimal import Decimal
 
 from django.db import transaction as db_transaction
+from django.db.models import Sum
 from django.utils import timezone
 
 from accounts.models import User
+from transactions.models import Transaction, TransactionType
 
 from .exceptions import (
     CurrencyMismatchError,
@@ -165,3 +167,132 @@ def cancel_debt(*, debt: Debt, reason: str = "") -> Debt:
         debt.state,
     )
     return debt
+
+
+# --- Sprint v0.8.1 — partial repayment for Transaction-based debts ---------
+#
+# The Qarzlar screen (debts/views.py) operates on Transaction rows directly,
+# not on the Debt aggregate above. This service records a partial repayment
+# as its own Transaction (debt_repaid_by_me / debt_repaid_to_me) and
+# opportunistically flips settled_at on the original debt row when the
+# running counterparty balance in that direction is fully covered.
+#
+# Accounting approximation (per story spec): remaining balance is tracked
+# per (user, counterparty, currency, direction) — NOT per specific debt row.
+# Real users think about totals ("Karim menga 200k qaytardi"), not which of
+# their three loans to Karim it covered. This trades granularity for a UX
+# that matches how the debt is discussed in Uzbek and keeps the model
+# simple. Trade-off: if a user records overlapping debts to the same person
+# in the same currency, the "which one got closed" mapping is fuzzy but the
+# hero math (see all_time_totals) stays correct because it operates on the
+# same aggregation.
+
+
+REPAYMENT_TYPE_FOR_ORIGINAL: dict[str, str] = {
+    TransactionType.DEBT_BORROWED.value: TransactionType.DEBT_REPAID_BY_ME.value,
+    TransactionType.DEBT_LENT.value: TransactionType.DEBT_REPAID_TO_ME.value,
+}
+
+
+def _remaining_by_counterparty(
+    *,
+    user: User,
+    counterparty: str,
+    currency: str,
+    original_type: str,
+) -> Decimal:
+    """Aggregate remaining balance across all debts to this counterparty.
+
+    Sum of open (non-settled, non-deleted) debt rows in ``original_type``
+    minus the sum of repayments already logged in the opposite direction.
+    Cross-currency debts are kept separate.
+    """
+    original_sum = Transaction.objects.for_user(user).filter(
+        type=original_type,
+        counterparty=counterparty,
+        currency=currency,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    repaid_sum = Transaction.objects.for_user(user).filter(
+        type=REPAYMENT_TYPE_FOR_ORIGINAL[original_type],
+        counterparty=counterparty,
+        currency=currency,
+    ).aggregate(total=Sum("amount"))["total"] or Decimal("0")
+    return original_sum - repaid_sum
+
+
+@db_transaction.atomic
+def record_partial_repayment(
+    *,
+    user: User,
+    original_tx: Transaction,
+    amount: Decimal,
+    when: _date_type | None = None,
+) -> Transaction:
+    """Log a partial (or full) repayment against a Transaction-based debt.
+
+    Accounting approximation: we validate ``amount`` against the aggregate
+    (user, counterparty, currency, direction) balance — NOT against the
+    specific ``original_tx``. This mirrors how users talk about debts
+    ("Karim menga 200k qaytardi") and matches the aggregate hero math in
+    transactions.selectors.all_time_totals. Trade-off: if the user has
+    multiple open debts to the same counterparty in the same currency, a
+    repayment reduces the *group* balance; ``original_tx.settled_at`` gets
+    flipped only when the group is fully covered.
+
+    Raises:
+        InvalidDebtAmountError — non-positive amount, wrong tx type, or
+            already-settled/deleted source.
+        RepaymentExceedsRemainingError — amount > aggregate remaining
+            balance for this (user, counterparty, currency, direction).
+    """
+    if amount is None or amount <= Decimal("0"):
+        raise InvalidDebtAmountError("Summa musbat bo'lishi kerak.")
+
+    if original_tx.type not in REPAYMENT_TYPE_FOR_ORIGINAL:
+        raise InvalidDebtAmountError("Faqat qarz tranzaksiyasini qaytarish mumkin.")
+    if original_tx.is_deleted:
+        raise InvalidDebtAmountError("Bu tranzaksiya o'chirilgan.")
+
+    remaining = _remaining_by_counterparty(
+        user=user,
+        counterparty=original_tx.counterparty,
+        currency=original_tx.currency,
+        original_type=original_tx.type,
+    )
+    if remaining <= Decimal("0"):
+        raise RepaymentExceedsRemainingError("Qoldiq yo'q — qarz allaqachon yopilgan.")
+    if amount > remaining:
+        raise RepaymentExceedsRemainingError(
+            f"Qoldiqdan ko'p miqdor kiritildi (qoldiq: {remaining} {original_tx.currency})."
+        )
+
+    repayment_type = REPAYMENT_TYPE_FOR_ORIGINAL[original_tx.type]
+    label = "Qarz qaytardim" if repayment_type == "debt_repaid_by_me" else "Qarz qaytarib olindi"
+    note = f"{label} · {original_tx.counterparty}" if original_tx.counterparty else label
+
+    repayment = Transaction.objects.create(
+        user=user,
+        type=repayment_type,
+        amount=amount,
+        currency=original_tx.currency,
+        date=when or timezone.localdate(),
+        counterparty=original_tx.counterparty,
+        note=note,
+    )
+
+    # If the aggregate counterparty balance is now fully covered, mark the
+    # original row settled so the Qarzlar list drops it out of "Ochiq".
+    new_remaining = remaining - amount
+    if new_remaining <= Decimal("0") and original_tx.settled_at is None:
+        original_tx.settled_at = timezone.now()
+        original_tx.save(update_fields=["settled_at", "updated_at"])
+
+    logger.info(
+        "debt.partial_repayment tx=%s amount=%s remaining=%s->%s counterparty=%r",
+        original_tx.id,
+        amount,
+        remaining,
+        new_remaining,
+        original_tx.counterparty,
+    )
+    return repayment

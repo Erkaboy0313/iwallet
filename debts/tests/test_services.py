@@ -1,5 +1,6 @@
 """Story 4.1 — Debt service layer (create / repay / cancel) end-to-end."""
 
+from datetime import date
 from decimal import Decimal
 
 import pytest
@@ -11,9 +12,10 @@ from debts.exceptions import (
     RepaymentExceedsRemainingError,
 )
 from debts.models import DebtState
-from debts.services import apply_repayment, cancel_debt, create_debt
+from debts.services import apply_repayment, cancel_debt, create_debt, record_partial_repayment
 from debts.tests.factories import DebtFactory
-from transactions.tests.factories import UserFactory
+from transactions.models import Transaction
+from transactions.tests.factories import TransactionFactory, UserFactory
 
 # ---------- create_debt ----------
 
@@ -226,3 +228,132 @@ def test_cancel_truncates_long_reason() -> None:
     debt = DebtFactory()
     cancelled = cancel_debt(debt=debt, reason="x" * 200)
     assert len(cancelled.cancelled_reason) == 64
+
+
+# ---------- Sprint v0.8.1 — record_partial_repayment (Transaction-based) ----------
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_creates_repaid_transaction() -> None:
+    """Logs a debt_repaid_by_me row against a debt_borrowed original."""
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="Sardor",
+        amount=Decimal("500000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    repayment = record_partial_repayment(user=user, original_tx=tx, amount=Decimal("200000"))
+    assert repayment.type == "debt_repaid_by_me"
+    assert repayment.amount == Decimal("200000")
+    assert repayment.counterparty == "Sardor"
+    assert repayment.currency == "UZS"
+    assert "Sardor" in repayment.note
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_lent_creates_debt_repaid_to_me() -> None:
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("500000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    repayment = record_partial_repayment(user=user, original_tx=tx, amount=Decimal("300000"))
+    assert repayment.type == "debt_repaid_to_me"
+    assert repayment.amount == Decimal("300000")
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_rejects_amount_over_remaining() -> None:
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="Sardor",
+        amount=Decimal("100000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    with pytest.raises(RepaymentExceedsRemainingError):
+        record_partial_repayment(user=user, original_tx=tx, amount=Decimal("200000"))
+    assert Transaction.objects.filter(type="debt_repaid_by_me").count() == 0
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_rejects_zero() -> None:
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="X",
+        amount=Decimal("100"),
+        currency="UZS",
+        date=date.today(),
+    )
+    with pytest.raises(InvalidDebtAmountError):
+        record_partial_repayment(user=user, original_tx=tx, amount=Decimal("0"))
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_rejects_non_debt_type() -> None:
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="expense",
+        amount=Decimal("100"),
+        currency="UZS",
+        date=date.today(),
+    )
+    with pytest.raises(InvalidDebtAmountError):
+        record_partial_repayment(user=user, original_tx=tx, amount=Decimal("50"))
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_marks_settled_when_fully_covered() -> None:
+    user = UserFactory()
+    tx = TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        counterparty="Sardor",
+        amount=Decimal("100000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    record_partial_repayment(user=user, original_tx=tx, amount=Decimal("100000"))
+    tx.refresh_from_db()
+    assert tx.settled_at is not None
+
+
+@pytest.mark.django_db
+def test_record_partial_repayment_aggregates_by_counterparty_across_debts() -> None:
+    """The remaining-balance check is aggregate across all debts of the same
+    (user, counterparty, currency, direction) — matching the documented
+    approximation."""
+    user = UserFactory()
+    tx1 = TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("200000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        counterparty="Karim",
+        amount=Decimal("300000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    # Repaying 500k against tx1 must succeed because aggregate = 500k, even
+    # though tx1 alone is only 200k.
+    record_partial_repayment(user=user, original_tx=tx1, amount=Decimal("500000"))
+    tx1.refresh_from_db()
+    assert tx1.settled_at is not None

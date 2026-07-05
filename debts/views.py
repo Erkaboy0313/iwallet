@@ -21,6 +21,8 @@ from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from currencies.constants import CURRENCY_CODES
+from debts.exceptions import InvalidDebtAmountError, RepaymentExceedsRemainingError
+from debts.services import record_partial_repayment
 from transactions.exceptions import InvalidAmountError, TransactionNotEditableError
 from transactions.models import Transaction
 from transactions.services import create_transaction, settle_debt_transaction
@@ -113,3 +115,31 @@ def settle_debt_view(request, tx_id: int):
 
     label = "Qarz qaytarib oldim" if settled.type == LENT_TAB else "Qarz qaytarib berdim"
     return _ok_redirect(settled.type, f"{label} · saqlandi")
+
+
+@require_POST
+def partial_settle_view(request, tx_id: int):
+    """Log a partial repayment against a debt-type Transaction.
+
+    Wraps `debts.services.record_partial_repayment`. Success returns the
+    same HX-Redirect shape as the full-settle path so the list re-renders
+    and shows the reduced balance / dropped-out row.
+    """
+    tx = Transaction.objects.for_user(request.user).filter(pk=tx_id, type__in=VALID_TABS).first()
+    if tx is None:
+        raise Http404("Qarz topilmadi")
+
+    try:
+        amount = Decimal(str(request.POST.get("amount") or "0"))
+    except (InvalidOperation, ValueError):
+        return _err("Summa noto'g'ri")
+    if amount <= 0:
+        return _err("Summa musbat bo'lishi kerak")
+
+    try:
+        record_partial_repayment(user=request.user, original_tx=tx, amount=amount)
+    except (InvalidDebtAmountError, RepaymentExceedsRemainingError) as exc:
+        return _err(str(exc))
+
+    label = "Qarz qaytarib olindi" if tx.type == LENT_TAB else "Qarz qaytarildi"
+    return _ok_redirect(tx.type, f"{label} · saqlandi")
