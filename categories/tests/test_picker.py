@@ -152,6 +152,10 @@ def test_picker_target_field_threaded_into_template() -> None:
     )
     body = response.content.decode("utf-8")
     # Target is read via data-attribute at click time (apostrophe-safe) rather
-    # than spliced into the inline Alpine expression.
+    # than spliced into the inline Alpine expression. The click handler now
+    # goes through a wrapper that also dispatches the `category-picked` custom
+    # event for callers (e.g. voice-confirm) that need to react without a
+    # DOM input to write into.
     assert 'data-target="id_custom_target"' in body
-    assert "getElementById($el.dataset.target)" in body
+    assert "getElementById(el.dataset.target)" in body
+    assert "category-picked" in body
