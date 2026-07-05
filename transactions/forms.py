@@ -10,8 +10,25 @@ from categories.selectors import categories_for, match_slug
 
 from .models import TransactionType
 
-DEBT_TYPES = {TransactionType.DEBT_LENT.value, TransactionType.DEBT_BORROWED.value}
+DEBT_TYPES = {
+    TransactionType.DEBT_LENT.value,
+    TransactionType.DEBT_BORROWED.value,
+    TransactionType.DEBT_REPAID_BY_ME.value,
+    TransactionType.DEBT_REPAID_TO_ME.value,
+}
 CATEGORY_TYPES = {TransactionType.INCOME.value, TransactionType.EXPENSE.value}
+
+# Only the four types the user actively initiates go in the pill row on
+# the manual Add form: income / expense / I lent / I paid back my debt.
+# The inbound debt events (`debt_borrowed`, `debt_repaid_to_me`) are still
+# valid TransactionType members — they're created via voice or via the
+# Qaytardim/Oldim buttons on the debts list, not from this generic form.
+MANUAL_FORM_TYPES = [
+    (TransactionType.INCOME.value, "Kirim"),
+    (TransactionType.EXPENSE.value, "Chiqim"),
+    (TransactionType.DEBT_LENT.value, "Qarz berdim"),
+    (TransactionType.DEBT_REPAID_BY_ME.value, "Qarz qaytardim"),
+]
 
 
 class ManualTransactionForm(forms.Form):
@@ -22,7 +39,7 @@ class ManualTransactionForm(forms.Form):
     """
 
     type = forms.ChoiceField(
-        choices=TransactionType.choices,
+        choices=MANUAL_FORM_TYPES,
         widget=forms.RadioSelect,
         label="Turi",
     )

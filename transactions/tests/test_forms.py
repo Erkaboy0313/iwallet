@@ -57,9 +57,13 @@ def test_form_requires_counterparty_for_debt_lent() -> None:
 
 
 @pytest.mark.django_db
-def test_form_requires_counterparty_for_debt_borrowed() -> None:
+def test_form_requires_counterparty_for_debt_repaid_by_me() -> None:
+    """`debt_borrowed` was removed from the manual pill row (inbound debt
+    events come in via voice or the debts-list buttons). The counterparty
+    guard now applies to the repayment path a user actually can pick here.
+    """
     user = UserFactory()
-    form = ManualTransactionForm(_baseline(type_="debt_borrowed"), user=user)
+    form = ManualTransactionForm(_baseline(type_="debt_repaid_by_me"), user=user)
     assert not form.is_valid()
     assert "counterparty" in form.errors
 
