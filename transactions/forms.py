@@ -68,6 +68,24 @@ class ManualTransactionForm(forms.Form):
         if "date" in self.initial and self.initial["date"] is None:
             self.initial["date"] = _date_type.today()
 
+    def clean_amount(self) -> Decimal:
+        """Strip thousand separators the client-side formatter injects.
+
+        The Alpine form shows "680 000" for readability; Decimal() chokes on
+        the space, so peel it (and commas) off before validation.
+        """
+        raw = self.data.get(self.add_prefix("amount")) or ""
+        cleaned = str(raw).strip().replace(" ", "").replace(",", "")
+        if not cleaned:
+            raise forms.ValidationError("Summani kiriting.")
+        try:
+            value = Decimal(cleaned)
+        except (ValueError, ArithmeticError) as exc:
+            raise forms.ValidationError("Summa noto'g'ri.") from exc
+        if value <= 0:
+            raise forms.ValidationError("Summa musbat bo'lishi kerak.")
+        return value
+
     def clean(self) -> dict:
         cleaned = super().clean()
         type_ = cleaned.get("type")

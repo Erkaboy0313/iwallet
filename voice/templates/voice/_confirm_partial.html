@@ -229,6 +229,9 @@ and every UI binding reads from it directly.
                 </template>
             </div>
         </template>
+        {# Shared category picker host — filled by htmx from openCategoryPicker(). #}
+        <div id="voice-cat-picker-host"></div>
+        <input type="hidden" id="voice-cat-sink">
         <div style="position: sticky;
                     bottom: 0;
                     display: grid;
@@ -377,33 +380,63 @@ and every UI binding reads from it directly.
                         next[i] = false;
                         this.kept = next;
                     },
-                    editField: function (i, field) {
-                        // Mark this field as user-acknowledged.
+                    _touch: function (i, field) {
                         var nextTouched = this.touched.slice();
                         nextTouched[i] = Object.assign({}, nextTouched[i] || {});
                         nextTouched[i][field] = true;
                         this.touched = nextTouched;
+                    },
+                    _writeDraft: function (i, patch) {
+                        var nextDrafts = this.drafts.slice();
+                        nextDrafts[i] = Object.assign({}, nextDrafts[i], patch);
+                        this.drafts = nextDrafts;
+                    },
+                    editField: function (i, field) {
+                        this._touch(i, field);
+                        if (field === "category_slug") {
+                            this.openCategoryPicker(i);
+                            return;
+                        }
                         var current = this.drafts[i][field];
                         var value = window.prompt("Yangi qiymat (" + field + "):", current == null ? "" : String(current));
                         if (value === null) return;
-                        var nextDrafts = this.drafts.slice();
-                        var draft = Object.assign({}, nextDrafts[i]);
                         if (field === "amount") {
                             var n = Number(value.replace(/[^0-9.]/g, ""));
                             if (!isFinite(n) || n <= 0) return;
-                            draft.amount = n.toFixed(2);
+                            this._writeDraft(i, { amount: n.toFixed(2) });
                         } else if (field === "currency") {
-                            draft.currency = value.toUpperCase();
+                            this._writeDraft(i, { currency: value.toUpperCase() });
                         } else if (field === "date") {
-                            draft.date = value;
-                        } else if (field === "category_slug") {
-                            draft.category_slug = value.trim();
-                            draft.category_name = value.trim();
+                            this._writeDraft(i, { date: value });
                         } else {
-                            draft[field] = value;
+                            var patch = {}; patch[field] = value;
+                            this._writeDraft(i, patch);
                         }
-                        nextDrafts[i] = draft;
-                        this.drafts = nextDrafts;
+                    },
+                    openCategoryPicker: function (i) {
+                        // Fetch the shared picker into a scoped host, then wait
+                        // for the picker's `category-picked` custom event to
+                        // write back into this draft. One-shot listener so the
+                        // next card gets a fresh subscription.
+                        var self = this;
+                        var draft = this.drafts[i];
+                        var type = draft.type === "income" ? "income" : "expense";
+                        var host = document.getElementById("voice-cat-picker-host");
+                        if (!host) return;
+                        function onPicked(evt) {
+                            var d = evt.detail || {};
+                            self._writeDraft(i, {
+                                category_slug: d.slug || "",
+                                category_name: d.name || d.slug || "",
+                                emoji: d.emoji || "",
+                            });
+                            document.removeEventListener("category-picked", onPicked);
+                        }
+                        document.addEventListener("category-picked", onPicked);
+                        var url = "/app/categories/picker/?type=" + type + "&target=voice-cat-sink";
+                        if (window.htmx) {
+                            window.htmx.ajax("GET", url, "#voice-cat-picker-host");
+                        }
                     },
                     cancel: function () {
                         var host = document.getElementById("voice-confirm-area");

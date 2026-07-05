@@ -93,7 +93,7 @@ then closes the sheet.
                             data-name="{{ cat.name }}"
                             data-emoji="{{ cat.emoji }}"
                             data-target="{{ target_field }}"
-                            @click="document.getElementById($el.dataset.target).value = $el.dataset.slug; pickerLabel = $el.dataset.name; pickerEmoji = $el.dataset.emoji; picker = null"
+                            @click="(function(el){ var t = document.getElementById(el.dataset.target); if (t) t.value = el.dataset.slug; document.dispatchEvent(new CustomEvent('category-picked', { detail: { slug: el.dataset.slug, name: el.dataset.name, emoji: el.dataset.emoji, target: el.dataset.target } })); })($el); if (typeof pickerLabel !== 'undefined') { pickerLabel = $el.dataset.name; pickerEmoji = $el.dataset.emoji; } picker = null; openPicker = false"
                             role="option"
                             aria-label="{{ cat.name }}"
                             class="cat-chip"
