@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from transactions.selectors import all_time_totals, month_summary
+from transactions.selectors import all_time_cash_balance, all_time_totals, month_summary
 from transactions.tests.factories import TransactionFactory, UserFactory
 
 
@@ -192,3 +192,132 @@ def test_all_time_totals_isolates_by_currency() -> None:
     assert totals_uzs.receivable == Decimal("0")
     assert totals_usd.operating == Decimal("500")
     assert totals_usd.receivable == Decimal("100")
+
+
+# ---------- Sprint v0.8.1 — partial-repayment types ----------
+
+
+@pytest.mark.django_db
+def test_all_time_totals_reduces_receivable_when_debt_repaid_to_me() -> None:
+    """Lent 500k, counterparty paid me back 200k → receivable 300k, cash +200k."""
+    user = UserFactory()
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("500000"),
+        counterparty="Karim",
+        date=date(2026, 5, 10),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_to_me",
+        amount=Decimal("200000"),
+        counterparty="Karim",
+        date=date(2026, 5, 20),
+    )
+    totals = all_time_totals(user, "UZS")
+    assert totals.receivable == Decimal("300000")
+    assert totals.payable == Decimal("0")
+    # debt_lent -500k, debt_repaid_to_me +200k = net -300k cash flow. The
+    # story's headline "cash=+200k" describes the repayment leg on its own;
+    # the net position stays negative because the original lend already left
+    # the wallet.
+    assert all_time_cash_balance(user, "UZS") == Decimal("-300000")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_reduces_payable_when_debt_repaid_by_me() -> None:
+    """Borrowed 500k, paid 200k back → payable 300k, net cash +300k."""
+    user = UserFactory()
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("500000"),
+        counterparty="Sardor",
+        date=date(2026, 5, 10),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_by_me",
+        amount=Decimal("200000"),
+        counterparty="Sardor",
+        date=date(2026, 5, 20),
+    )
+    totals = all_time_totals(user, "UZS")
+    assert totals.payable == Decimal("300000")
+    assert totals.receivable == Decimal("0")
+    # debt_borrowed +500k (cash in), debt_repaid_by_me -200k (cash out) = +300k.
+    assert all_time_cash_balance(user, "UZS") == Decimal("300000")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_never_negative_when_overpaid() -> None:
+    """Repaid > lent → receivable clamps at 0, but cash still reflects the overage."""
+    user = UserFactory()
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("100000"),
+        counterparty="Karim",
+        date=date(2026, 5, 10),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_to_me",
+        amount=Decimal("150000"),
+        counterparty="Karim",
+        date=date(2026, 5, 20),
+    )
+    totals = all_time_totals(user, "UZS")
+    assert totals.receivable == Decimal("0")
+    assert totals.payable == Decimal("0")
+    # Cash: -100k (lent) + 150k (repaid_to_me) = +50k. Overpayment visible.
+    assert all_time_cash_balance(user, "UZS") == Decimal("50000")
+
+
+@pytest.mark.django_db
+def test_all_time_totals_payable_never_negative_when_overpaid_by_me() -> None:
+    user = UserFactory()
+    TransactionFactory(
+        user=user,
+        type="debt_borrowed",
+        amount=Decimal("100000"),
+        counterparty="Sardor",
+        date=date(2026, 5, 10),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_by_me",
+        amount=Decimal("150000"),
+        counterparty="Sardor",
+        date=date(2026, 5, 20),
+    )
+    totals = all_time_totals(user, "UZS")
+    assert totals.payable == Decimal("0")
+
+
+@pytest.mark.django_db
+def test_month_summary_includes_repayment_types_in_flow_totals() -> None:
+    """Repayments land in inflow/outflow like other debt types."""
+    user = UserFactory()
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_to_me",
+        amount=Decimal("200000"),
+        counterparty="Karim",
+        date=date(2026, 6, 5),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_repaid_by_me",
+        amount=Decimal("150000"),
+        counterparty="Sardor",
+        date=date(2026, 6, 6),
+    )
+    TransactionFactory(user=user, type="income", amount=Decimal("50000"), date=date(2026, 6, 7))
+
+    summary = month_summary(user, "UZS", today=date(2026, 6, 15))
+    assert summary.inflow_total == Decimal("250000")  # income + repaid_to_me
+    assert summary.outflow_total == Decimal("150000")  # repaid_by_me
+    assert summary.cash_balance == Decimal("100000")
+    assert summary.transaction_count == 3

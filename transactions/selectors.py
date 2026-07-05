@@ -62,16 +62,25 @@ class MonthSummary:
 def all_time_cash_balance(user: User, currency: str = "UZS") -> Decimal:
     """User's all-time cash position in a single source currency.
 
-    Sum inflow (income + debt_borrowed) minus outflow (expense + debt_lent)
-    over every transaction ever recorded — no month cutoff. Powers the
-    home hero so the first of the month doesn't look like all previous
-    money vanished.
+    Sum inflow (income + debt_borrowed + debt_repaid_to_me) minus outflow
+    (expense + debt_lent + debt_repaid_by_me) over every transaction ever
+    recorded — no month cutoff. Powers the home hero so the first of the
+    month doesn't look like all previous money vanished. Sprint v0.8.1
+    fix: repayment types are cash movements too and must be counted.
     """
     qs = Transaction.objects.for_user(user).filter(currency=currency)
     by_type = qs.values("type").annotate(total=Sum("amount"))
     totals = {row["type"]: row["total"] or Decimal("0") for row in by_type}
-    inflow = totals.get("income", Decimal("0")) + totals.get("debt_borrowed", Decimal("0"))
-    outflow = totals.get("expense", Decimal("0")) + totals.get("debt_lent", Decimal("0"))
+    inflow = (
+        totals.get("income", Decimal("0"))
+        + totals.get("debt_borrowed", Decimal("0"))
+        + totals.get("debt_repaid_to_me", Decimal("0"))
+    )
+    outflow = (
+        totals.get("expense", Decimal("0"))
+        + totals.get("debt_lent", Decimal("0"))
+        + totals.get("debt_repaid_by_me", Decimal("0"))
+    )
     return inflow - outflow
 
 
@@ -95,16 +104,28 @@ def all_time_totals(user: User, currency: str = "UZS") -> AllTimeTotals:
     """User's all-time operating cash + open debt positions, all in one query.
 
     One aggregation grouped by type — no per-type SELECTs, no month cutoff.
-    ``operating`` = sum(income) − sum(expense). ``receivable`` = sum(debt_lent).
-    ``payable`` = sum(debt_borrowed). Cheap for the home hero which needs all
-    three side by side.
+    ``operating`` = sum(income) − sum(expense).
+
+    Sprint v0.8.1 update: ``receivable`` = sum(debt_lent) − sum(debt_repaid_to_me);
+    ``payable`` = sum(debt_borrowed) − sum(debt_repaid_by_me). Repayments
+    reduce the standing debt position instead of stacking as extra rows.
+    Both are clamped at zero — if a user records an overpayment (e.g. they
+    voice-log more repayment than the debt they logged), the residual debt
+    hits zero and the extra cash still shows up in the operating cash
+    balance via ``all_time_cash_balance``. No negative debt positions.
     """
     qs = Transaction.objects.for_user(user).filter(currency=currency)
     by_type = qs.values("type").annotate(total=Sum("amount"))
     totals = {row["type"]: row["total"] or Decimal("0") for row in by_type}
     operating = totals.get("income", Decimal("0")) - totals.get("expense", Decimal("0"))
-    receivable = totals.get("debt_lent", Decimal("0"))
-    payable = totals.get("debt_borrowed", Decimal("0"))
+    receivable_gross = totals.get("debt_lent", Decimal("0")) - totals.get(
+        "debt_repaid_to_me", Decimal("0")
+    )
+    payable_gross = totals.get("debt_borrowed", Decimal("0")) - totals.get(
+        "debt_repaid_by_me", Decimal("0")
+    )
+    receivable = receivable_gross if receivable_gross > 0 else Decimal("0")
+    payable = payable_gross if payable_gross > 0 else Decimal("0")
     return AllTimeTotals(operating=operating, receivable=receivable, payable=payable)
 
 
@@ -127,6 +148,11 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
     `debts.selectors.debt_status_summary` — this selector only describes the
     cash flow for the month.
 
+    Sprint v0.8.1 update: the two repayment types are also cash movements —
+    `debt_repaid_to_me` is inflow (counterparty paid me back);
+    `debt_repaid_by_me` is outflow (I paid them back). They land in
+    inflow_total / outflow_total exactly like the original debt types.
+
     Perf: one aggregation grouped by type instead of 4 separate Sum() queries
     + one count call. Top-categories stays a separate query (different group
     key + LIMIT 3). Total: 2 queries per call, down from 6.
@@ -143,10 +169,12 @@ def month_summary(user: User, currency: str = "UZS", *, today: date | None = Non
     expense_total, expense_n = totals.get("expense", (Decimal("0"), 0))
     borrowed_total, borrowed_n = totals.get("debt_borrowed", (Decimal("0"), 0))
     lent_total, lent_n = totals.get("debt_lent", (Decimal("0"), 0))
+    repaid_to_me_total, repaid_to_me_n = totals.get("debt_repaid_to_me", (Decimal("0"), 0))
+    repaid_by_me_total, repaid_by_me_n = totals.get("debt_repaid_by_me", (Decimal("0"), 0))
 
-    inflow_total = income_total + borrowed_total
-    outflow_total = expense_total + lent_total
-    transaction_count = income_n + expense_n + borrowed_n + lent_n
+    inflow_total = income_total + borrowed_total + repaid_to_me_total
+    outflow_total = expense_total + lent_total + repaid_by_me_total
+    transaction_count = income_n + expense_n + borrowed_n + lent_n + repaid_to_me_n + repaid_by_me_n
 
     top_qs = (
         qs.by_type("expense")
@@ -208,9 +236,9 @@ def daily_flow_series(
     for row in qs:
         d = row["date"]
         amount = row["total"] or Decimal("0")
-        if row["type"] in {"income", "debt_borrowed"}:
+        if row["type"] in {"income", "debt_borrowed", "debt_repaid_to_me"}:
             in_by_day[d] = in_by_day.get(d, Decimal("0")) + amount
-        elif row["type"] in {"expense", "debt_lent"}:
+        elif row["type"] in {"expense", "debt_lent", "debt_repaid_by_me"}:
             out_by_day[d] = out_by_day.get(d, Decimal("0")) + amount
 
     inflow_series: list[DailyAmount] = []

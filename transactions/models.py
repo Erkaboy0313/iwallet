@@ -21,6 +21,12 @@ class TransactionType(models.TextChoices):
     EXPENSE = "expense", "Chiqim"
     DEBT_LENT = "debt_lent", "Qarz berdim"
     DEBT_BORROWED = "debt_borrowed", "Qarz oldim"
+    # Sprint v0.8.1 — partial-repayment cash movements. The user paid back part
+    # (or all) of what they owe; the counterparty paid back part (or all) of
+    # what they owe the user. Cash moves; the residual debt position is what
+    # the hero + Qarzlar list use to decide "still open?".
+    DEBT_REPAID_BY_ME = "debt_repaid_by_me", "Qarz qaytardim"
+    DEBT_REPAID_TO_ME = "debt_repaid_to_me", "Qarz qaytarib olindi"
 
 
 class TransactionQuerySet(models.QuerySet):
@@ -55,7 +61,7 @@ class Transaction(models.Model):
     id = models.BigAutoField(primary_key=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="transactions")
 
-    type = models.CharField(max_length=16, choices=TransactionType.choices)
+    type = models.CharField(max_length=24, choices=TransactionType.choices)
     amount = models.DecimalField(max_digits=MAX_DIGITS, decimal_places=DECIMAL_PLACES)
     currency = models.CharField(max_length=3, choices=CURRENCY_CHOICES, default="UZS")
     category = models.ForeignKey(

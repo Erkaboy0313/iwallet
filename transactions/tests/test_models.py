@@ -28,8 +28,15 @@ def test_transaction_amount_must_be_positive() -> None:
 
 
 def test_transaction_type_choices_enforced() -> None:
-    """Only the 4 known types are exposed via the model's choice list."""
-    valid_types = {"income", "expense", "debt_lent", "debt_borrowed"}
+    """All 6 known types are exposed via the model's choice list."""
+    valid_types = {
+        "income",
+        "expense",
+        "debt_lent",
+        "debt_borrowed",
+        "debt_repaid_by_me",
+        "debt_repaid_to_me",
+    }
     found = {value for value, _label in Transaction._meta.get_field("type").choices}
     assert valid_types == found
 
