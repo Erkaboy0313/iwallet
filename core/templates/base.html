@@ -146,9 +146,16 @@
                 if (!isFinite(n)) return raw;
                 return n.toLocaleString("en-US").replace(/,/g, " ");
             },
-            // Extract just the integer portion of a stored amount ("1500.00" -> "1500").
+            // Extract just the integer portion of a stored amount. Handles
+            // both server locales: "6800.00" AND "6 800,00" (Django 5 turns
+            // USE_L10N on by default, which renders decimals with a comma
+            // in Uzbek locale). We drop any trailing "," or "." followed by
+            // up to a few fractional digits BEFORE stripping non-digits —
+            // otherwise "6 800,00" would collapse into "680000".
             fromServer: function (v) {
-                return this.strip((v == null ? "" : String(v)).split(".")[0]);
+                if (v == null) return "";
+                var s = String(v).replace(/[.,]\d+$/, "");
+                return this.strip(s);
             },
         };
         // Back navigation helper — history.back() when possible, fallback to
