@@ -48,7 +48,7 @@
                          style="width: 100%;
                                 max-width: 380px;
                                 pointer-events: auto">
-                        <article x-data="{ edit: false, amount: '{{ schedule.amount|stringformat:'d' }}', original: '{{ schedule.amount|stringformat:'d' }}', save_next: false, busy: false }"
+                        <article x-data="{ edit: false, amount: '{{ schedule.amount|stringformat:'d' }}', original: '{{ schedule.amount|stringformat:'d' }}', save_next: false, busy: false, get amountDisplay() { return window.iwMoney.format(this.amount); }, set amountDisplay(v) { this.amount = window.iwMoney.strip(v); } }"
                                  style="background: var(--color-surface);
                                         border: 1px solid var(--color-border);
                                         border-radius: 18px;
@@ -90,7 +90,7 @@
                                                 color: var(--color-text);
                                                 display: flex;
                                                 align-items: center">
-                                        <span class="amount" x-text="amount + ' so\'m'"></span>
+                                        <span class="amount" x-text="amountDisplay + ' so\'m'"></span>
                                     </div>
                                     <button type="button"
                                             @click="edit = true; $nextTick(() => { $refs.amountInput.focus(); $refs.amountInput.select(); })"
@@ -126,7 +126,7 @@
                                     <input x-ref="amountInput"
                                            type="text"
                                            inputmode="numeric"
-                                           x-model="amount"
+                                           x-model="amountDisplay"
                                            class="amount"
                                            aria-label="Summa"
                                            style="flex: 1;

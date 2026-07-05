@@ -144,7 +144,7 @@
                        name="amount"
                        type="text"
                        inputmode="numeric"
-                       x-model="amount"
+                       x-model="amountDisplay"
                        placeholder="0"
                        required
                        autocomplete="off"
@@ -370,13 +370,20 @@
         window.__recurringFormRegistered = true;
         function register() {
             window.Alpine.data("recurringForm", function (initialType, initialAmount, initialKind) {
+                var money = window.iwMoney;
                 return {
                     type: initialType || "expense",
-                    amount: (initialAmount || "").toString().split(".")[0].replace(/[^\d]/g, ""),
+                    amount: money.fromServer(initialAmount),
                     kind: initialKind || "monthly",
                     picker: null,
                     pickerLabel: "",
                     pickerEmoji: "",
+                    get amountDisplay() {
+                        return money.format(this.amount);
+                    },
+                    set amountDisplay(value) {
+                        this.amount = money.strip(value);
+                    },
                 };
             });
         }

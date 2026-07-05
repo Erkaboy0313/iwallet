@@ -88,7 +88,7 @@
                        padding: 0;
                        list-style: none">
                 {% for tx in transactions %}
-                    <li x-data="{ repay: false }"
+                    <li x-data="{ repay: false, repayAmount: window.iwMoney.fromServer('{{ tx.amount|floatformat:'0' }}'), get repayDisplay() { return window.iwMoney.format(this.repayAmount); }, set repayDisplay(v) { this.repayAmount = window.iwMoney.strip(v); } }"
                         style="background: var(--color-surface);
                                border: 1px solid var(--color-border);
                                border-radius: 14px;
@@ -228,9 +228,8 @@
                                 {% csrf_token %}
                                 <input type="text"
                                        name="amount"
-                                       inputmode="decimal"
-                                       placeholder="{{ tx.amount|floatformat:'0' }}"
-                                       value="{{ tx.amount|floatformat:'0' }}"
+                                       inputmode="numeric"
+                                       x-model="repayDisplay"
                                        aria-label="Qaytarilgan summa"
                                        class="amount"
                                        style="flex: 1;

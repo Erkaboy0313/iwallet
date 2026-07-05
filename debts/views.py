@@ -82,8 +82,11 @@ def new_debt_view(request):
     if currency not in CURRENCY_CODES:
         return _err("Valyuta noto'g'ri")
 
+    # Strip the thousand-separator space the front-end formatter injects
+    # ("500 000" → "500000") before Decimal parses.
+    raw = str(request.POST.get("amount") or "0").replace(" ", "").replace(",", "")
     try:
-        amount = Decimal(str(request.POST.get("amount") or "0"))
+        amount = Decimal(raw)
     except (InvalidOperation, ValueError):
         return _err("Summa noto'g'ri")
     if amount <= 0:
@@ -129,8 +132,11 @@ def partial_settle_view(request, tx_id: int):
     if tx is None:
         raise Http404("Qarz topilmadi")
 
+    # Strip the thousand-separator space the front-end formatter injects
+    # ("500 000" → "500000") before Decimal parses.
+    raw = str(request.POST.get("amount") or "0").replace(" ", "").replace(",", "")
     try:
-        amount = Decimal(str(request.POST.get("amount") or "0"))
+        amount = Decimal(raw)
     except (InvalidOperation, ValueError):
         return _err("Summa noto'g'ri")
     if amount <= 0:

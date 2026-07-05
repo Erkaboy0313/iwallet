@@ -131,6 +131,26 @@
             window._iwLog && window._iwLog("HX-HEADER", "X-Telegram-InitData.len=" + initData.length);
             if (initData) evt.detail.headers["X-Telegram-InitData"] = initData;
         });
+        // Money formatting — global helper so every amount input in the app
+        // renders "680 000" while storing the raw digit string. Alpine data
+        // wires x-model="amountDisplay" and the setter/getter roundtrip
+        // through iwMoney. Server-side clean_amount strips the space.
+        window.iwMoney = {
+            strip: function (v) {
+                return (v == null ? "" : String(v)).replace(/[^\d]/g, "");
+            },
+            format: function (v) {
+                var raw = this.strip(v);
+                if (!raw) return "";
+                var n = Number(raw);
+                if (!isFinite(n)) return raw;
+                return n.toLocaleString("en-US").replace(/,/g, " ");
+            },
+            // Extract just the integer portion of a stored amount ("1500.00" -> "1500").
+            fromServer: function (v) {
+                return this.strip((v == null ? "" : String(v)).split(".")[0]);
+            },
+        };
         // Back navigation helper — history.back() when possible, fallback to
         // the supplied URL when there's no in-app history (deep-link entry).
         window.iwBack = function (fallback) {
