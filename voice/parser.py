@@ -22,9 +22,18 @@ from .schemas import ParsedResponse, RecurringHint, VoiceDraft
 
 logger = logging.getLogger(__name__)
 
-VALID_TYPES = {"expense", "income", "debt_lent", "debt_borrowed"}
+VALID_TYPES = {
+    "expense",
+    "income",
+    "debt_lent",
+    "debt_borrowed",
+    "debt_repaid_by_me",
+    "debt_repaid_to_me",
+}
 VALID_CURRENCIES = {"UZS", "RUB", "USD"}
-DEBT_TYPES = {"debt_lent", "debt_borrowed"}
+# Types where a counterparty is meaningful — both original debt directions
+# and both repayment directions. Missing counterparty is flagged ambiguous.
+DEBT_TYPES = {"debt_lent", "debt_borrowed", "debt_repaid_by_me", "debt_repaid_to_me"}
 CATEGORY_TYPES = {"expense", "income"}
 FALLBACK_CATEGORY_SLUG = "boshqa"
 LOW_CONFIDENCE_THRESHOLD = 0.7

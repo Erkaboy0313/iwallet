@@ -420,3 +420,87 @@ def test_recurring_intent_with_weekly_day_out_of_range_drops_hint() -> None:
     payload = _envelope(_raw(), recurring=rec)
     result = normalize(payload, user)
     assert result.recurring_intent.recurring_hint is None
+
+
+# ---------- Sprint v0.8.1 — debt repayment types ----------
+
+
+@pytest.mark.django_db
+def test_debt_repaid_by_me_normalizes_into_valid_draft() -> None:
+    """'500 ming qarzdan 250 ni qaytardim' → debt_repaid_by_me, 250k, cp ambiguous."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(
+            type="debt_repaid_by_me",
+            amount="250000",
+            counterparty="",
+            category_slug="",
+            note="qarz qaytardim",
+        )
+    )
+    result = normalize(payload, user)
+    assert len(result.transactions) == 1
+    draft = result.transactions[0]
+    assert draft.type == "debt_repaid_by_me"
+    assert draft.amount == Decimal("250000.00")
+    # No category for repayment types.
+    assert draft.category_slug == ""
+    assert "category_slug" not in draft.ambiguous_fields
+    # Counterparty missing → flagged.
+    assert "counterparty" in draft.ambiguous_fields
+
+
+@pytest.mark.django_db
+def test_debt_repaid_to_me_normalizes_with_counterparty() -> None:
+    """'Karim mendan 200 ming qaytardi' → debt_repaid_to_me, 200k, Karim."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(
+            type="debt_repaid_to_me",
+            amount="200000",
+            counterparty="Karim",
+            category_slug="",
+            note="qarz qaytarib berdi",
+        )
+    )
+    result = normalize(payload, user)
+    draft = result.transactions[0]
+    assert draft.type == "debt_repaid_to_me"
+    assert draft.amount == Decimal("200000.00")
+    assert draft.counterparty == "Karim"
+    assert draft.category_slug == ""
+    assert "counterparty" not in draft.ambiguous_fields
+
+
+@pytest.mark.django_db
+def test_debt_repaid_by_me_with_15k_amount_unit() -> None:
+    """Amount coercion still applies to repayment types."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(
+            type="debt_repaid_by_me",
+            amount="250 ming",
+            counterparty="Karim",
+            category_slug="",
+        )
+    )
+    result = normalize(payload, user)
+    assert result.transactions[0].amount == Decimal("250000.00")
+
+
+@pytest.mark.django_db
+def test_repayment_type_ignored_category_even_if_gemini_sends_one() -> None:
+    """Gemini occasionally sends a category for a debt row — parser drops it
+    for repayment types like it does for the debt_* originals."""
+    user = UserFactory()
+    payload = _envelope(
+        _raw(
+            type="debt_repaid_by_me",
+            amount="100000",
+            counterparty="Karim",
+            category_slug="food",  # nonsensical for a repayment
+        )
+    )
+    result = normalize(payload, user)
+    assert result.transactions[0].category_slug == ""
+    assert "category_slug" not in result.transactions[0].ambiguous_fields

@@ -77,11 +77,11 @@ Listen carefully and return JSON matching this exact schema:
 {{
   "transactions": [
     {{
-      "type": "expense" | "income" | "debt_lent" | "debt_borrowed",
+      "type": "expense" | "income" | "debt_lent" | "debt_borrowed" | "debt_repaid_by_me" | "debt_repaid_to_me",
       "amount": "<decimal as a string, no thousands separators>",
       "currency": "UZS" | "RUB" | "USD",
       "category_slug": "<short ascii slug, e.g. 'food', 'transport', 'salary'>",
-      "counterparty": "<who, only for debt_*, otherwise empty string>",
+      "counterparty": "<who, only for debt_* / debt_repaid_*, otherwise empty string>",
       "date": "YYYY-MM-DD",
       "note": "<short free text note in original language, may be empty>",
       "confidence": <float 0..1>,
@@ -107,6 +107,29 @@ Recognize transaction types from context:
 - "oylik", "maosh" => income
 - "qarz berdim" => debt_lent (counterparty required)
 - "qarz oldim" => debt_borrowed (counterparty required)
+- Sprint v0.8.1 additions — partial repayment / paying-back cash movements.
+  These are distinct from the original debt event; the user is settling
+  (partially or fully) an existing debt, so cash MOVES again.
+  - "qarzimni qaytardim" / "qarz qaytardim" / "qaytarib berdim" /
+    "500 ming qarzdan 250 ni qaytardim" => debt_repaid_by_me
+    (the user is paying THEIR debt; counterparty = who they owed).
+    Amount is the *amount they paid back*, not the original debt.
+  - "Karim mendan 200 ming qaytardi" / "qarzini qaytarib berdi" /
+    "qarzim qaytdi" => debt_repaid_to_me
+    (the counterparty is paying back their debt to the user).
+    Amount is the *amount the counterparty paid*.
+  For BOTH repayment types: counterparty is required; category_slug MUST
+  be empty (repayments have no category).
+
+Few-shot examples for the repayment types:
+- "500 ming qarzdan 250 ni qaytardim" => 1 transaction, type=debt_repaid_by_me,
+  amount=250000, counterparty="" (unknown - flag ambiguous).
+- "Karimga 200 ming qaytardim" => 1 transaction, type=debt_repaid_by_me,
+  amount=200000, counterparty="Karim".
+- "Karim mendan 200 ming qaytardi" => 1 transaction, type=debt_repaid_to_me,
+  amount=200000, counterparty="Karim".
+- "Sardor qarzini yopdi" (no amount) => low confidence; ask the user
+  by flagging amount ambiguous.
 
 Recurring intent detection — Story 6.3:
 If the speaker hints at a recurring cadence ("har oy", "har hafta",
@@ -115,7 +138,7 @@ If the speaker hints at a recurring cadence ("har oy", "har hafta",
 
 {{
   "recurring_intent": {{
-    "type": "expense" | "income" | "debt_lent" | "debt_borrowed",
+    "type": "expense" | "income" | "debt_lent" | "debt_borrowed" | "debt_repaid_by_me" | "debt_repaid_to_me",
     "amount": "<decimal as string>",
     "currency": "UZS" | "RUB" | "USD",
     "category_slug": "<slug>",

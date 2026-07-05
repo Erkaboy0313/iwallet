@@ -190,7 +190,10 @@ def _coerce_save_payload(request: HttpRequest) -> dict:
         raise _SaveValidationError("Sana noto'g'ri") from exc
 
     counterparty = (data.get("counterparty") or "").strip()
-    if type_ in {"debt_lent", "debt_borrowed"} and not counterparty:
+    if (
+        type_ in {"debt_lent", "debt_borrowed", "debt_repaid_by_me", "debt_repaid_to_me"}
+        and not counterparty
+    ):
         raise _SaveValidationError("Kim bilan ekanini yozing")
 
     return {
@@ -334,7 +337,10 @@ def _coerce_one_draft(data: dict) -> dict:
         raise _SaveValidationError("Sana noto'g'ri") from exc
 
     counterparty = (data.get("counterparty") or "").strip()
-    if type_ in {"debt_lent", "debt_borrowed"} and not counterparty:
+    if (
+        type_ in {"debt_lent", "debt_borrowed", "debt_repaid_by_me", "debt_repaid_to_me"}
+        and not counterparty
+    ):
         raise _SaveValidationError("Kim bilan ekanini yozing")
 
     return {

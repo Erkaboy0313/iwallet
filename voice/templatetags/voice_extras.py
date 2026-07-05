@@ -31,6 +31,8 @@ TYPE_LABELS = {
     "income": "Kirim",
     "debt_lent": "Qarz berdim",
     "debt_borrowed": "Qarz oldim",
+    "debt_repaid_by_me": "Qarz qaytardim",
+    "debt_repaid_to_me": "Qarz qaytarib olindi",
 }
 
 WEEKDAY_LABELS = [
