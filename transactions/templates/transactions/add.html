@@ -1,6 +1,11 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Yangi tranzaksiya — IWALLET{% endblock %}
+{% comment %}
+    No bottom nav while adding — the "+" button sat right under Saqlash
+    and Eric kept mis-tapping into a fresh Add page, wiping his form.
+{% endcomment %}
+{% block bottom_nav %}{% endblock %}
 {% block content %}
     <section style="padding: 16px 20px 120px"
              x-data="addTxForm('{{ form.type.value|default:'expense' }}', '{{ form.amount.value|default:'' }}')">
@@ -295,17 +300,20 @@
                                  font-family: inherit">{{ form.note.value|default:'' }}</textarea>
             </div>
         </form>
-        {# Sticky bottom CTA — butts against the bottom nav (no gap). #}
+        {% comment %}
+            Sticky bottom CTA. Nav is hidden on this page so we sit flush
+            with the viewport edge — no accidental "+" tap risk.
+        {% endcomment %}
         <div style="position: fixed;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 100%;
                     max-width: 430px;
-                    bottom: calc(64px + env(safe-area-inset-bottom, 0));
+                    bottom: env(safe-area-inset-bottom, 0);
                     z-index: 30;
                     background: var(--color-surface);
                     border-top: 1px solid var(--color-border);
-                    padding: 8px 16px">
+                    padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0))">
             <button type="submit"
                     form="add-form"
                     aria-label="Tranzaksiyani saqlash"

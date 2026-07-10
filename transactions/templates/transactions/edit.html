@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Tahrirlash — IWALLET{% endblock %}
+{% block bottom_nav %}{% endblock %}
 {% block content %}
     <section style="padding: 16px 20px 120px"
              data-initial-cat-name="{% if tx.category %}{{ tx.category.name }}{% endif %}"
@@ -259,17 +260,20 @@
                                  font-family: inherit">{{ form.note.value|default:tx.note }}</textarea>
             </div>
         </form>
-        {# Sticky Save — butts against the nav. Delete moved to the detail page's confirmation sheet. #}
+        {% comment %}
+            Sticky Save. Nav hidden on this page so we sit flush with the
+            viewport edge — no accidental "+" tap risk.
+        {% endcomment %}
         <div style="position: fixed;
                     left: 50%;
                     transform: translateX(-50%);
                     width: 100%;
                     max-width: 430px;
-                    bottom: calc(64px + env(safe-area-inset-bottom, 0));
+                    bottom: env(safe-area-inset-bottom, 0);
                     z-index: 30;
                     background: var(--color-surface);
                     border-top: 1px solid var(--color-border);
-                    padding: 8px 16px">
+                    padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0))">
             <button type="submit"
                     form="edit-form"
                     aria-label="O'zgarishlarni saqlash"

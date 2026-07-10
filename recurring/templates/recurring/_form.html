@@ -8,6 +8,7 @@
     {% endif %}
     — IWALLET
 {% endblock %}
+{% block bottom_nav %}{% endblock %}
 {% block content %}
     <section style="padding: 16px 20px 120px"
              data-initial-cat-name="{% if form.category_slug.value %}{{ form.category_slug.value }}{% endif %}"
@@ -340,11 +341,11 @@
                     transform: translateX(-50%);
                     width: 100%;
                     max-width: 430px;
-                    bottom: calc(64px + env(safe-area-inset-bottom, 0));
+                    bottom: env(safe-area-inset-bottom, 0);
                     z-index: 30;
                     background: var(--color-surface);
                     border-top: 1px solid var(--color-border);
-                    padding: 8px 16px">
+                    padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0))">
             <button type="submit"
                     form="recurring-form"
                     aria-label="Saqlash"
