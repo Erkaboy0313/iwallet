@@ -48,15 +48,13 @@ class ManualTransactionForm(forms.Form):
         required=False,
         label="Kategoriya",
     )
-    amount = forms.DecimalField(
-        max_digits=15,
-        decimal_places=2,
-        min_value=Decimal("0.01"),
+    # CharField (not DecimalField) so the client-side thousand-separator
+    # formatting ("100 000") survives arrival. Django's DecimalField would
+    # reject the space via to_python before clean_amount ever runs. We do
+    # the actual Decimal parse ourselves in clean_amount below.
+    amount = forms.CharField(
         label="Summa",
-        error_messages={
-            "required": "Summani kiriting.",
-            "min_value": "Summa musbat bo'lishi kerak.",
-        },
+        error_messages={"required": "Summani kiriting."},
     )
     currency = forms.ChoiceField(
         choices=CURRENCY_CHOICES,

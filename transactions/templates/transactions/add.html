@@ -218,8 +218,9 @@
                     <span aria-hidden="true" style="color: var(--color-text-muted)">›</span>
                 </button>
             </div>
-            {# Counterparty (debt only) #}
-            <div x-show="type === 'debt_lent' || type === 'debt_borrowed'" x-cloak>
+            {# Counterparty — every debt-family type needs a name attached. #}
+            <div x-show="type === 'debt_lent' || type === 'debt_borrowed' || type === 'debt_repaid_by_me' || type === 'debt_repaid_to_me'"
+                 x-cloak>
                 <label for="id_counterparty"
                        style="display: block;
                               font-size: 10px;
