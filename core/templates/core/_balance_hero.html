@@ -138,7 +138,7 @@ converted in lists — only the headline balance is.
                     <span class="amount"
                           style="font-size: 14px;
                                  font-weight: 700;
-                                 color: var(--color-text)">{{ summary.inflow_total|smart_money:source_currency }}</span>
+                                 color: var(--color-text)">{{ summary.total_income|smart_money:source_currency }}</span>
                 </span>
             </a>
             <a href="{% url 'transactions:history' %}?type=expense"
@@ -180,7 +180,7 @@ converted in lists — only the headline balance is.
                     <span class="amount"
                           style="font-size: 14px;
                                  font-weight: 700;
-                                 color: var(--color-text)">{{ summary.outflow_total|smart_money:source_currency }}</span>
+                                 color: var(--color-text)">{{ summary.total_expense|smart_money:source_currency }}</span>
                 </span>
             </a>
         </div>
