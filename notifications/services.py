@@ -476,6 +476,38 @@ def handle_callback(data: str) -> str:
     return "Eski yoki noma'lum amal."
 
 
+def send_user_message_to_admin(user, text: str) -> bool:
+    """Sync entry point the WebApp support form calls.
+
+    Reuses the async `_forward_to_admin` handler helper so the same
+    formatting + AdminMessageLink insert logic that the bot's DM path uses
+    also drives the in-app form. Admin's swipe-to-reply routes back to the
+    user's DM the exact same way — one relay path.
+    """
+    from asgiref.sync import async_to_sync
+
+    from .bot.handlers import _forward_to_admin
+
+    text = (text or "").strip()
+    if not text:
+        return False
+    admin_chat_id = getattr(settings, "TELEGRAM_ADMIN_CHAT_ID", 0) or 0
+    if not admin_chat_id:
+        return False
+    user_dict = {
+        "id": user.telegram_id,
+        "username": user.username or "",
+        "first_name": user.first_name or "",
+        "last_name": user.last_name or "",
+    }
+    try:
+        async_to_sync(_forward_to_admin)(user.telegram_id, user_dict, text)
+    except Exception:
+        logger.exception("send_user_message_to_admin failed for user=%s", user.telegram_id)
+        return False
+    return True
+
+
 __all__ = [
     "send_push",
     "process_pending",
@@ -489,6 +521,7 @@ __all__ = [
     "cancel_debt_due_callback",
     "confirm_debt_reminder_paid_callback",
     "defer_debt_reminder_callback",
+    "send_user_message_to_admin",
 ]
 
 

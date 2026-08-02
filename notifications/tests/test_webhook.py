@@ -302,6 +302,9 @@ async def test_webhook_routes_help_command() -> None:
     TELEGRAM_WEBHOOK_SECRET="ok",
     TELEGRAM_BOT_TOKEN="fake-token",
     WEBAPP_URL="https://iwallet.example/app/home/",
+    # Force admin relay off so this test still asserts "no reply" — the
+    # admin-relay feature's own tests cover the forward path directly.
+    TELEGRAM_ADMIN_CHAT_ID=0,
 )
 async def test_webhook_ignores_non_command_text_message() -> None:
     seen: list[dict] = []

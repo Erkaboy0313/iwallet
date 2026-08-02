@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Adminga yozish — IWALLET{% endblock %}
+{% block bottom_nav %}{% endblock %}
+{% block content %}
+    <section style="padding: 16px 20px 120px">
+        <header style="display: flex;
+                       align-items: center;
+                       gap: 8px;
+                       min-height: 44px;
+                       margin-bottom: 20px">
+            <a href="{% url 'core:settings_hub' %}"
+               onclick="iwBack(this.href); return false"
+               aria-label="Orqaga"
+               style="display: inline-flex;
+                      align-items: center;
+                      justify-content: center;
+                      width: 44px;
+                      height: 44px;
+                      color: var(--color-text-secondary);
+                      text-decoration: none">
+                <svg width="22"
+                     height="22"
+                     fill="none"
+                     stroke="currentColor"
+                     stroke-width="1.8"
+                     viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+            </a>
+            <h1 style="margin: 0;
+                       font-size: 18px;
+                       font-weight: 600;
+                       color: var(--color-text)">Adminga yozish</h1>
+        </header>
+        <p style="margin: 0 0 20px;
+                  font-size: 14px;
+                  color: var(--color-text-secondary);
+                  line-height: 1.5">
+            Taklif, savol yoki xato haqida yozing. Admin javob bersa —
+            <strong>botning o'z chatiga</strong> xabar keladi.
+        </p>
+        <form id="support-form"
+              hx-post="{% url 'notifications:support_send' %}"
+              hx-swap="none"
+              x-data="{ text: '', busy: false }"
+              @htmx:before-request="busy = true"
+              @htmx:after-request="busy = false"
+              style="display: flex;
+                     flex-direction: column;
+                     gap: 16px">
+            {% csrf_token %}
+            <label for="id_text"
+                   style="display: block;
+                          font-size: 10px;
+                          letter-spacing: 0.06em;
+                          text-transform: uppercase;
+                          color: var(--color-text-muted);
+                          font-weight: 600">Xabar</label>
+            <textarea id="id_text"
+                      name="text"
+                      x-model="text"
+                      rows="6"
+                      required
+                      placeholder="Salom, taklifim bor..."
+                      style="width: 100%;
+                             padding: 14px 16px;
+                             font-size: 15px;
+                             border: 1.5px solid var(--color-border);
+                             border-radius: 14px;
+                             background: var(--color-surface);
+                             color: var(--color-text);
+                             outline: none;
+                             resize: vertical;
+                             min-height: 140px;
+                             font-family: inherit;
+                             line-height: 1.5"></textarea>
+        </form>
+        <div style="position: fixed;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    width: 100%;
+                    max-width: 430px;
+                    bottom: env(safe-area-inset-bottom, 0);
+                    z-index: 30;
+                    background: var(--color-surface);
+                    border-top: 1px solid var(--color-border);
+                    padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0))">
+            <button type="submit"
+                    form="support-form"
+                    aria-label="Xabarni yuborish"
+                    style="width: 100%;
+                           padding: 12px 20px;
+                           border: 0;
+                           border-radius: 14px;
+                           font-size: 15px;
+                           font-weight: 700;
+                           color: var(--color-primary-on);
+                           background: var(--gradient-cta);
+                           box-shadow: var(--shadow-cta);
+                           cursor: pointer">Yuborish</button>
+        </div>
+    </section>
+{% endblock %}

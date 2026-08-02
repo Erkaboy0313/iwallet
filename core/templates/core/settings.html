@@ -70,6 +70,14 @@
             {% include 'core/components/_list_row.html' with label='Kategoriyalar' href='/app/settings/categories/' chevron=True divider=True %}
             {% include 'core/components/_list_row.html' with label='Takrorlanuvchi to\'lovlar' href='/app/settings/recurring/' chevron=True divider=False %}
         </div>
+        {% include 'core/components/_section_label.html' with label='Yordam' %}
+        <div style="background: var(--color-surface);
+                    border: 1px solid var(--color-border);
+                    border-radius: 14px;
+                    box-shadow: var(--shadow-soft);
+                    overflow: hidden">
+            {% include 'core/components/_list_row.html' with label='Adminga yozish' href='/app/support/' chevron=True divider=False %}
+        </div>
         {% include 'core/components/_section_label.html' with label='Maxfiylik' %}
         <div style="background: var(--color-surface);
                     border: 1px solid var(--color-border);

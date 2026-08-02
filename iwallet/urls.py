@@ -18,4 +18,5 @@ urlpatterns = [
     path("app/", include("reports.urls")),
     path("app/", include("voice.urls")),
     path("app/", include("quotes.urls")),
+    path("app/", include("notifications.urls")),
 ]

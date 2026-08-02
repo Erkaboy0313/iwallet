@@ -27,7 +27,7 @@ TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
 # forwarded here, and Eric's swipe-to-reply on that forward is routed
 # back to the original user. Find yours by DMing the bot /start once and
 # reading the log line "bot: /start ... chat=<id>".
-TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default=0, cast=int)
+TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default=672639641, cast=int)
 # Public origin Telegram POSTs to (used by `setup_bot` to build the
 # webhook URL). Falls back to WEBAPP_URL's origin if unset.
 WEBHOOK_BASE_URL = config("WEBHOOK_BASE_URL", default="")
