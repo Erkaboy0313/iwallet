@@ -11,15 +11,17 @@ repos:
       - id: check-toml
       - id: check-yaml
 
+  # Keep these pinned to the same versions as requirements-dev.txt —
+  # otherwise pre-commit reformats to one style and CI rejects it.
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.1
     hooks:
       - id: ruff
         args: [--fix]
       - id: ruff-format
 
   - repo: https://github.com/djlint/djLint
-    rev: v1.39.4
+    rev: v1.43.2
     hooks:
       - id: djlint-reformat-django
       - id: djlint-django

@@ -14,7 +14,9 @@
                        gap: 12px;
                        padding: 12px 16px;
                        min-height: 56px;
-                       {% if not forloop.last %}border-bottom: 1px solid var(--color-border);{% endif %} {% if cat.is_hidden_for_user %}opacity: 0.55;{% endif %}">
+                       {% if not forloop.last %}border-bottom: 1px solid var(--color-border);
+                       {% endif %} {% if cat.is_hidden_for_user %}opacity: 0.55;
+                       {% endif %}">
                 <span style="display: flex; align-items: center; gap: 12px; min-width: 0">
                     <span aria-hidden="true" style="font-size: 22px; line-height: 1">{{ cat.emoji }}</span>
                     <span style="min-width: 0">

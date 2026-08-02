@@ -93,7 +93,8 @@
                                border: 1px solid var(--color-border);
                                border-radius: 14px;
                                padding: 12px 14px;
-                               {% if tx.settled_at %}opacity: 0.55;{% endif %}">
+                               {% if tx.settled_at %}opacity: 0.55;
+                               {% endif %}">
                         <a href="{% url 'transactions:detail' tx.id %}"
                            aria-label="Qarz tafsilotlari"
                            style="display: flex;
