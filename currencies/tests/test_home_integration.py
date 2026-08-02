@@ -139,14 +139,15 @@ def test_home_content_renders_stale_banner_when_rates_old(monkeypatch) -> None:
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
 @pytest.mark.django_db
-def test_home_content_hero_stays_zero_for_debt_only_user() -> None:
-    """Sprint v0.8 — a user who only recorded 'qarz oldim' must not see the
-    hero jump like it's income. Sof balans should stay at 0 so'm; the debt
-    surfaces as a Berishingiz kerak chip instead.
+def test_home_content_hero_reflects_cash_in_hand_including_debt_flow() -> None:
+    """Sprint v0.8 final — hero shows CASH IN HAND, which includes debt
+    movements. Borrowing 500k gives the user 500k more cash in their pocket
+    (they'll have to give it back later — that shows as a Berishingiz kerak
+    chip). The two views together = honest picture: I have 500k, I owe 500k.
     """
     user = User.objects.create(
         telegram_id=904,
-        first_name="Debtor",
+        first_name="Borrower",
         onboarded_at=timezone.now(),
         default_currency="UZS",
     )
@@ -159,18 +160,57 @@ def test_home_content_hero_stays_zero_for_debt_only_user() -> None:
         date=date.today(),
     )
     client = Client()
-    init_data = _make_init_data(user_id=user.telegram_id, first_name="Debtor")
+    init_data = _make_init_data(user_id=user.telegram_id, first_name="Borrower")
     response = client.get(
         reverse("core:home_content"),
         headers={"X-Telegram-InitData": init_data},
     )
     body = response.content.decode("utf-8")
-    # The big Sof balans number is 0 so'm — debt_borrowed is NOT folded in.
+    # Hero reflects the borrowed cash — user actually has 500k in pocket right now.
     assert "Sof balans" in body
-    assert f"0 {SOM}" in body
-    # But the debt shows up as a "Berishingiz kerak" chip with the amount.
-    assert "Berishingiz kerak" in body
     assert f"500{THIN}000 {SOM}" in body
+    # And the outstanding liability shows as a Berishingiz kerak chip.
+    assert "Berishingiz kerak" in body
+
+
+@override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)
+@pytest.mark.django_db
+def test_home_content_hero_drops_when_lending_out() -> None:
+    """Eric's regression: 10M salary + 3M lent to Karim → hero must show
+    7M (cash left the pocket) and the 3M surfaces as Olishingiz kerak.
+    """
+    user = User.objects.create(
+        telegram_id=905,
+        first_name="Lender",
+        onboarded_at=timezone.now(),
+        default_currency="UZS",
+    )
+    TransactionFactory(
+        user=user,
+        type="income",
+        amount=Decimal("10000000"),
+        currency="UZS",
+        date=date.today(),
+    )
+    TransactionFactory(
+        user=user,
+        type="debt_lent",
+        amount=Decimal("3000000"),
+        currency="UZS",
+        counterparty="Karim",
+        date=date.today(),
+    )
+    client = Client()
+    init_data = _make_init_data(user_id=user.telegram_id, first_name="Lender")
+    response = client.get(
+        reverse("core:home_content"),
+        headers={"X-Telegram-InitData": init_data},
+    )
+    body = response.content.decode("utf-8")
+    # Cash in hand = 10M income − 3M lent = 7M.
+    assert f"7{THIN}000{THIN}000 {SOM}" in body
+    # And Karim owes back 3M.
+    assert "Olishingiz kerak" in body
 
 
 @override_settings(TELEGRAM_BOT_TOKEN=BOT_TOKEN)

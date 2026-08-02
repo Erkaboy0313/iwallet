@@ -90,11 +90,12 @@ def home_content(request):
     bundle = compute_home_aggregates(user, today=today)
     summary = bundle.summaries[source_currency]
     aggregated = bundle.aggregates[display_currency]
-    # Sprint v0.8 — hero shows all-time OPERATING cash (income − expense) so
-    # a "qarz oldim"-only user doesn't see the balance jump like it's income.
-    # Debts live as separate chips below the hero. The switcher's data-* attrs
-    # mirror the hero number so instant flip stays consistent with the render.
-    balance_by_currency = {ccy: agg.all_time_operating for ccy, agg in bundle.aggregates.items()}
+    # Sprint v0.8 final — hero shows all-time CASH IN HAND. Every debt movement
+    # affects it (lending drops the wallet, receiving-back tops it up). Pills
+    # below still show income/expense only, chips still show outstanding debt
+    # positions — three views of the same truth, no double-counting. Switcher's
+    # data-* attrs mirror the hero number so instant flip stays consistent.
+    balance_by_currency = {ccy: agg.all_time_cash_balance for ccy, agg in bundle.aggregates.items()}
     fully_supported = aggregated.is_fully_supported
 
     rates_stale_days = current_rates_stale_days()
