@@ -7,6 +7,10 @@ requires-python = ">=3.12"
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+# docs/ are prose with illustrative code snippets — not production Python.
+# Newer ruff versions try to format markdown code blocks, which breaks CI on
+# example code that intentionally shows bad patterns ("❌ don't do this").
+extend-exclude = ["docs"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "DJ", "SIM", "RET", "ARG"]
