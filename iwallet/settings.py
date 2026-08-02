@@ -22,6 +22,12 @@ ALLOWED_HOSTS = config("ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv(
 
 TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
 TELEGRAM_WEBHOOK_SECRET = config("TELEGRAM_WEBHOOK_SECRET", default="")
+# Admin's Telegram user_id (= chat_id for a private DM). Enables the
+# support-chat relay: any non-command text a user sends to the bot is
+# forwarded here, and Eric's swipe-to-reply on that forward is routed
+# back to the original user. Find yours by DMing the bot /start once and
+# reading the log line "bot: /start ... chat=<id>".
+TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default=0, cast=int)
 # Public origin Telegram POSTs to (used by `setup_bot` to build the
 # webhook URL). Falls back to WEBAPP_URL's origin if unset.
 WEBHOOK_BASE_URL = config("WEBHOOK_BASE_URL", default="")
@@ -189,6 +195,16 @@ LOGGING = {
 }
 
 # === Production hardening ===
+
+if not DEBUG and not TELEGRAM_ADMIN_CHAT_ID:
+    # Warn but don't crash — the app must boot without the support-chat feature
+    # so a misconfigured .env doesn't take the whole service down. Users' texts
+    # will be silently dropped until this is set.
+    import logging as _logging
+
+    _logging.getLogger(__name__).warning(
+        "TELEGRAM_ADMIN_CHAT_ID not set — user↔admin support chat is disabled"
+    )
 
 if not DEBUG:
     # HTTPS / HSTS

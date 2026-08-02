@@ -56,3 +56,41 @@ class PushQueueItem(models.Model):
 
     def __str__(self) -> str:
         return f"{self.kind} → {self.user_id} ({self.created_at:%Y-%m-%d})"
+
+
+class AdminMessageLink(models.Model):
+    """Maps a message the bot sent into the admin's chat back to the user
+    who originally sent it. When the admin replies to that message, the
+    handler looks up the row to find the target user.
+
+    Text-only for MVP. `user_telegram_id` is the raw Telegram id (not a FK to
+    accounts.User) because the sender may not be a registered WebApp user yet.
+
+    For future media support: extend the "message" concept by adding
+    downstream fields here (e.g. `content_kind`) without touching the
+    existing shape — the reply-routing lookup only needs
+    `(admin_chat_id, admin_message_id) → user_telegram_id`.
+    """
+
+    admin_chat_id = models.BigIntegerField()
+    admin_message_id = models.BigIntegerField()
+    user_telegram_id = models.BigIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["admin_chat_id", "admin_message_id"]),
+        ]
+        # Same (chat_id, message_id) can't map to two different users.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["admin_chat_id", "admin_message_id"],
+                name="notifications_admin_message_link_unique",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"admin_msg({self.admin_chat_id}:{self.admin_message_id})"
+            f" → user={self.user_telegram_id}"
+        )
