@@ -1,0 +1,10 @@
+[Unit]
+Description=IWALLET daily PostgreSQL backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00 Asia/Tashkent
+Persistent=true
+Unit=iwallet-docker@backup.service
+
+[Install]
+WantedBy=timers.target

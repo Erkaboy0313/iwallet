@@ -1,0 +1,9 @@
+[Unit]
+Description=IWALLET scheduled job (%i)
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /srv/iwallet/current/deploy/scripts/scheduled-docker.sh %i
+TimeoutStartSec=300

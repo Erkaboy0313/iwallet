@@ -1,0 +1,16 @@
+.git
+.claude
+.venv
+node_modules
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.coverage
+.env
+.env.*
+*.sqlite3*
+staticfiles
+*.tar.gz
+*.dump
+*.log
+docs

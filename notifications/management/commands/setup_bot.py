@@ -112,7 +112,7 @@ class Command(BaseCommand):
                     )
                 except TelegramAPIError as exc:
                     raise CommandError(f"setWebhook failed: {exc}") from exc
-                self.stdout.write(self.style.SUCCESS(f"Webhook set to: {webhook_url}"))
+                self.stdout.write(self.style.SUCCESS("Webhook configured successfully."))
 
 
 def _derive_webhook_url() -> str | None:

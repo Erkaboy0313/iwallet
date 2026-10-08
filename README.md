@@ -98,28 +98,14 @@ Pre-commit hook'lar avtomatik ishlaydi commit paytida.
 
 ## Deployga chiqarish
 
-Deploy diagrammasi va systemd/nginx yo'l-yo'riqlari: [deploy/README.md](deploy/README.md)
+Production: **https://track.hygen.uz** (`217.76.61.147`).
 
-Qisqacha:
-- GitHub Actions push'da CI ishga tushadi (test + rsync)
-- Droplet'da `deploy.sh` migrate + collectstatic + symlink flip qiladi
-- `iwallet-web.service` (uvicorn :8010) + `iwallet-bot.service` (uvicorn :8011) systemd'da yashaydi
-- nginx `/bot/webhook/*` → :8011, qolgan hammasini :8010'ga proksilaydi
+Docker Compose web, bot, statik fayllar gateway'i va PostgreSQL'ni boshqaradi.
+Serverdagi mavjud Caddy HTTPS trafikni IWALLET gateway'iga uzatadi.
+PostgreSQL alohida doimiy volume'da; har kuni avtomatik backup olinadi.
 
-**Birinchi deploy'dan keyin bir marta:**
-
-```bash
-# Droplet'da:
-cd /srv/iwallet/current
-sudo -u iwallet /srv/iwallet/venv/bin/python manage.py setup_bot         # Telegram webhook + commands
-sudo -u iwallet /srv/iwallet/venv/bin/python manage.py set_menu_button   # WebApp launch tugmasi
-```
-
-**Kunlik cron/timer'lar** (systemd timer bilan sozlanadi):
-
-- `enqueue_debt_reminders` — 7 kundan eski qarzlar uchun bot xabari
-- `send_pending_pushes` — PushQueueItem'larni Telegramga jo'natish
-- `fetch_rates` (ixtiyoriy) — CBU.uz kurslarini kuniga yangilash
+Deploy, bot sozlamalari, timerlar va keyinchalik eski bazani ko'chirish tartibi:
+[deploy/README.md](deploy/README.md).
 
 ## Loyiha strukturasi
 

@@ -22,7 +22,6 @@ from accounts.models import User
 from accounts.services import get_or_create_user_from_init_data, validate_init_data
 from currencies.constants import CURRENCY_CHOICES, CURRENCY_CODES
 from currencies.selectors import compute_home_aggregates, current_rates_stale_days
-from currencies.services import update_rates_if_stale
 from currencies.views import SESSION_DISPLAY_CURRENCY
 from quotes.models import QuoteDismissal
 from quotes.selectors import quote_of_the_day
@@ -36,7 +35,12 @@ INIT_DATA_HEADER = "X-Telegram-InitData"
 
 @require_GET
 def home(request):
-    """Render the public shell. JS in base.html attaches initData on the htmx call."""
+    """Render returning users immediately; first Telegram launch uses the shell."""
+    user = _session_user(request)
+    if user is not None and user.onboarded_at is not None:
+        return render(
+            request, "core/home.html", {"home_ready": True, **_home_context(request, user)}
+        )
     return render(request, "core/home.html")
 
 
@@ -46,20 +50,30 @@ def home_content(request):
     init_data = request.headers.get(INIT_DATA_HEADER, "")
     user = _try_authenticate(init_data)
     if user is None:
-        cached_id = request.session.get(SESSION_KEY)
-        if cached_id is not None:
-            user = User.objects.filter(telegram_id=cached_id).first()
+        user = _session_user(request)
 
     if user is None:
         return render(request, "core/_home_anonymous.html")
 
-    request.session[SESSION_KEY] = user.telegram_id
+    if request.session.get(SESSION_KEY) != user.telegram_id:
+        request.session[SESSION_KEY] = user.telegram_id
 
     if user.onboarded_at is None:
         response = HttpResponse(status=200)
         response.headers["HX-Redirect"] = reverse("accounts:onboarding")
         return response
 
+    return render(request, "core/_balance_hero.html", _home_context(request, user))
+
+
+def _session_user(request) -> User | None:
+    cached_id = request.session.get(SESSION_KEY)
+    if cached_id is None:
+        return None
+    return User.objects.filter(telegram_id=cached_id).first()
+
+
+def _home_context(request, user: User) -> dict:
     # Display currency is purely for the balance hero's aggregated total.
     # Transactions, top-categories, history, reports all stay in source
     # currency (user.default_currency drives the per-source summary below).
@@ -67,26 +81,8 @@ def home_content(request):
     source_currency = user.default_currency or "UZS"
     today = timezone.localdate()
 
-    # Refresh CBU.uz rates on-demand if today's row is missing. The check
-    # itself is one indexed DB lookup; the external HTTP call only fires
-    # once per calendar day (until today's rate is stored). Session flag
-    # is only set once a fetch has actually succeeded, so a transient CBU
-    # outage on the first hit doesn't lock us out of retries for the day.
-    from currencies.models import ExchangeRate  # noqa: PLC0415 — avoid cycle
-
-    _rates_key = f"iw_rates_checked_{today.isoformat()}"
-    if not request.session.get(_rates_key):
-        try:
-            update_rates_if_stale(today=today)
-        except Exception:
-            logger.exception("update_rates_if_stale failed; will retry next request")
-        if ExchangeRate.objects.filter(date=today).exists():
-            request.session[_rates_key] = True
-
-    # One pass for everything currency-related: 3 month_summary queries +
-    # 3 latest_rate queries shared across all 3 switcher aggregates.
-    # Previously this block ran ~63 queries; CBU.uz refresh has also moved
-    # off the hot path into the daily refresh_cbu_rates management command.
+    # Pages only read stored rates. The rates timer runs fetch_rates outside
+    # requests, so CBU network timeouts/retries cannot stall page navigation.
     bundle = compute_home_aggregates(user, today=today)
     summary = bundle.summaries[source_currency]
     aggregated = bundle.aggregates[display_currency]
@@ -109,27 +105,23 @@ def home_content(request):
 
     prompts = list(pending_prompts(user, today=today))
 
-    return render(
-        request,
-        "core/_balance_hero.html",
-        {
-            "summary": summary,
-            "user": user,
-            "aggregated": aggregated,
-            "display_currency": display_currency,
-            "source_currency": source_currency,
-            "currency_choices": CURRENCY_CHOICES,
-            "balance_by_currency": balance_by_currency,
-            "rates_stale_days": rates_stale_days,
-            "rates_stale_date": rates_stale_date,
-            "forced_raw_no_rates": forced_raw_no_rates,
-            "quote": quote,
-            "inflow_series": inflow_series,
-            "outflow_series": outflow_series,
-            "mom_delta": mom_delta,
-            "recurring_prompts": prompts,
-        },
-    )
+    return {
+        "summary": summary,
+        "user": user,
+        "aggregated": aggregated,
+        "display_currency": display_currency,
+        "source_currency": source_currency,
+        "currency_choices": CURRENCY_CHOICES,
+        "balance_by_currency": balance_by_currency,
+        "rates_stale_days": rates_stale_days,
+        "rates_stale_date": rates_stale_date,
+        "forced_raw_no_rates": forced_raw_no_rates,
+        "quote": quote,
+        "inflow_series": inflow_series,
+        "outflow_series": outflow_series,
+        "mom_delta": mom_delta,
+        "recurring_prompts": prompts,
+    }
 
 
 def _resolve_display_currency(request, user: User) -> str:

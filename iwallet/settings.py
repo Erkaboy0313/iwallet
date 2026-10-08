@@ -32,7 +32,7 @@ TELEGRAM_ADMIN_CHAT_ID = config("TELEGRAM_ADMIN_CHAT_ID", default=672639641, cas
 # webhook URL). Falls back to WEBAPP_URL's origin if unset.
 WEBHOOK_BASE_URL = config("WEBHOOK_BASE_URL", default="")
 # Public WebApp landing URL (used by the bot's /start + menu button).
-WEBAPP_URL = config("WEBAPP_URL", default="https://iwallet.buildermode.uz/app/home/")
+WEBAPP_URL = config("WEBAPP_URL", default="https://track.hygen.uz/app/home/")
 GEMINI_API_KEY = config("GEMINI_API_KEY", default="")
 REDIS_URL = config("REDIS_URL", default="redis://localhost:6379/0")
 
@@ -145,6 +145,19 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
+# Content hashes change only when an asset changes, so navigation can reuse
+# cached CSS/JS while every deployment still serves the correct version.
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": (
+            "django.contrib.staticfiles.storage.StaticFilesStorage"
+            if DEBUG
+            else "django.contrib.staticfiles.storage.ManifestStaticFilesStorage"
+        ),
+    },
+}
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # === Content Security Policy (django-csp 4.x format) ===
@@ -189,6 +202,9 @@ LOGGING = {
     },
     "root": {"level": LOG_LEVEL, "handlers": ["stdout"]},
     "loggers": {
+        # HTTP client INFO logs contain Telegram bot tokens in request URLs.
+        "httpx": {"level": "WARNING", "propagate": True},
+        "httpcore": {"level": "WARNING", "propagate": True},
         "django": {"level": "INFO", "propagate": True},
         "django.db.backends": {"level": "WARNING", "propagate": True},
     },

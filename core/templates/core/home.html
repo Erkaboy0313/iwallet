@@ -1,10 +1,14 @@
 {% extends 'base.html' %}
 {% block title %}Uy — IWALLET{% endblock %}
 {% block content %}
-    <section class="px-5 pt-6"
-             hx-get="{% url 'core:home_content' %}"
-             hx-trigger="load"
-             hx-swap="outerHTML">
-        {% include 'core/_home_loading.html' %}
-    </section>
+    {% if home_ready %}
+        {% include 'core/_balance_hero.html' %}
+    {% else %}
+        <section class="px-5 pt-6"
+                 hx-get="{% url 'core:home_content' %}"
+                 hx-trigger="load"
+                 hx-swap="outerHTML">
+            {% include 'core/_home_loading.html' %}
+        </section>
+    {% endif %}
 {% endblock %}

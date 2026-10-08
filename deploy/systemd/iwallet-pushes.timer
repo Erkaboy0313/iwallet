@@ -1,0 +1,10 @@
+[Unit]
+Description=IWALLET pending notification delivery
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=iwallet-docker@pushes.service
+
+[Install]
+WantedBy=timers.target

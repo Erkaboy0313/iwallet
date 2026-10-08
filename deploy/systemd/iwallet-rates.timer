@@ -1,0 +1,10 @@
+[Unit]
+Description=IWALLET exchange-rate refresh outside page requests
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=1h
+Unit=iwallet-docker@rates.service
+
+[Install]
+WantedBy=timers.target

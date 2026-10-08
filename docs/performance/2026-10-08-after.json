@@ -1,0 +1,332 @@
+[
+  {
+    "navigation": {
+      "ttfb": 1062.1000000238419,
+      "dom": 1389.699999988079,
+      "load": 2772.199999988079
+    },
+    "paint": [
+      {
+        "name": "first-paint",
+        "ms": 1532
+      },
+      {
+        "name": "first-contentful-paint",
+        "ms": 1532
+      }
+    ],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 264.80000001192093,
+        "start": 1075.199999988079,
+        "bytes": 2961,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 148,
+        "start": 1075.3999999761581,
+        "bytes": 17770,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 264.4000000357628,
+        "start": 1075.3999999761581,
+        "bytes": 4742,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 1691,
+        "start": 1075.3999999761581,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 266.5,
+        "start": 1075.5,
+        "bytes": 17421,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/home/",
+    "elapsed_ms": 1422.7
+  },
+  {
+    "navigation": {
+      "ttfb": 224.5999999642372,
+      "dom": 241.0999999642372,
+      "load": 244.89999997615814
+    },
+    "paint": [],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 0,
+        "start": 230.29999995231628,
+        "bytes": 0,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 0,
+        "start": 230.29999995231628,
+        "bytes": 0,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 0,
+        "start": 230.29999995231628,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 0,
+        "start": 230.29999995231628,
+        "bytes": 0,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 0,
+        "start": 230.39999997615814,
+        "bytes": 0,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/transactions/history/",
+    "elapsed_ms": 245.2
+  },
+  {
+    "navigation": {
+      "ttfb": 173.89999997615814,
+      "dom": 188.39999997615814,
+      "load": 192.30000001192093
+    },
+    "paint": [],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 0,
+        "start": 179.60000002384186,
+        "bytes": 0,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 0,
+        "start": 179.60000002384186,
+        "bytes": 0,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 0,
+        "start": 179.80000001192093,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 0,
+        "start": 179.80000001192093,
+        "bytes": 0,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 0,
+        "start": 179.80000001192093,
+        "bytes": 0,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/debts/",
+    "elapsed_ms": 192.2
+  },
+  {
+    "navigation": {
+      "ttfb": 197.69999998807907,
+      "dom": 215.39999997615814,
+      "load": 218.10000002384186
+    },
+    "paint": [],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 0,
+        "start": 204.39999997615814,
+        "bytes": 0,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 0,
+        "start": 204.5,
+        "bytes": 0,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 0,
+        "start": 204.5,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 0,
+        "start": 204.5,
+        "bytes": 0,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 0,
+        "start": 204.60000002384186,
+        "bytes": 0,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/reports/weekly/",
+    "elapsed_ms": 219.5
+  },
+  {
+    "navigation": {
+      "ttfb": 269.69999998807907,
+      "dom": 283,
+      "load": 285.5
+    },
+    "paint": [
+      {
+        "name": "first-paint",
+        "ms": 292
+      },
+      {
+        "name": "first-contentful-paint",
+        "ms": 292
+      }
+    ],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 0,
+        "start": 275.5999999642372,
+        "bytes": 0,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 0,
+        "start": 275.69999998807907,
+        "bytes": 0,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 0,
+        "start": 275.7999999523163,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 0,
+        "start": 275.7999999523163,
+        "bytes": 0,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 0,
+        "start": 275.7999999523163,
+        "bytes": 0,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/home/",
+    "elapsed_ms": 305.1
+  },
+  {
+    "navigation": {
+      "ttfb": 178.10000002384186,
+      "dom": 189.60000002384186,
+      "load": 191.80000001192093
+    },
+    "paint": [],
+    "resources": [
+      {
+        "url": "https://track.hygen.uz/static/css/tokens.510a64320c23.css",
+        "ms": 0,
+        "start": 183.89999997615814,
+        "bytes": 0,
+        "decoded": 7025,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/css/build.1f4ea41498da.css",
+        "ms": 0,
+        "start": 183.89999997615814,
+        "bytes": 0,
+        "decoded": 17426,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://telegram.org/js/telegram-web-app.js",
+        "ms": 0,
+        "start": 184,
+        "bytes": 0,
+        "decoded": 0,
+        "protocol": ""
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/htmx.min.13f08cce9f7b.js",
+        "ms": 0,
+        "start": 184,
+        "bytes": 0,
+        "decoded": 50918,
+        "protocol": "h2"
+      },
+      {
+        "url": "https://track.hygen.uz/static/js/alpine.min.8ff95ecd7ce4.js",
+        "ms": 0,
+        "start": 184,
+        "bytes": 0,
+        "decoded": 44758,
+        "protocol": "h2"
+      }
+    ],
+    "path": "/app/transactions/history/",
+    "elapsed_ms": 193.5
+  }
+]

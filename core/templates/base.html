@@ -8,11 +8,13 @@
         <meta name="theme-color" content="#0A0F0C">
         <meta name="robots" content="noindex,nofollow">
         <title>{% block title %}IWALLET{% endblock %}</title>
-        <link rel="stylesheet" href="{% static 'css/tokens.css' %}?v={% now 'U' %}">
-        <link rel="stylesheet" href="{% static 'css/build.css' %}?v={% now 'U' %}">
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
-        <script defer src="{% static 'js/htmx.min.js' %}?v={% now 'U' %}"></script>
-        <script defer src="{% static 'js/alpine.min.js' %}?v={% now 'U' %}"></script>
+        <link rel="stylesheet" href="{% static 'css/tokens.css' %}">
+        <link rel="stylesheet" href="{% static 'css/build.css' %}">
+        <script async
+                src="https://telegram.org/js/telegram-web-app.js"
+                onload="window.iwInitTelegram && window.iwInitTelegram()"></script>
+        <script defer src="{% static 'js/htmx.min.js' %}"></script>
+        <script defer src="{% static 'js/alpine.min.js' %}"></script>
     </head>
     <body x-data="{ toast: null }"
           @htmx:after-request.window="(function(){ var trig = $event.detail.xhr && $event.detail.xhr.getResponseHeader && $event.detail.xhr.getResponseHeader('HX-Trigger'); if (!trig) return; try { var t = JSON.parse(trig); if (t.toast) { toast = t.toast; setTimeout(function(){ toast = null; }, 3000); } } catch (e) { window._iwLog && window._iwLog('TRIG-ERR', String(e)); } })()">
@@ -111,10 +113,18 @@
         })();
         </script>
         <script>
-        if (window.Telegram && window.Telegram.WebApp) {
-            try { Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
-            catch (e) { window._iwLog && window._iwLog("TG-BOOT-ERR", String(e)); }
-        }
+        window.iwInitTelegram = function () {
+            var tg = window.Telegram && window.Telegram.WebApp;
+            if (!tg || window._iwTelegramReady) return;
+            try {
+                tg.ready();
+                tg.expand();
+                window._iwTelegramReady = true;
+            } catch (e) { window._iwLog && window._iwLog("TG-BOOT-ERR", String(e)); }
+        };
+        // The SDK may finish before or after this inline bootstrap. Initial
+        // authentication can read the launch fragment without waiting for it.
+        window.iwInitTelegram();
         function _getTelegramInitData() {
             var tg = window.Telegram && window.Telegram.WebApp;
             if (tg && tg.initData) return tg.initData;
@@ -122,7 +132,9 @@
                 var hash = window.location.hash || "";
                 var qs = hash.indexOf("#") === 0 ? hash.slice(1) : hash;
                 var fragment = new URLSearchParams(qs).get("tgWebAppData");
-                if (fragment) return decodeURIComponent(fragment);
+                // URLSearchParams has already decoded the outer URL layer.
+                // Decoding again would corrupt the signed initData payload.
+                if (fragment) return fragment;
             } catch (e) { window._iwLog && window._iwLog("FRAG-ERR", String(e)); }
             return "";
         }

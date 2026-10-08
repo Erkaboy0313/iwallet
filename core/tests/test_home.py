@@ -2,12 +2,14 @@
 
 from datetime import date
 from decimal import Decimal
+from unittest.mock import Mock
 
 import pytest
 from django.test import Client, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.middleware import SESSION_KEY
 from accounts.models import User
 from accounts.tests.test_services import BOT_TOKEN, _make_init_data
 from transactions.tests.factories import TransactionFactory
@@ -41,6 +43,69 @@ def test_home_shell_extends_base_layout() -> None:
     body = response.content.decode("utf-8")
     assert "telegram-web-app.js" in body
     assert 'aria-label="Uy"' in body
+
+
+@pytest.mark.django_db
+def test_home_renders_session_users_balance_without_another_request() -> None:
+    user = User.objects.create(telegram_id=100, first_name="Owner", onboarded_at=timezone.now())
+    TransactionFactory(
+        user=user,
+        type="income",
+        amount=Decimal("125000"),
+        currency="UZS",
+        date=timezone.localdate(),
+    )
+    TransactionFactory(
+        type="income", amount=Decimal("987654321"), currency="UZS", date=timezone.localdate()
+    )
+    client = Client()
+    session = client.session
+    session[SESSION_KEY] = user.telegram_id
+    session.save()
+
+    response = client.get(reverse("core:home"))
+
+    assert response.status_code == 200
+    body = response.content.decode()
+    assert "Sof balans" in body
+    assert "125\u2009000" in body
+    assert "987\u2009654\u2009321" not in body
+    assert 'hx-get="/app/home/content/"' not in body
+    assert "sessionid" not in response.cookies  # Reading a page need not write the session.
+
+
+@pytest.mark.django_db
+def test_home_with_deleted_session_user_still_renders_public_shell() -> None:
+    client = Client()
+    session = client.session
+    session[SESSION_KEY] = 999999
+    session.save()
+
+    response = client.get(reverse("core:home"))
+
+    assert response.status_code == 200
+    assert 'hx-get="/app/home/content/"' in response.content.decode()
+
+
+@pytest.mark.django_db
+def test_home_never_waits_for_external_rates_when_database_has_none(monkeypatch) -> None:
+    from currencies.models import ExchangeRate
+
+    ExchangeRate.objects.all().delete()
+    fetch = Mock(side_effect=AssertionError("Page rendering must not call CBU"))
+    monkeypatch.setattr("currencies.services.fetch_cbu_rates", fetch)
+    user = User.objects.create(telegram_id=101, onboarded_at=timezone.now())
+    client = Client()
+    session = client.session
+    session[SESSION_KEY] = user.telegram_id
+    session.save()
+
+    for name in ("core:home", "core:home_content"):
+        response = client.get(reverse(name))
+        assert response.status_code == 200
+        assert "Sof balans" in response.content.decode()
+        assert "sessionid" not in response.cookies
+    fetch.assert_not_called()
 
 
 # ---------- /app/home/content/ (auth required) ----------

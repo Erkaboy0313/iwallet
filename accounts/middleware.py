@@ -100,5 +100,5 @@ def _remember(request, telegram_id: int) -> None:
     skipping there keeps the middleware unit-testable without extra setup.
     """
     session = getattr(request, "session", None)
-    if session is not None:
+    if session is not None and session.get(SESSION_KEY) != telegram_id:
         session[SESSION_KEY] = telegram_id

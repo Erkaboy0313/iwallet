@@ -46,7 +46,7 @@ def _webapp_url(start_param: str | None = None) -> str:
     base = getattr(
         settings,
         "WEBAPP_URL",
-        "https://iwallet.buildermode.uz/app/home/",
+        "https://track.hygen.uz/app/home/",
     )
     if start_param:
         sep = "&" if "?" in base else "?"

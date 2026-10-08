@@ -8,7 +8,7 @@ the Bot API. Run once after deploy; safe to re-run.
 
 import json
 
-import requests
+import httpx
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
@@ -35,9 +35,7 @@ class Command(BaseCommand):
         if not token:
             raise CommandError("TELEGRAM_BOT_TOKEN not configured in settings")
 
-        url = options["url"] or getattr(
-            settings, "WEBAPP_URL", "https://iwallet.buildermode.uz/app/home/"
-        )
+        url = options["url"] or getattr(settings, "WEBAPP_URL", "https://track.hygen.uz/app/home/")
         text = options["text"]
 
         payload = {
@@ -49,7 +47,7 @@ class Command(BaseCommand):
         }
 
         self.stdout.write(f"Posting setChatMenuButton with: {json.dumps(payload)}")
-        resp = requests.post(
+        resp = httpx.post(
             f"{BOT_API_BASE}/bot{token}/setChatMenuButton",
             json=payload,
             timeout=10,
@@ -59,5 +57,5 @@ class Command(BaseCommand):
             raise CommandError(f"Telegram API rejected: {data}")
         self.stdout.write(self.style.SUCCESS(f"Menu button set OK: {data}"))
 
-        verify = requests.get(f"{BOT_API_BASE}/bot{token}/getChatMenuButton", timeout=10).json()
+        verify = httpx.get(f"{BOT_API_BASE}/bot{token}/getChatMenuButton", timeout=10).json()
         self.stdout.write(f"getChatMenuButton: {json.dumps(verify, indent=2)}")
