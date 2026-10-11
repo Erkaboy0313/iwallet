@@ -71,7 +71,8 @@ def test_hide_today_endpoint_sets_session_flag() -> None:
         reverse("quotes:hide_today"),
         headers={"X-Telegram-InitData": _make_init_data(user_id=16, first_name="Eric")},
     )
-    assert response.status_code == 204
+    assert response.status_code == 200
+    assert response.content == b""
     assert client.session.get("iw_quote_hidden_today") is True
 
 

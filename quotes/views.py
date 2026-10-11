@@ -12,11 +12,11 @@ from .services import SESSION_HIDE_TODAY, dismiss_forever
 def hide_today(request) -> HttpResponse:
     """Hide the quote for the current WebApp session only.
 
-    Returns 204 — htmx hx-swap=outerHTML on the quote card pops it from the
-    DOM client-side so the server doesn't need to render replacement HTML.
+    An empty 200 response lets htmx replace the card with nothing.
+    A 204 response skips swapping and leaves the dismissed card visible.
     """
     request.session[SESSION_HIDE_TODAY] = True
-    return HttpResponse(status=204)
+    return HttpResponse("")
 
 
 @require_POST
