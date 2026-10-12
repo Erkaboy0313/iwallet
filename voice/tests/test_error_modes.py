@@ -61,7 +61,9 @@ def test_gemini_unavailable_returns_503_and_error_partial(monkeypatch) -> None:
     response = _post_audio(Client())
     assert response.status_code == 503
     body = response.content.decode("utf-8")
-    assert "Gemini" in body or "mavjud emas" in body
+    assert "Ovoz xizmati hozir mavjud emas" in body
+    # The STT vendor is an implementation detail — it must never reach the UI.
+    assert "Gemini" not in body
     assert "Qaytadan" in body
     assert "Qo'lda" in body
 
